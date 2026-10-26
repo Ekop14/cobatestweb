@@ -550,37 +550,22 @@ body {
     opacity: 1;
 }
 
-/* Sidebar harus di atas overlay */
-.sidebar {
-    z-index: 40;
+/* Sidebar Overlay (Mobile) */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
+    z-index: 30;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
-@media (max-width: 1024px) {
-    .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        transform: translateX(-100%);
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
-    }
-    
-    .sidebar.open {
-        transform: translateX(0);
-    }
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-    .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        transform: translateX(-100%);
-    }
-    
-    .sidebar.open {
-        transform: translateX(0);
-    }
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
 }
 
 @media (max-width: 640px) {
