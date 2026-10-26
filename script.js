@@ -83,4 +83,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 { transform: 'translateX(-8px)' },
                 { transform: 'translateX(8px)' },
                 { transform: 'translateX(-4px)' },
-                {
+                { transform: 'translateX(4px)' },
+                { transform: 'translateX(0)' }
+            ],
+            { duration: 400, easing: 'ease-in-out' }
+        );
+    }
+
+    // ============================================
+    // Success Feedback (Custom Notification)
+    // ============================================
+    function showSuccess() {
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-6 right-6 z-50 px-6 py-4 rounded-xl text-white font-medium';
+        notification.style.cssText = `
+            background: rgba(34, 197, 94, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        `;
+        notification.innerHTML = `
+            <div class="flex items-center gap-3">
+                <svg class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Login successful!</span>
+            </div>
+        `;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.4s ease forwards';
+            setTimeout(() => notification.remove(), 400);
+        }, 3000);
+    }
+
+    // Inject animation keyframes untuk notifikasi
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+});
