@@ -6,7 +6,144 @@ document.addEventListener('DOMContentLoaded', () => {
         initChecklistPage();
     }
 });
+// Simpan data checklist ke Supabase
+async function saveToSupabase(data) {
+    try {
+        const { data: submission, error } = await supabase
+            .from('checklist_submissions')
+            .insert({
+                user_name: currentUser.name,
+                user_email: currentUser.email,
+                floor_items: data.floor,
+                rack_items: data.rack,
+                dock_items: data.dock,
+                facility_items: data.facility,
+                total_items: data.total,
+                completed_items: data.completed,
+                progress_percentage: data.progress,
+                status: data.progress === 100 ? 'completed' : 'in_progress'
+            })
+            .select()
+            .single();
 
+        if (error) throw error;
+        
+        console.log('✅ Data saved to Supabase:', submission);
+        showNotification('Data berhasil disimpan ke database! ✅', 'success');
+        return submission;
+    } catch (error) {
+        console.error(' Error saving to Supabase:', error);
+        showNotification('Gagal menyimpan data: ' + error.message, 'error');
+        return null;
+    }
+}
+
+// Ambil data checklist terakhir dari Supabase
+async function loadFromSupabase() {
+    try {
+        const { data, error } = await supabase
+            .from('checklist_submissions')
+            .select('*')
+            .eq('user_email', currentUser.email)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        
+        if (data) {
+            console.log(' Loaded from Supabase:', data);
+            return data;
+        }
+        return null;
+    } catch (error) {
+        console.error(' Error loading from Supabase:', error);
+        return null;
+    }
+}
+
+// Update fungsi submit button
+submitChecklistBtn?.addEventListener('click', async () => {
+    const total = allCheckboxes.length;
+    const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+    
+    if (completed < total) {
+        showNotification(`Selesaikan semua tugas dulu (${completed}/${total})`, 'warning');
+        return;
+    }
+    
+    // Kumpulkan data dari semua checkbox
+    const checklistData = {
+        floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({
+            task: cb.nextElementSibling.textContent,
+            checked: cb.checked
+        })),
+        rack: Array.from(document.querySelectorAll('[data-card="rack"]')).map(cb => ({
+            task: cb.nextElementSibling.textContent,
+            checked: cb.checked
+        })),
+        dock: Array.from(document.querySelectorAll('[data-card="dock"]')).map(cb => ({
+            task: cb.nextElementSibling.textContent,
+            checked: cb.checked
+        })),
+        facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({
+            task: cb.nextElementSibling.textContent,
+            checked: cb.checked
+        })),
+        total: total,
+        completed: completed,
+        progress: 100
+    };
+    
+    // Simpan ke Supabase
+    const result = await saveToSupabase(checklistData);
+    
+    if (result) {
+        showNotification('Laporan kebersihan berhasil dikirim! ID: ' + result.id.slice(0, 8), 'success');
+    }
+});
+
+// Auto-save ke Supabase setiap 30 detik (opsional)
+setInterval(async () => {
+    const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+    const total = allCheckboxes.length;
+    
+    if (completed > 0) {
+        const checklistData = {
+            floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({
+                task: cb.nextElementSibling.textContent,
+                checked: cb.checked
+            })),
+            rack: Array.from(document.querySelectorAll('[data-card="rack"]')).map(cb => ({
+                task: cb.nextElementSibling.textContent,
+                checked: cb.checked
+            })),
+            dock: Array.from(document.querySelectorAll('[data-card="dock"]')).map(cb => ({
+                task: cb.nextElementSibling.textContent,
+                checked: cb.checked
+            })),
+            facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({
+                task: cb.nextElementSibling.textContent,
+                checked: cb.checked
+            })),
+            total: total,
+            completed: completed,
+            progress: Math.round((completed / total) * 100)
+        };
+        
+        console.log('💾 Auto-saving to Supabase...');
+        await saveToSupabase(checklistData);
+    }
+}, 30000); // Setiap 30 detik
+
+// Load data saat halaman pertama kali dibuka
+window.addEventListener('load', async () => {
+    const savedData = await loadFromSupabase();
+    if (savedData) {
+        console.log(' Restored from Supabase');
+        // Restore checkbox state dari savedData jika perlu
+    }
+});
 /* ============================================
    HALAMAN LOGIN
    ============================================ */
