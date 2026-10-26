@@ -1,584 +1,129 @@
 /* ============================================
-   GLASSMORPHISM LOGIN - PROFESSIONAL THEME
+   MOBILE SIDEBAR - FIXED LAYOUT
    ============================================ */
 
-/* Base Body */
-body {
-    background: #0a0a1f;
-}
-
-/* Background Mesh dengan Animated Blobs */
-.background-mesh {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-    overflow: hidden;
-}
-
-.blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.6;
-    animation: float 20s infinite ease-in-out;
-}
-
-.blob-1 {
-    width: 500px;
-    height: 500px;
-    background: #667eea;
-    top: -150px;
-    left: -100px;
-    animation-delay: 0s;
-}
-
-.blob-2 {
-    width: 400px;
-    height: 400px;
-    background: #f093fb;
-    top: 50%;
-    right: -100px;
-    animation-delay: -5s;
-}
-
-.blob-3 {
-    width: 450px;
-    height: 450px;
-    background: #4facfe;
-    bottom: -150px;
-    left: 30%;
-    animation-delay: -10s;
-}
-
-.blob-4 {
-    width: 350px;
-    height: 350px;
-    background: #a78bfa;
-    top: 30%;
-    left: 20%;
-    animation-delay: -15s;
-}
-
-@keyframes float {
-    0%, 100% {
-        transform: translate(0, 0) scale(1);
+@media (max-width: 1024px) {
+    /* Layout container */
+    .flex.min-h-screen {
+        display: block !important;
     }
-    33% {
-        transform: translate(50px, -50px) scale(1.1);
+
+    /* Sidebar */
+    .sidebar {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 280px !important;
+        height: 100vh !important;
+        transform: translateX(-100%) !important;
+        z-index: 50 !important;
+        background: rgba(15, 12, 41, 0.98) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        box-shadow: 4px 0 32px rgba(0, 0, 0, 0.5) !important;
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
-    66% {
-        transform: translate(-30px, 30px) scale(0.95);
+
+    .sidebar.open {
+        transform: translateX(0) !important;
     }
-}
 
-/* Noise Overlay untuk tekstur halus */
-.noise-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1;
-    opacity: 0.03;
-    pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-}
-
-/* ============================================
-   GLASS CARD - Elemen Utama
-   ============================================ */
-.glass-card {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 24px;
-    padding: 2.5rem;
-    box-shadow: 
-        0 8px 32px 0 rgba(0, 0, 0, 0.37),
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-    animation: cardFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    opacity: 0;
-    transform: translateY(20px);
-}
-
-@keyframes cardFadeIn {
-    to {
-        opacity: 1;
-        transform: translateY(0);
+    /* Main content */
+    main {
+        width: 100% !important;
+        min-height: 100vh;
+        transition: filter 0.3s ease !important;
     }
-}
 
-/* Glass Icon (Logo) */
-.glass-icon {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    box-shadow: 
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-/* ============================================
-   GLASS INPUT - Field Input
-   ============================================ */
-.glass-input {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    color: white;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-    outline: none;
-}
-
-.glass-input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.glass-input:focus {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 
-        0 0 0 4px rgba(255, 255, 255, 0.05),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-/* ============================================
-   GLASS CHECKBOX
-   ============================================ */
-.glass-checkbox {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 5px;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.2s ease;
-}
-
-.glass-checkbox:checked {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: transparent;
-}
-
-.glass-checkbox:checked::after {
-    content: '';
-    position: absolute;
-    left: 5px;
-    top: 1px;
-    width: 5px;
-    height: 10px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-.glass-checkbox:hover {
-    border-color: rgba(255, 255, 255, 0.4);
-}
-
-/* ============================================
-   GLASS BUTTON - Primary
-   ============================================ */
-.glass-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    font-weight: 600;
-    font-size: 0.95rem;
-    padding: 0.9rem 1.5rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 
-        0 4px 16px rgba(102, 126, 234, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-.glass-button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.6s ease;
-}
-
-.glass-button:hover::before {
-    left: 100%;
-}
-
-.glass-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 
-        0 8px 24px rgba(102, 126, 234, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-.glass-button:active {
-    transform: translateY(0);
-}
-
-.glass-button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* ============================================
-   GLASS BUTTON OUTLINE - Secondary
-   ============================================ */
-.glass-button-outline {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    color: white;
-    font-weight: 500;
-    font-size: 0.9rem;
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.glass-button-outline:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-1px);
-}
-
-/* ============================================
-   LOADING SPINNER
-   ============================================ */
-.spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-@media (max-width: 480px) {
-    .glass-card {
-        padding: 1.75rem;
-        border-radius: 20px;
+    /* Saat sidebar terbuka, blur main content */
+    main.blurred {
+        filter: blur(4px) brightness(0.7) !important;
+        pointer-events: none !important;
     }
-    
-    .blob {
-        filter: blur(60px);
+
+    /* Overlay */
+    .sidebar-overlay {
+        display: none !important;
+        position: fixed !important;
+        inset: 0 !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        z-index: 40 !important;
+        opacity: 0 !important;
+        transition: opacity 0.3s ease !important;
     }
-}
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-}
-::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-}
-::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-/* ============================================
-   CHECKLIST PAGE - SIDEBAR & CARDS
-   ============================================ */
-
-/* Sidebar */
-.sidebar {
-    width: 280px;
-    height: 100vh;
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    z-index: 40;
-}
-
-/* Top Header Glass */
-.glass-header {
-    background: rgba(10, 10, 31, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-/* Navigation Items */
-.nav-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.65rem 0.85rem;
-    border-radius: 10px;
-    color: rgba(255, 255, 255, 0.65);
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-}
-
-.nav-item.active {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.25), rgba(118, 75, 162, 0.25));
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-}
-
-/* Category Filter Buttons */
-.category-btn {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 0.5rem 0.85rem;
-    border-radius: 8px;
-    color: rgba(255, 255, 255, 0.55);
-    font-size: 0.8rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-}
-
-.category-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-}
-
-.category-btn.active {
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
-}
-
-/* Progress Bar */
-.glass-progress {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.glass-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    border-radius: 10px;
-    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
-}
-
-/* Stat Cards */
-.stat-card {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    transition: all 0.3s ease;
-    animation: cardFadeIn 0.6s ease forwards;
-    opacity: 0;
-}
-
-.stat-card:nth-child(1) { animation-delay: 0.1s; }
-.stat-card:nth-child(2) { animation-delay: 0.2s; }
-.stat-card:nth-child(3) { animation-delay: 0.3s; }
-.stat-card:nth-child(4) { animation-delay: 0.4s; }
-
-.stat-card:hover {
-    background: rgba(255, 255, 255, 0.09);
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.18);
-}
-
-.stat-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.stat-icon svg {
-    width: 22px;
-    height: 22px;
-}
-
-/* Checklist Card */
-.checklist-card {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 1.5rem;
-    transition: all 0.3s ease;
-    animation: cardFadeIn 0.6s ease forwards;
-    opacity: 0;
-}
-
-.checklist-card:nth-child(1) { animation-delay: 0.2s; }
-.checklist-card:nth-child(2) { animation-delay: 0.3s; }
-.checklist-card:nth-child(3) { animation-delay: 0.4s; }
-.checklist-card:nth-child(4) { animation-delay: 0.5s; }
-
-.checklist-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.18);
-    transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
-}
-
-.checklist-card.hidden-card {
-    display: none;
-}
-
-.card-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.card-icon svg {
-    width: 22px;
-    height: 22px;
-}
-
-.card-badge {
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.3rem 0.7rem;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Checklist Item */
-.checklist-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.65rem 0.75rem;
-    border-radius: 10px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.checklist-item:hover {
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.checklist-item .glass-checkbox {
-    flex-shrink: 0;
-}
-
-.checklist-text {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-    flex: 1;
-}
-
-.checklist-item.completed .checklist-text {
-    color: rgba(255, 255, 255, 0.4);
-    text-decoration: line-through;
-}
-
-/* Sidebar Overlay (Mobile) */
-.sidebar-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-    z-index: 30;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.sidebar-overlay.active {
-    display: block;
-    opacity: 1;
-}
-
-/* Sidebar Overlay (Mobile) */
-.sidebar-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(1px);
-    -webkit-backdrop-filter: blur(1px);
-    z-index: 30;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.sidebar-overlay.active {
-    display: block;
-    opacity: 1;
-}
-
-@media (max-width: 640px) {
-    .stat-card {
-        padding: 1rem;
+    .sidebar-overlay.active {
+        display: block !important;
+        opacity: 1 !important;
     }
-    
-    .stat-icon {
-        width: 38px;
-        height: 38px;
+
+    /* Header adjustments */
+    .glass-header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 20 !important;
+        background: rgba(10, 10, 31, 0.95) !important;
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
     }
-    
+
+    /* Content padding */
+    .px-6.lg\:px-8 {
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+    }
+
+    /* Stats grid */
+    .grid.grid-cols-2.lg\:grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem !important;
+    }
+
+    /* Checklist grid */
+    #checklistGrid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+
+    /* Card adjustments */
+    .stat-card,
     .checklist-card {
-        padding: 1.25rem;
+        padding: 1rem !important;
+    }
+
+    .stat-icon,
+    .card-icon {
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    /* Typography */
+    h2 {
+        font-size: 1.25rem !important;
+    }
+
+    h3 {
+        font-size: 1.1rem !important;
+    }
+
+    .checklist-text {
+        font-size: 0.875rem !important;
+    }
+}
+
+/* Desktop - sidebar tetap visible */
+@media (min-width: 1025px) {
+    .sidebar {
+        position: relative !important;
+        transform: translateX(0) !important;
+    }
+
+    .sidebar-overlay {
+        display: none !important;
+    }
+
+    main {
+        filter: none !important;
+        pointer-events: auto !important;
     }
 }
