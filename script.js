@@ -133,3 +133,271 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(style);
 });
+/* ============================================
+   CHECKLIST PAGE LOGIC
+   ============================================ */
+
+// Jalankan hanya jika elemen checklist ada (halaman checklist.html)
+if (document.getElementById('checklistGrid')) {
+    initChecklistPage();
+}
+
+function initChecklistPage() {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const searchInput = document.getElementById('searchInput');
+    const categoryButtons = document.querySelectorAll('.category-btn');
+    const checklistCards = document.querySelectorAll('.checklist-card');
+    const allCheckboxes = document.querySelectorAll('.checklist-card .glass-checkbox');
+    const resetAllBtn = document.getElementById('resetAllBtn');
+    const submitChecklistBtn = document.getElementById('submitChecklistBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // ============================================
+    // Sidebar Toggle (Mobile)
+    // ============================================
+    sidebarToggle?.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        sidebarOverlay.classList.toggle('active');
+    });
+
+    sidebarOverlay?.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('active');
+    });
+
+    // ============================================
+    // Category Filter
+    // ============================================
+    categoryButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            categoryButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const category = btn.dataset.category;
+            
+            checklistCards.forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.classList.remove('hidden-card');
+                } else {
+                    card.classList.add('hidden-card');
+                }
+            });
+        });
+    });
+
+    // ============================================
+    // Search Filter
+    // ============================================
+    searchInput?.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        
+        checklistCards.forEach(card => {
+            const items = card.querySelectorAll('.checklist-text');
+            let hasMatch = false;
+            
+            items.forEach(item => {
+                if (item.textContent.toLowerCase().includes(query)) {
+                    hasMatch = true;
+                    item.parentElement.style.display = '';
+                } else {
+                    item.parentElement.style.display = query ? 'none' : '';
+                }
+            });
+            
+            card.classList.toggle('hidden-card', query && !hasMatch);
+        });
+    });
+
+    // ============================================
+    // Checkbox Handler dengan Progress Update
+    // ============================================
+    allCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            const item = checkbox.closest('.checklist-item');
+            item.classList.toggle('completed', checkbox.checked);
+            
+            updateCardProgress(checkbox.dataset.card);
+            updateOverallProgress();
+            updateStats();
+            saveToLocalStorage();
+        });
+    });
+
+    // ============================================
+    // Update Progress per Card
+    // ============================================
+    function updateCardProgress(category) {
+        const card = document.querySelector(`.checklist-card[data-category="${category}"]`);
+        if (!card) return;
+        
+        const checkboxes = card.querySelectorAll('.glass-checkbox');
+        const checked = card.querySelectorAll('.glass-checkbox:checked');
+        const percent = checkboxes.length ? (checked.length / checkboxes.length) * 100 : 0;
+        
+        const progressBar = card.querySelector('.card-progress-fill');
+        if (progressBar) {
+            progressBar.style.width = percent + '%';
+        }
+    }
+
+    // ============================================
+    // Update Overall Progress
+    // ============================================
+    function updateOverallProgress() {
+        const total = allCheckboxes.length;
+        const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+        const percent = total ? Math.round((completed / total) * 100) : 0;
+        
+        const overallBar = document.getElementById('overallProgressBar');
+        const overallText = document.getElementById('overallProgressText');
+        const completedCount = document.getElementById('completedCount');
+        const totalCount = document.getElementById('totalCount');
+        
+        if (overallBar) overallBar.style.width = percent + '%';
+        if (overallText) overallText.textContent = percent + '%';
+        if (completedCount) completedCount.textContent = completed;
+        if (totalCount) totalCount.textContent = total;
+    }
+
+    // ============================================
+    // Update Stats Cards
+    // ============================================
+    function updateStats() {
+        const total = allCheckboxes.length;
+        const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+        const pending = total - completed;
+        const percent = total ? Math.round((completed / total) * 100) : 0;
+        
+        const statTotal = document.getElementById('statTotal');
+        const statCompleted = document.getElementById('statCompleted');
+        const statPending = document.getElementById('statPending');
+        const statProgress = document.getElementById('statProgress');
+        
+        if (statTotal) statTotal.textContent = total;
+        if (statCompleted) statCompleted.textContent = completed;
+        if (statPending) statPending.textContent = pending;
+        if (statProgress) statProgress.textContent = percent + '%';
+    }
+
+    // ============================================
+    // LocalStorage - Simpan State Checklist
+    // ============================================
+    function saveToLocalStorage() {
+        const state = {};
+        allCheckboxes.forEach((cb, index) => {
+            state[`cb_${index}`] = cb.checked;
+        });
+        localStorage.setItem('mhe_checklist_state', JSON.stringify(state));
+    }
+
+    function loadFromLocalStorage() {
+        const saved = localStorage.getItem('mhe_checklist_state');
+        if (!saved) return;
+        
+        try {
+            const state = JSON.parse(saved);
+            allCheckboxes.forEach((cb, index) => {
+                if (state[`cb_${index}`]) {
+                    cb.checked = true;
+                    cb.closest('.checklist-item').classList.add('completed');
+                }
+            });
+            
+            // Update semua progress
+            ['preflight', 'system', 'safety', 'final'].forEach(updateCardProgress);
+            updateOverallProgress();
+            updateStats();
+        } catch (e) {
+            console.error('Error loading checklist state:', e);
+        }
+    }
+
+    // ============================================
+    // Reset All
+    // ============================================
+    resetAllBtn?.addEventListener('click', () => {
+        if (!confirm('Are you sure you want to reset all checklist items?')) return;
+        
+        allCheckboxes.forEach(cb => {
+            cb.checked = false;
+            cb.closest('.checklist-item').classList.remove('completed');
+        });
+        
+        ['preflight', 'system', 'safety', 'final'].forEach(updateCardProgress);
+        updateOverallProgress();
+        updateStats();
+        localStorage.removeItem('mhe_checklist_state');
+        
+        showNotification('Checklist has been reset', 'info');
+    });
+
+    // ============================================
+    // Submit Checklist
+    // ============================================
+    submitChecklistBtn?.addEventListener('click', () => {
+        const total = allCheckboxes.length;
+        const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+        
+        if (completed < total) {
+            showNotification(`Please complete all tasks (${completed}/${total})`, 'warning');
+            return;
+        }
+        
+        showNotification('Checklist submitted successfully!', 'success');
+    });
+
+    // ============================================
+    // Logout
+    // ============================================
+    logoutBtn?.addEventListener('click', () => {
+        if (confirm('Are you sure you want to logout?')) {
+            window.location.href = 'index.html';
+        }
+    });
+
+    // ============================================
+    // Notification System
+    // ============================================
+    function showNotification(message, type = 'info') {
+        const colors = {
+            success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' },
+            warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' },
+            info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' }
+        };
+        
+        const c = colors[type] || colors.info;
+        
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-6 right-6 z-50 px-6 py-4 rounded-xl text-white font-medium';
+        notification.style.cssText = `
+            background: ${c.bg};
+            backdrop-filter: blur(20px);
+            border: 1px solid ${c.border};
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        `;
+        notification.innerHTML = `
+            <div class="flex items-center gap-3">
+                <svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" />
+                </svg>
+                <span>${message}</span>
+            </div>
+        `;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.4s ease forwards';
+            setTimeout(() => notification.remove(), 400);
+        }, 3000);
+    }
+
+    // ============================================
+    // Initialize on Load
+    // ============================================
+    loadFromLocalStorage();
+    updateStats();
+}
+
