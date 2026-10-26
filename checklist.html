@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mHe Checklist | Dashboard</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="font-['Inter'] min-h-screen overflow-hidden relative">
+
+    <!-- Background Mesh -->
+    <div class="background-mesh">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+        <div class="blob blob-4"></div>
+    </div>
+    <div class="noise-overlay"></div>
+
+    <!-- Layout Container -->
+    <div class="flex h-screen relative z-10">
+
+        <!-- ============================================
+             SIDEBAR
+             ============================================ -->
+        <aside id="sidebar" class="sidebar">
+            <!-- Logo -->
+            <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+                <div class="glass-icon p-2.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-white font-bold text-lg tracking-tight">mHe</h1>
+                    <p class="text-white/50 text-xs">Checklist System</p>
+                </div>
+            </div>
+
+            <!-- Overall Progress -->
+            <div class="px-6 py-5 border-b border-white/10">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs text-white/60 uppercase tracking-wider font-medium">Overall Progress</span>
+                    <span id="overallProgressText" class="text-sm text-white font-semibold">0%</span>
+                </div>
+                <div class="glass-progress">
+                    <div id="overallProgressBar" class="glass-progress-fill" style="width: 0%"></div>
+                </div>
+                <p class="text-xs text-white/50 mt-2">
+                    <span id="completedCount">0</span> of <span id="totalCount">0</span> tasks completed
+                </p>
+            </div>
+
+            <!-- Navigation Menu -->
+            <nav class="px-4 py-5 flex-1 overflow-y-auto">
+                <p class="text-xs text-white/40 uppercase tracking-widest font-medium px-3 mb-3">Menu</p>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" class="nav-item">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item active">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <span>Checklist</span>
+                            <span class="ml-auto bg-white/10 text-white/80 text-xs px-2 py-0.5 rounded-full">4</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>History</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-item">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <p class="text-xs text-white/40 uppercase tracking-widest font-medium px-3 mt-6 mb-3">Categories</p>
+                <ul class="space-y-1" id="categoryFilter">
+                    <li><button class="category-btn active" data-category="all">All Categories</button></li>
+                    <li><button class="category-btn" data-category="preflight">Pre-Flight Check</button></li>
+                    <li><button class="category-btn" data-category="system">System Diagnostics</button></li>
+                    <li><button class="category-btn" data-category="safety">Safety Protocol</button></li>
+                    <li><button class="category-btn" data-category="final">Final Review</button></li>
+                </ul>
+            </nav>
+
+            <!-- User Profile -->
+            <div class="px-4 py-4 border-t border-white/10">
+                <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition cursor-pointer">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
+                        A
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-white text-sm font-medium truncate">Admin User</p>
+                        <p class="text-white/50 text-xs truncate">admin@mhe.com</p>
+                    </div>
+                    <button id="logoutBtn" class="text-white/50 hover:text-white transition p-1.5 rounded-lg hover:bg-white/10">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ============================================
+             MAIN CONTENT
+             ============================================ -->
+        <main class="flex-1 overflow-y-auto">
+            <!-- Top Header -->
+            <header class="sticky top-0 z-20 glass-header">
+                <div class="flex items-center justify-between px-6 lg:px-8 py-4">
+                    <!-- Left: Toggle + Title -->
+                    <div class="flex items-center gap-4">
+                        <button id="sidebarToggle" class="lg:hidden text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                        <div>
+                            <h2 class="text-xl lg:text-2xl font-bold text-white tracking-tight">mHe Checklist</h2>
+                            <p class="text-white/50 text-sm">Tuesday, October 27, 2026</p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Actions -->
+                    <div class="flex items-center gap-3">
+                        <div class="hidden md:flex items-center glass-input px-4 py-2">
+                            <svg class="h-4 w-4 text-white/50 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input type="text" id="searchInput" placeholder="Search tasks..." class="bg-transparent outline-none text-white text-sm placeholder-white/40 w-40 lg:w-56">
+                        </div>
+                        <button class="glass-button-outline !py-2 !px-3">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                        </button>
+                        <button id="resetAllBtn" class="glass-button !py-2 !px-4 text-sm">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span class="hidden sm:inline">Reset</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="px-6 lg:px-8 py-6">
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-blue-500/20 text-blue-400">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-white/50 text-xs uppercase tracking-wider">Total Tasks</p>
+                            <p id="statTotal" class="text-2xl font-bold text-white mt-1">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-green-500/20 text-green-400">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-white/50 text-xs uppercase tracking-wider">Completed</p>
+                            <p id="statCompleted" class="text-2xl font-bold text-white mt-1">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-amber-500/20 text-amber-400">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-white/50 text-xs uppercase tracking-wider">Pending</p>
+                            <p id="statPending" class="text-2xl font-bold text-white mt-1">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-purple-500/20 text-purple-400">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-white/50 text-xs uppercase tracking-wider">Progress</p>
+                            <p id="statProgress" class="text-2xl font-bold text-white mt-1">0%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Checklist Cards Grid -->
+                <div id="checklistGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                    <!-- Card 1: Pre-Flight Check -->
+                    <div class="checklist-card" data-category="preflight">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="card-icon bg-blue-500/20 text-blue-400">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-white font-semibold text-lg">Pre-Flight Check</h3>
+                                    <p class="text-white/50 text-xs">Initial system verification</p>
+                                </div>
+                            </div>
+                            <span class="card-badge bg-blue-500/20 text-blue-300">Phase 1</span>
+                        </div>
+                        <div class="glass-progress mb-4">
+                            <div class="card-progress-fill bg-gradient-to-r from-blue-400 to-blue-600" style="width: 0%"></div>
+                        </div>
+                        <ul class="checklist-items space-y-2">
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="preflight">
+                                <span class="checklist-text">Verify power supply connection</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="preflight">
+                                <span class="checklist-text">Check network connectivity status</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="preflight">
+                                <span class="checklist-text">Validate authentication credentials</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="preflight">
+                                <span class="checklist-text">Confirm database synchronization</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="preflight">
+                                <span class="checklist-text">Review system logs for errors</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 2: System Diagnostics -->
+                    <div class="checklist-card" data-category="system">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="card-icon bg-purple-500/20 text-purple-400">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-white font-semibold text-lg">System Diagnostics</h3>
+                                    <p class="text-white/50 text-xs">Hardware & software analysis</p>
+                                </div>
+                            </div>
+                            <span class="card-badge bg-purple-500/20 text-purple-300">Phase 2</span>
+                        </div>
+                        <div class="glass-progress mb-4">
+                            <div class="card-progress-fill bg-gradient-to-r from-purple-400 to-purple-600" style="width: 0%"></div>
+                        </div>
+                        <ul class="checklist-items space-y-2">
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="system">
+                                <span class="checklist-text">Run CPU stress test</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="system">
+                                <span class="checklist-text">Monitor memory allocation</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="system">
+                                <span class="checklist-text">Check disk health status</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="system">
+                                <span class="checklist-text">Validate thermal thresholds</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 3: Safety Protocol -->
+                    <div class="checklist-card" data-category="safety">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="card-icon bg-amber-500/20 text-amber-400">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-white font-semibold text-lg">Safety Protocol</h3>
+                                    <p class="text-white/50 text-xs">Security & compliance check</p>
+                                </div>
+                            </div>
+                            <span class="card-badge bg-amber-500/20 text-amber-300">Phase 3</span>
+                        </div>
+                        <div class="glass-progress mb-4">
+                            <div class="card-progress-fill bg-gradient-to-r from-amber-400 to-amber-600" style="width: 0%"></div>
+                        </div>
+                        <ul class="checklist-items space-y-2">
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="safety">
+                                <span class="checklist-text">Verify SSL certificate validity</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="safety">
+                                <span class="checklist-text">Review firewall configurations</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="safety">
+                                <span class="checklist-text">Check backup encryption status</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="safety">
+                                <span class="checklist-text">Audit user access permissions</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="safety">
+                                <span class="checklist-text">Validate data retention policies</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="safety">
+                                <span class="checklist-text">Confirm incident response plan</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 4: Final Review -->
+                    <div class="checklist-card" data-category="final">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="card-icon bg-green-500/20 text-green-400">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-white font-semibold text-lg">Final Review</h3>
+                                    <p class="text-white/50 text-xs">Deployment readiness</p>
+                                </div>
+                            </div>
+                            <span class="card-badge bg-green-500/20 text-green-300">Phase 4</span>
+                        </div>
+                        <div class="glass-progress mb-4">
+                            <div class="card-progress-fill bg-gradient-to-r from-green-400 to-green-600" style="width: 0%"></div>
+                        </div>
+                        <ul class="checklist-items space-y-2">
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="final">
+                                <span class="checklist-text">Final performance benchmark</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="final">
+                                <span class="checklist-text">Generate compliance report</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="final">
+                                <span class="checklist-text">Notify stakeholders</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="final">
+                                <span class="checklist-text">Archive documentation</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+
+                <!-- Footer Action -->
+                <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 glass-card !p-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
+                            <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-white font-medium text-sm">Ready to submit?</p>
+                            <p class="text-white/50 text-xs">Complete all phases to proceed with deployment</p>
+                        </div>
+                    </div>
+                    <button id="submitChecklistBtn" class="glass-button !py-2.5 !px-6">
+                        <span>Submit Checklist</span>
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
