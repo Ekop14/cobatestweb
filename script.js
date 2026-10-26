@@ -341,3 +341,44 @@ function initChecklistPage() {
     loadState();
     updateStats();
 }
+document.getElementById('downloadReportBtn')?.addEventListener('click', async () => {
+    const { data, error } = await supabase
+        .from('checklist_submissions')
+        .select('*')
+        .eq('user_email', currentUser.email)
+        .order('created_at', { ascending: false })
+        .limit(10);
+    
+    if (error) {
+        showNotification('Gagal mengambil data', 'error');
+        return;
+    }
+    
+    // Convert ke CSV
+    const csv = convertToCSV(data);
+    downloadCSV(csv, 'laporan-kebersihan.csv');
+    showNotification('Laporan berhasil diunduh!', 'success');
+});
+
+function convertToCSV(data) {
+    const headers = ['Tanggal', 'User', 'Total Items', 'Completed', 'Progress', 'Status'];
+    const rows = data.map(row => [
+        new Date(row.created_at).toLocaleDateString('id-ID'),
+        row.user_name,
+        row.total_items,
+        row.completed_items,
+        row.progress_percentage + '%',
+        row.status
+    ]);
+    
+    return [headers, ...rows].map(row => row.join(',')).join('\n');
+}
+
+function downloadCSV(csv, filename) {
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+}
