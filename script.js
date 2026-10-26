@@ -105,11 +105,29 @@ function initChecklistPage() {
     const submitChecklistBtn = document.getElementById('submitChecklistBtn');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // Sidebar Toggle (Mobile)
-    sidebarToggle?.addEventListener('click', () => {
-        sidebar.classList.add('open');
-        sidebarOverlay.classList.add('active');
-    });
+   // Sidebar Toggle (Mobile)
+const mainContent = document.querySelector('main');
+
+sidebarToggle?.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+    sidebarOverlay.classList.add('active');
+    
+    // Blur main content saat sidebar terbuka
+    if (sidebar.classList.contains('open')) {
+        document.body.style.overflow = 'hidden';
+        if (mainContent) mainContent.classList.add('blurred');
+    } else {
+        document.body.style.overflow = '';
+        if (mainContent) mainContent.classList.remove('blurred');
+    }
+});
+
+sidebarOverlay?.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    sidebarOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+    if (mainContent) mainContent.classList.remove('blurred');
+});
 
     sidebarOverlay?.addEventListener('click', () => {
         sidebar.classList.remove('open');
