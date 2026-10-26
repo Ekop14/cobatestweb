@@ -282,7 +282,7 @@ function initChecklistPage() {
         }
     }
 
-    // ========== SUBMIT BUTTON ==========
+       // ========== SUBMIT BUTTON & AUTO RESET ==========
     submitChecklistBtn?.addEventListener('click', async () => {
         const total = allCheckboxes.length;
         const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
@@ -292,6 +292,7 @@ function initChecklistPage() {
             return;
         }
         
+        // Kumpulkan data
         const checklistData = {
             floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({
                 task: cb.nextElementSibling.textContent,
@@ -314,12 +315,36 @@ function initChecklistPage() {
             progress: 100
         };
         
+        // Simpan ke Supabase
         const result = await saveToSupabase(checklistData);
+        
         if (result) {
             showNotification('Laporan berhasil dikirim! ID: ' + result.id.slice(0, 8), 'success');
+            
+            // === FITUR BARU: Reset Form Otomatis setelah 1.5 detik ===
+            setTimeout(() => {
+                // 1. Hapus centang semua checkbox
+                allCheckboxes.forEach(cb => {
+                    cb.checked = false;
+                    cb.closest('.checklist-item').classList.remove('completed');
+                });
+                
+                // 2. Reset progress bar per kategori
+                ['floor', 'rack', 'dock', 'facility'].forEach(updateCardProgress);
+                
+                // 3. Reset progress utama dan statistik
+                updateOverallProgress();
+                updateStats();
+                
+                // 4. Hapus data dari LocalStorage agar tidak muncul lagi saat refresh
+                localStorage.removeItem('gudang_clean_state');
+                
+                // 5. Scroll ke atas halaman
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+            }, 1500); // Delay 1.5 detik agar user sempat membaca notifikasi sukses
         }
     });
-
     // ========== AUTO-SAVE SETIAP 30 DETIK ==========
     setInterval(async () => {
         const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
