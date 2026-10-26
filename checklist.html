@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MHE Checklist | Dashboard</title>
+    <title>Checklist Kebersihan Gudang</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -38,26 +38,26 @@
             <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
                 <div class="glass-icon p-2.5">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-white font-bold text-lg tracking-tight">mHe</h1>
-                    <p class="text-white/50 text-xs">Checklist System</p>
+                    <h1 class="text-white font-bold text-lg tracking-tight">Gudang Clean</h1>
+                    <p class="text-white/50 text-xs">Warehouse Hygiene System</p>
                 </div>
             </div>
 
             <!-- Overall Progress -->
             <div class="px-6 py-5 border-b border-white/10">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs text-white/60 uppercase tracking-wider font-medium">Overall Progress</span>
+                    <span class="text-xs text-white/60 uppercase tracking-wider font-medium">Progress Harian</span>
                     <span id="overallProgressText" class="text-sm text-white font-semibold">0%</span>
                 </div>
                 <div class="glass-progress">
                     <div id="overallProgressBar" class="glass-progress-fill" style="width: 0%"></div>
                 </div>
                 <p class="text-xs text-white/50 mt-2">
-                    <span id="completedCount">0</span> of <span id="totalCount">0</span> tasks completed
+                    <span id="completedCount">0</span> dari <span id="totalCount">0</span> tugas selesai
                 </p>
             </div>
 
@@ -87,7 +87,7 @@
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
-                            <span>Reports</span>
+                            <span>Laporan</span>
                         </a>
                     </li>
                     <li>
@@ -95,7 +95,7 @@
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span>History</span>
+                            <span>Riwayat</span>
                         </a>
                     </li>
                     <li>
@@ -104,18 +104,18 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
-                            <span>Settings</span>
+                            <span>Pengaturan</span>
                         </a>
                     </li>
                 </ul>
 
-                <p class="text-xs text-white/40 uppercase tracking-widest font-medium px-3 mt-6 mb-3">Categories</p>
+                <p class="text-xs text-white/40 uppercase tracking-widest font-medium px-3 mt-6 mb-3">Area Gudang</p>
                 <ul class="space-y-1" id="categoryFilter">
-                    <li><button class="category-btn active" data-category="all">All Categories</button></li>
-                    <li><button class="category-btn" data-category="preflight">Pre-Flight Check</button></li>
-                    <li><button class="category-btn" data-category="system">System Diagnostics</button></li>
-                    <li><button class="category-btn" data-category="safety">Safety Protocol</button></li>
-                    <li><button class="category-btn" data-category="final">Final Review</button></li>
+                    <li><button class="category-btn active" data-category="all">Semua Area</button></li>
+                    <li><button class="category-btn" data-category="floor">Lantai & Koridor</button></li>
+                    <li><button class="category-btn" data-category="rack">Rak & Palet</button></li>
+                    <li><button class="category-btn" data-category="dock">Loading Dock</button></li>
+                    <li><button class="category-btn" data-category="facility">Fasilitas Pendukung</button></li>
                 </ul>
             </nav>
 
@@ -123,11 +123,11 @@
             <div class="px-4 py-4 border-t border-white/10">
                 <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition cursor-pointer">
                     <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold">
-                        A
+                        K
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-white text-sm font-medium truncate">Admin User</p>
-                        <p class="text-white/50 text-xs truncate">admin@mhe.com</p>
+                        <p class="text-white text-sm font-medium truncate">Kepala Gudang</p>
+                        <p class="text-white/50 text-xs truncate">gudang@company.com</p>
                     </div>
                     <button id="logoutBtn" class="text-white/50 hover:text-white transition p-1.5 rounded-lg hover:bg-white/10">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -145,7 +145,6 @@
             <!-- Top Header -->
             <header class="sticky top-0 z-20 glass-header">
                 <div class="flex items-center justify-between px-6 lg:px-8 py-4">
-                    <!-- Left: Toggle + Title -->
                     <div class="flex items-center gap-4">
                         <button id="sidebarToggle" class="lg:hidden text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition">
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -153,18 +152,17 @@
                             </svg>
                         </button>
                         <div>
-                            <h2 class="text-xl lg:text-2xl font-bold text-white tracking-tight">mHe Checklist</h2>
-                            <p class="text-white/50 text-sm">Tuesday, October 27, 2026</p>
+                            <h2 class="text-xl lg:text-2xl font-bold text-white tracking-tight">Checklist Kebersihan Gudang</h2>
+                            <p class="text-white/50 text-sm">Selasa, 27 Oktober 2026</p>
                         </div>
                     </div>
 
-                    <!-- Right: Actions -->
                     <div class="flex items-center gap-3">
                         <div class="hidden md:flex items-center glass-input px-4 py-2">
                             <svg class="h-4 w-4 text-white/50 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
-                            <input type="text" id="searchInput" placeholder="Search tasks..." class="bg-transparent outline-none text-white text-sm placeholder-white/40 w-40 lg:w-56">
+                            <input type="text" id="searchInput" placeholder="Cari tugas..." class="bg-transparent outline-none text-white text-sm placeholder-white/40 w-40 lg:w-56">
                         </div>
                         <button class="glass-button-outline !py-2 !px-3">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -193,7 +191,7 @@
                             </svg>
                         </div>
                         <div>
-                            <p class="text-white/50 text-xs uppercase tracking-wider">Total Tasks</p>
+                            <p class="text-white/50 text-xs uppercase tracking-wider">Total Tugas</p>
                             <p id="statTotal" class="text-2xl font-bold text-white mt-1">0</p>
                         </div>
                     </div>
@@ -204,7 +202,7 @@
                             </svg>
                         </div>
                         <div>
-                            <p class="text-white/50 text-xs uppercase tracking-wider">Completed</p>
+                            <p class="text-white/50 text-xs uppercase tracking-wider">Selesai</p>
                             <p id="statCompleted" class="text-2xl font-bold text-white mt-1">0</p>
                         </div>
                     </div>
@@ -215,7 +213,7 @@
                             </svg>
                         </div>
                         <div>
-                            <p class="text-white/50 text-xs uppercase tracking-wider">Pending</p>
+                            <p class="text-white/50 text-xs uppercase tracking-wider">Belum Selesai</p>
                             <p id="statPending" class="text-2xl font-bold text-white mt-1">0</p>
                         </div>
                     </div>
@@ -235,170 +233,190 @@
                 <!-- Checklist Cards Grid -->
                 <div id="checklistGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-                    <!-- Card 1: Pre-Flight Check -->
-                    <div class="checklist-card" data-category="preflight">
+                    <!-- Card 1: Lantai & Koridor -->
+                    <div class="checklist-card" data-category="floor">
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex items-center gap-3">
                                 <div class="card-icon bg-blue-500/20 text-blue-400">
                                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-white font-semibold text-lg">Pre-Flight Check</h3>
-                                    <p class="text-white/50 text-xs">Initial system verification</p>
+                                    <h3 class="text-white font-semibold text-lg">Lantai & Koridor</h3>
+                                    <p class="text-white/50 text-xs">Area jalan & sirkulasi gudang</p>
                                 </div>
                             </div>
-                            <span class="card-badge bg-blue-500/20 text-blue-300">Phase 1</span>
+                            <span class="card-badge bg-blue-500/20 text-blue-300">Zona 1</span>
                         </div>
                         <div class="glass-progress mb-4">
                             <div class="card-progress-fill bg-gradient-to-r from-blue-400 to-blue-600" style="width: 0%"></div>
                         </div>
                         <ul class="checklist-items space-y-2">
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="preflight">
-                                <span class="checklist-text">Verify power supply connection</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="floor">
+                                <span class="checklist-text">Menyapu seluruh area lantai gudang</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="preflight">
-                                <span class="checklist-text">Check network connectivity status</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="floor">
+                                <span class="checklist-text">Mengepel lantai dari noda/tumpahan</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="preflight">
-                                <span class="checklist-text">Validate authentication credentials</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="floor">
+                                <span class="checklist-text">Membersihkan marka jalur forklift & pejalan kaki</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="preflight">
-                                <span class="checklist-text">Confirm database synchronization</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="floor">
+                                <span class="checklist-text">Membersihkan sudut-sudut koridor dari debu</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="preflight">
-                                <span class="checklist-text">Review system logs for errors</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="floor">
+                                <span class="checklist-text">Memastikan jalur evakuasi bebas hambatan</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="floor">
+                                <span class="checklist-text">Membersihkan genangan air (jika ada)</span>
                             </li>
                         </ul>
                     </div>
 
-                    <!-- Card 2: System Diagnostics -->
-                    <div class="checklist-card" data-category="system">
+                    <!-- Card 2: Rak & Palet -->
+                    <div class="checklist-card" data-category="rack">
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex items-center gap-3">
                                 <div class="card-icon bg-purple-500/20 text-purple-400">
                                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-white font-semibold text-lg">System Diagnostics</h3>
-                                    <p class="text-white/50 text-xs">Hardware & software analysis</p>
+                                    <h3 class="text-white font-semibold text-lg">Rak & Palet</h3>
+                                    <p class="text-white/50 text-xs">Area penyimpanan barang</p>
                                 </div>
                             </div>
-                            <span class="card-badge bg-purple-500/20 text-purple-300">Phase 2</span>
+                            <span class="card-badge bg-purple-500/20 text-purple-300">Zona 2</span>
                         </div>
                         <div class="glass-progress mb-4">
                             <div class="card-progress-fill bg-gradient-to-r from-purple-400 to-purple-600" style="width: 0%"></div>
                         </div>
                         <ul class="checklist-items space-y-2">
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="system">
-                                <span class="checklist-text">Run CPU stress test</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="rack">
+                                <span class="checklist-text">Membersihkan debu di atas rak penyimpanan</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="system">
-                                <span class="checklist-text">Monitor memory allocation</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="rack">
+                                <span class="checklist-text">Menata ulang barang yang berantakan</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="system">
-                                <span class="checklist-text">Check disk health status</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="rack">
+                                <span class="checklist-text">Memeriksa kondisi palet (tidak rusak/patah)</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="system">
-                                <span class="checklist-text">Validate thermal thresholds</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="rack">
+                                <span class="checklist-text">Membersihkan label/barcode yang kotor</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="rack">
+                                <span class="checklist-text">Memastikan barang tidak menumpuk melebihi batas aman</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="rack">
+                                <span class="checklist-text">Mengecek kebersihan celah antar rak</span>
                             </li>
                         </ul>
                     </div>
 
-                    <!-- Card 3: Safety Protocol -->
-                    <div class="checklist-card" data-category="safety">
+                    <!-- Card 3: Loading Dock -->
+                    <div class="checklist-card" data-category="dock">
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex items-center gap-3">
                                 <div class="card-icon bg-amber-500/20 text-amber-400">
                                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-white font-semibold text-lg">Safety Protocol</h3>
-                                    <p class="text-white/50 text-xs">Security & compliance check</p>
+                                    <h3 class="text-white font-semibold text-lg">Loading Dock</h3>
+                                    <p class="text-white/50 text-xs">Area bongkar muat barang</p>
                                 </div>
                             </div>
-                            <span class="card-badge bg-amber-500/20 text-amber-300">Phase 3</span>
+                            <span class="card-badge bg-amber-500/20 text-amber-300">Zona 3</span>
                         </div>
                         <div class="glass-progress mb-4">
                             <div class="card-progress-fill bg-gradient-to-r from-amber-400 to-amber-600" style="width: 0%"></div>
                         </div>
                         <ul class="checklist-items space-y-2">
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="safety">
-                                <span class="checklist-text">Verify SSL certificate validity</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="dock">
+                                <span class="checklist-text">Menyapu area loading dock</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="safety">
-                                <span class="checklist-text">Review firewall configurations</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="dock">
+                                <span class="checklist-text">Membersihkan sampah kardus & sisa packing</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="safety">
-                                <span class="checklist-text">Check backup encryption status</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="dock">
+                                <span class="checklist-text">Memeriksa kondisi pintu dock & rubber seal</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="safety">
-                                <span class="checklist-text">Audit user access permissions</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="dock">
+                                <span class="checklist-text">Membersihkan saluran drainase dock</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="safety">
-                                <span class="checklist-text">Validate data retention policies</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="dock">
+                                <span class="checklist-text">Menata alat bantu bongkar muat (hand pallet, dll)</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="safety">
-                                <span class="checklist-text">Confirm incident response plan</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="dock">
+                                <span class="checklist-text">Membersihkan area tunggu truk</span>
                             </li>
                         </ul>
                     </div>
 
-                    <!-- Card 4: Final Review -->
-                    <div class="checklist-card" data-category="final">
+                    <!-- Card 4: Fasilitas Pendukung -->
+                    <div class="checklist-card" data-category="facility">
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex items-center gap-3">
                                 <div class="card-icon bg-green-500/20 text-green-400">
                                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.25 17.747 8.85 18 10 18 12c0 2.21-.637 4.273-1.724 6.017A7.97 7.97 0 0112 20a7.97 7.97 0 01-4.343-1.343z" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-white font-semibold text-lg">Final Review</h3>
-                                    <p class="text-white/50 text-xs">Deployment readiness</p>
+                                    <h3 class="text-white font-semibold text-lg">Fasilitas Pendukung</h3>
+                                    <p class="text-white/50 text-xs">Toilet, pantry & area umum</p>
                                 </div>
                             </div>
-                            <span class="card-badge bg-green-500/20 text-green-300">Phase 4</span>
+                            <span class="card-badge bg-green-500/20 text-green-300">Zona 4</span>
                         </div>
                         <div class="glass-progress mb-4">
                             <div class="card-progress-fill bg-gradient-to-r from-green-400 to-green-600" style="width: 0%"></div>
                         </div>
                         <ul class="checklist-items space-y-2">
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="final">
-                                <span class="checklist-text">Final performance benchmark</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="facility">
+                                <span class="checklist-text">Membersihkan toilet & wastafel karyawan</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="final">
-                                <span class="checklist-text">Generate compliance report</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="facility">
+                                <span class="checklist-text">Mengosongkan & memilah tempat sampah (organik/anorganik)</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="final">
-                                <span class="checklist-text">Notify stakeholders</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="facility">
+                                <span class="checklist-text">Membersihkan area istirahat / pantry</span>
                             </li>
                             <li class="checklist-item">
-                                <input type="checkbox" class="glass-checkbox" data-card="final">
-                                <span class="checklist-text">Archive documentation</span>
+                                <input type="checkbox" class="glass-checkbox" data-card="facility">
+                                <span class="checklist-text">Mengecek kondisi APAR (Alat Pemadam Api Ringan)</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="facility">
+                                <span class="checklist-text">Membersihkan ventilasi & exhaust fan</span>
+                            </li>
+                            <li class="checklist-item">
+                                <input type="checkbox" class="glass-checkbox" data-card="facility">
+                                <span class="checklist-text">Menyemprot disinfektan di area rawan</span>
                             </li>
                         </ul>
                     </div>
@@ -414,12 +432,12 @@
                             </svg>
                         </div>
                         <div>
-                            <p class="text-white font-medium text-sm">Ready to submit?</p>
-                            <p class="text-white/50 text-xs">Complete all phases to proceed with deployment</p>
+                            <p class="text-white font-medium text-sm">Siap mengirim laporan?</p>
+                            <p class="text-white/50 text-xs">Selesaikan semua zona kebersihan untuk submit laporan harian</p>
                         </div>
                     </div>
                     <button id="submitChecklistBtn" class="glass-button !py-2.5 !px-6">
-                        <span>Submit Checklist</span>
+                        <span>Kirim Laporan</span>
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
