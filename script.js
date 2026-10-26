@@ -21,7 +21,6 @@ function initLoginPage() {
     const submitBtn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
 
-    // Toggle Show/Hide Password
     togglePassword?.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
@@ -30,7 +29,6 @@ function initLoginPage() {
             : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
     });
 
-    // Form Submit
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const email = document.getElementById('email').value.trim();
@@ -59,6 +57,7 @@ function initLoginPage() {
    HALAMAN CHECKLIST
    ============================================ */
 function initChecklistPage() {
+    // 1. Ambil semua elemen DOM yang dibutuhkan
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -69,6 +68,82 @@ function initChecklistPage() {
     const submitChecklistBtn = document.getElementById('submitChecklistBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const searchInput = document.getElementById('searchInput');
+
+    // Helper: Dapatkan instance Supabase dengan aman
+    function getSupabase() {
+        if (!window.supabaseClient) {
+            console.error('❌ Supabase client belum terinisialisasi. Cek config.js');
+            return null;
+        }
+        return window.supabaseClient;
+    }
+
+    // Helper: Update Progress per Card
+    function updateCardProgress(category) {
+        const card = document.querySelector(`.checklist-card[data-category="${category}"]`);
+        if (!card) return;
+        const total = card.querySelectorAll('.glass-checkbox').length;
+        const checked = card.querySelectorAll('.glass-checkbox:checked').length;
+        const fill = card.querySelector('.card-progress-fill');
+        if (fill) fill.style.width = total ? (checked / total * 100) + '%' : '0%';
+    }
+
+    // Helper: Update Overall Progress
+    function updateOverallProgress() {
+        const total = allCheckboxes.length;
+        const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+        const percent = total ? Math.round((checked / total) * 100) : 0;
+        
+        const bar = document.getElementById('overallProgressBar');
+        const text = document.getElementById('overallProgressText');
+        const compCount = document.getElementById('completedCount');
+        const totalCount = document.getElementById('totalCount');
+
+        if (bar) bar.style.width = percent + '%';
+        if (text) text.textContent = percent + '%';
+        if (compCount) compCount.textContent = checked;
+        if (totalCount) totalCount.textContent = total;
+    }
+
+    // Helper: Update Stats
+    function updateStats() {
+        const total = allCheckboxes.length;
+        const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+        
+        const statTotal = document.getElementById('statTotal');
+        const statCompleted = document.getElementById('statCompleted');
+        const statPending = document.getElementById('statPending');
+        const statProgress = document.getElementById('statProgress');
+
+        if (statTotal) statTotal.textContent = total;
+        if (statCompleted) statCompleted.textContent = checked;
+        if (statPending) statPending.textContent = total - checked;
+        if (statProgress) statProgress.textContent = (total ? Math.round((checked / total) * 100) : 0) + '%';
+    }
+
+    // Helper: Local Storage
+    function saveToLocalStorage() {
+        const state = {};
+        allCheckboxes.forEach((cb, i) => state[`cb_${i}`] = cb.checked);
+        localStorage.setItem('gudang_clean_state', JSON.stringify(state));
+    }
+
+    function loadFromLocalStorage() {
+        const saved = localStorage.getItem('gudang_clean_state');
+        if (!saved) return;
+        try {
+            const state = JSON.parse(saved);
+            allCheckboxes.forEach((cb, i) => {
+                if (state[`cb_${i}`]) {
+                    cb.checked = true;
+                    cb.closest('.checklist-item').classList.add('completed');
+                }
+            });
+            ['floor', 'rack', 'dock', 'facility'].forEach(updateCardProgress);
+            updateOverallProgress();
+            updateStats();
+        } catch (e) { console.error(e); }
+    }
 
     // ========== SIDEBAR MOBILE ==========
     sidebarToggle?.addEventListener('click', () => {
@@ -128,62 +203,6 @@ function initChecklistPage() {
         });
     });
 
-    // ========== UPDATE PROGRESS PER CARD ==========
-    function updateCardProgress(category) {
-        const card = document.querySelector(`.checklist-card[data-category="${category}"]`);
-        if (!card) return;
-        const total = card.querySelectorAll('.glass-checkbox').length;
-        const checked = card.querySelectorAll('.glass-checkbox:checked').length;
-        const fill = card.querySelector('.card-progress-fill');
-        if (fill) fill.style.width = total ? (checked / total * 100) + '%' : '0%';
-    }
-
-    // ========== UPDATE OVERALL PROGRESS ==========
-    function updateOverallProgress() {
-        const total = allCheckboxes.length;
-        const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
-        const percent = total ? Math.round((checked / total) * 100) : 0;
-        
-        document.getElementById('overallProgressBar').style.width = percent + '%';
-        document.getElementById('overallProgressText').textContent = percent + '%';
-        document.getElementById('completedCount').textContent = checked;
-        document.getElementById('totalCount').textContent = total;
-    }
-
-    // ========== UPDATE STATS ==========
-    function updateStats() {
-        const total = allCheckboxes.length;
-        const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
-        document.getElementById('statTotal').textContent = total;
-        document.getElementById('statCompleted').textContent = checked;
-        document.getElementById('statPending').textContent = total - checked;
-        document.getElementById('statProgress').textContent = (total ? Math.round((checked / total) * 100) : 0) + '%';
-    }
-
-    // ========== LOCAL STORAGE ==========
-    function saveToLocalStorage() {
-        const state = {};
-        allCheckboxes.forEach((cb, i) => state[`cb_${i}`] = cb.checked);
-        localStorage.setItem('gudang_clean_state', JSON.stringify(state));
-    }
-
-    function loadFromLocalStorage() {
-        const saved = localStorage.getItem('gudang_clean_state');
-        if (!saved) return;
-        try {
-            const state = JSON.parse(saved);
-            allCheckboxes.forEach((cb, i) => {
-                if (state[`cb_${i}`]) {
-                    cb.checked = true;
-                    cb.closest('.checklist-item').classList.add('completed');
-                }
-            });
-            ['floor', 'rack', 'dock', 'facility'].forEach(updateCardProgress);
-            updateOverallProgress();
-            updateStats();
-        } catch (e) { console.error(e); }
-    }
-
     // ========== RESET ALL ==========
     resetAllBtn?.addEventListener('click', () => {
         if (!confirm('Reset semua checklist?')) return;
@@ -198,7 +217,72 @@ function initChecklistPage() {
         showNotification('Checklist berhasil direset', 'info');
     });
 
-    // ========== SUBMIT KE SUPABASE ==========
+    // ========== SUPABASE: SAVE ==========
+    async function saveToSupabase(data) {
+        const supabase = getSupabase();
+        if (!supabase) {
+            showNotification('Database belum terhubung. Cek config.js', 'error');
+            return null;
+        }
+        
+        try {
+            const { data: submission, error } = await supabase
+                .from('checklist_submissions')
+                .insert({
+                    user_name: window.currentUser?.name || 'Unknown',
+                    user_email: window.currentUser?.email || 'unknown@test.com',
+                    floor_items: data.floor,
+                    rack_items: data.rack,
+                    dock_items: data.dock,
+                    facility_items: data.facility,
+                    total_items: data.total,
+                    completed_items: data.completed,
+                    progress_percentage: data.progress,
+                    status: data.progress === 100 ? 'completed' : 'in_progress'
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            console.log('✅ Data saved to Supabase:', submission);
+            showNotification('Data berhasil disimpan ke database! ✅', 'success');
+            return submission;
+        } catch (error) {
+            console.error('❌ Error saving to Supabase:', error);
+            showNotification('Gagal menyimpan: ' + error.message, 'error');
+            return null;
+        }
+    }
+
+    // ========== SUPABASE: LOAD ==========
+    async function loadFromSupabase() {
+        const supabase = getSupabase();
+        if (!supabase) return null;
+        
+        try {
+            const { data, error } = await supabase
+                .from('checklist_submissions')
+                .select('*')
+                .eq('user_email', window.currentUser?.email || 'unknown@test.com')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (error && error.code !== 'PGRST116') throw error;
+            
+            if (data) {
+                console.log('📥 Loaded from Supabase:', data);
+                return data;
+            }
+            return null;
+        } catch (error) {
+            console.error('❌ Error loading from Supabase:', error);
+            return null;
+        }
+    }
+
+    // ========== SUBMIT BUTTON ==========
     submitChecklistBtn?.addEventListener('click', async () => {
         const total = allCheckboxes.length;
         const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
@@ -208,7 +292,6 @@ function initChecklistPage() {
             return;
         }
         
-        // Kumpulkan data dari semua checkbox
         const checklistData = {
             floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({
                 task: cb.nextElementSibling.textContent,
@@ -231,17 +314,10 @@ function initChecklistPage() {
             progress: 100
         };
         
-        // Simpan ke Supabase
         const result = await saveToSupabase(checklistData);
-        
         if (result) {
             showNotification('Laporan berhasil dikirim! ID: ' + result.id.slice(0, 8), 'success');
         }
-    });
-
-    // ========== LOGOUT ==========
-    logoutBtn?.addEventListener('click', () => {
-        if (confirm('Logout?')) window.location.href = 'index.html';
     });
 
     // ========== AUTO-SAVE SETIAP 30 DETIK ==========
@@ -285,84 +361,14 @@ function initChecklistPage() {
         }
     });
 
+    // ========== LOGOUT ==========
+    logoutBtn?.addEventListener('click', () => {
+        if (confirm('Logout?')) window.location.href = 'index.html';
+    });
+
     // ========== INISIALISASI ==========
     loadFromLocalStorage();
     updateStats();
-}
-
-/* ============================================
-   SUPABASE FUNCTIONS
-   ============================================ */
-
-// Pastikan supabaseClient tersedia
-function getSupabase() {
-    if (!window.supabaseClient) {
-        console.error('❌ Supabase client belum terinisialisasi');
-        return null;
-    }
-    return window.supabaseClient;
-}
-
-// Simpan data checklist ke Supabase
-async function saveToSupabase(data) {
-    const supabase = getSupabase();
-    if (!supabase) return null;
-    
-    try {
-        const { data: submission, error } = await supabase
-            .from('checklist_submissions')
-            .insert({
-                user_name: window.currentUser.name,
-                user_email: window.currentUser.email,
-                floor_items: data.floor,
-                rack_items: data.rack,
-                dock_items: data.dock,
-                facility_items: data.facility,
-                total_items: data.total,
-                completed_items: data.completed,
-                progress_percentage: data.progress,
-                status: data.progress === 100 ? 'completed' : 'in_progress'
-            })
-            .select()
-            .single();
-
-        if (error) throw error;
-        
-        console.log('✅ Data saved to Supabase:', submission);
-        showNotification('Data berhasil disimpan ke database! ✅', 'success');
-        return submission;
-    } catch (error) {
-        console.error('❌ Error saving to Supabase:', error);
-        showNotification('Gagal menyimpan data: ' + error.message, 'error');
-        return null;
-    }
-}
-
-// Ambil data checklist terakhir dari Supabase
-async function loadFromSupabase() {
-    const supabase = getSupabase();
-    if (!supabase) return null;
-    
-    try {
-        const { data, error } = await supabase
-            .from('checklist_submissions')
-            .select('*')
-            .eq('user_email', window.currentUser.email)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-        if (error && error.code !== 'PGRST116') throw error;
-        
-        if (data) {
-            console.log('📥 Loaded from Supabase:', data);
-            return data;
-        }
-        return null;
-    } catch (error) {
-        console.error('❌ Error loading from Supabase:', error);
-        return null;
-    }
 }
 
 /* ============================================
