@@ -158,14 +158,25 @@ function initChecklistPage() {
     // Sidebar Toggle (Mobile)
     // ============================================
     sidebarToggle?.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
-        sidebarOverlay.classList.toggle('active');
-    });
+    sidebar.classList.add('open');
+    sidebarOverlay.classList.add('active');
+});
 
-    sidebarOverlay?.addEventListener('click', () => {
-        sidebar.classList.remove('open');
-        sidebarOverlay.classList.remove('active');
+sidebarOverlay?.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    sidebarOverlay.classList.remove('active');
+});
+
+// Tutup sidebar saat klik tombol di dalam sidebar (mobile)
+const navItems = document.querySelectorAll('.nav-item');
+navItems.forEach(item => {
+    item.addEventListener('click', () => {
+        if (window.innerWidth < 1024) {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+        }
     });
+});
 
     // ============================================
     // Category Filter
