@@ -1,7 +1,7 @@
 // Konfigurasi Supabase
 function initSupabase() {
     // PENTING: URL harus TANPA /rest/v1 di belakang!
-    const SUPABASE_URL = 'https://nluyhswnrhbuwahwromq.supabase.co/rest/v1/';
+    const SUPABASE_URL = 'https://nluyhswnrhbuwahwromq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sdXloc3ducmhidXdhaHdyb21xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNDI4NTYsImV4cCI6MjEwODYxODg1Nn0.4RlSNdAnT2DK4__L7YPF091dnUZgZa1LrddR8G2j0Z0'; // Ganti dengan key-mu
     
     // Inisialisasi client
