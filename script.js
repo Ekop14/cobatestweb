@@ -1,3 +1,6 @@
+/* ============================================
+   INISIALISASI UTAMA
+   ============================================ */
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('loginForm')) {
         initLoginPage();
@@ -6,144 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initChecklistPage();
     }
 });
-// Simpan data checklist ke Supabase
-async function saveToSupabase(data) {
-    try {
-        const { data: submission, error } = await supabase
-            .from('checklist_submissions')
-            .insert({
-                user_name: currentUser.name,
-                user_email: currentUser.email,
-                floor_items: data.floor,
-                rack_items: data.rack,
-                dock_items: data.dock,
-                facility_items: data.facility,
-                total_items: data.total,
-                completed_items: data.completed,
-                progress_percentage: data.progress,
-                status: data.progress === 100 ? 'completed' : 'in_progress'
-            })
-            .select()
-            .single();
 
-        if (error) throw error;
-        
-        console.log('✅ Data saved to Supabase:', submission);
-        showNotification('Data berhasil disimpan ke database! ✅', 'success');
-        return submission;
-    } catch (error) {
-        console.error(' Error saving to Supabase:', error);
-        showNotification('Gagal menyimpan data: ' + error.message, 'error');
-        return null;
-    }
-}
-
-// Ambil data checklist terakhir dari Supabase
-async function loadFromSupabase() {
-    try {
-        const { data, error } = await supabase
-            .from('checklist_submissions')
-            .select('*')
-            .eq('user_email', currentUser.email)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-        if (error && error.code !== 'PGRST116') throw error;
-        
-        if (data) {
-            console.log(' Loaded from Supabase:', data);
-            return data;
-        }
-        return null;
-    } catch (error) {
-        console.error(' Error loading from Supabase:', error);
-        return null;
-    }
-}
-
-// Update fungsi submit button
-submitChecklistBtn?.addEventListener('click', async () => {
-    const total = allCheckboxes.length;
-    const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
-    
-    if (completed < total) {
-        showNotification(`Selesaikan semua tugas dulu (${completed}/${total})`, 'warning');
-        return;
-    }
-    
-    // Kumpulkan data dari semua checkbox
-    const checklistData = {
-        floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({
-            task: cb.nextElementSibling.textContent,
-            checked: cb.checked
-        })),
-        rack: Array.from(document.querySelectorAll('[data-card="rack"]')).map(cb => ({
-            task: cb.nextElementSibling.textContent,
-            checked: cb.checked
-        })),
-        dock: Array.from(document.querySelectorAll('[data-card="dock"]')).map(cb => ({
-            task: cb.nextElementSibling.textContent,
-            checked: cb.checked
-        })),
-        facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({
-            task: cb.nextElementSibling.textContent,
-            checked: cb.checked
-        })),
-        total: total,
-        completed: completed,
-        progress: 100
-    };
-    
-    // Simpan ke Supabase
-    const result = await saveToSupabase(checklistData);
-    
-    if (result) {
-        showNotification('Laporan kebersihan berhasil dikirim! ID: ' + result.id.slice(0, 8), 'success');
-    }
-});
-
-// Auto-save ke Supabase setiap 30 detik (opsional)
-setInterval(async () => {
-    const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
-    const total = allCheckboxes.length;
-    
-    if (completed > 0) {
-        const checklistData = {
-            floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({
-                task: cb.nextElementSibling.textContent,
-                checked: cb.checked
-            })),
-            rack: Array.from(document.querySelectorAll('[data-card="rack"]')).map(cb => ({
-                task: cb.nextElementSibling.textContent,
-                checked: cb.checked
-            })),
-            dock: Array.from(document.querySelectorAll('[data-card="dock"]')).map(cb => ({
-                task: cb.nextElementSibling.textContent,
-                checked: cb.checked
-            })),
-            facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({
-                task: cb.nextElementSibling.textContent,
-                checked: cb.checked
-            })),
-            total: total,
-            completed: completed,
-            progress: Math.round((completed / total) * 100)
-        };
-        
-        console.log('💾 Auto-saving to Supabase...');
-        await saveToSupabase(checklistData);
-    }
-}, 30000); // Setiap 30 detik
-
-// Load data saat halaman pertama kali dibuka
-window.addEventListener('load', async () => {
-    const savedData = await loadFromSupabase();
-    if (savedData) {
-        console.log(' Restored from Supabase');
-        // Restore checkbox state dari savedData jika perlu
-    }
-});
 /* ============================================
    HALAMAN LOGIN
    ============================================ */
@@ -155,6 +21,7 @@ function initLoginPage() {
     const submitBtn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
 
+    // Toggle Show/Hide Password
     togglePassword?.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
@@ -163,6 +30,7 @@ function initLoginPage() {
             : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
     });
 
+    // Form Submit
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const email = document.getElementById('email').value.trim();
@@ -202,7 +70,7 @@ function initChecklistPage() {
     const logoutBtn = document.getElementById('logoutBtn');
     const searchInput = document.getElementById('searchInput');
 
-    // Sidebar Mobile
+    // ========== SIDEBAR MOBILE ==========
     sidebarToggle?.addEventListener('click', () => {
         sidebar.classList.add('open');
         sidebarOverlay.classList.add('active');
@@ -222,7 +90,7 @@ function initChecklistPage() {
         });
     });
 
-    // Filter Kategori
+    // ========== FILTER KATEGORI ==========
     categoryButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             categoryButtons.forEach(b => b.classList.remove('active'));
@@ -234,7 +102,7 @@ function initChecklistPage() {
         });
     });
 
-    // Search
+    // ========== SEARCH ==========
     searchInput?.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
         checklistCards.forEach(card => {
@@ -249,17 +117,18 @@ function initChecklistPage() {
         });
     });
 
-    // Checkbox Logic
+    // ========== CHECKBOX LOGIC ==========
     allCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', () => {
             checkbox.closest('.checklist-item').classList.toggle('completed', checkbox.checked);
             updateCardProgress(checkbox.dataset.card);
             updateOverallProgress();
             updateStats();
-            saveState();
+            saveToLocalStorage();
         });
     });
 
+    // ========== UPDATE PROGRESS PER CARD ==========
     function updateCardProgress(category) {
         const card = document.querySelector(`.checklist-card[data-category="${category}"]`);
         if (!card) return;
@@ -269,6 +138,7 @@ function initChecklistPage() {
         if (fill) fill.style.width = total ? (checked / total * 100) + '%' : '0%';
     }
 
+    // ========== UPDATE OVERALL PROGRESS ==========
     function updateOverallProgress() {
         const total = allCheckboxes.length;
         const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
@@ -280,6 +150,7 @@ function initChecklistPage() {
         document.getElementById('totalCount').textContent = total;
     }
 
+    // ========== UPDATE STATS ==========
     function updateStats() {
         const total = allCheckboxes.length;
         const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
@@ -289,13 +160,14 @@ function initChecklistPage() {
         document.getElementById('statProgress').textContent = (total ? Math.round((checked / total) * 100) : 0) + '%';
     }
 
-    function saveState() {
+    // ========== LOCAL STORAGE ==========
+    function saveToLocalStorage() {
         const state = {};
         allCheckboxes.forEach((cb, i) => state[`cb_${i}`] = cb.checked);
         localStorage.setItem('gudang_clean_state', JSON.stringify(state));
     }
 
-    function loadState() {
+    function loadFromLocalStorage() {
         const saved = localStorage.getItem('gudang_clean_state');
         if (!saved) return;
         try {
@@ -312,6 +184,7 @@ function initChecklistPage() {
         } catch (e) { console.error(e); }
     }
 
+    // ========== RESET ALL ==========
     resetAllBtn?.addEventListener('click', () => {
         if (!confirm('Reset semua checklist?')) return;
         allCheckboxes.forEach(cb => {
@@ -322,63 +195,227 @@ function initChecklistPage() {
         updateOverallProgress();
         updateStats();
         localStorage.removeItem('gudang_clean_state');
+        showNotification('Checklist berhasil direset', 'info');
     });
 
-    submitChecklistBtn?.addEventListener('click', () => {
+    // ========== SUBMIT KE SUPABASE ==========
+    submitChecklistBtn?.addEventListener('click', async () => {
         const total = allCheckboxes.length;
-        const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
-        if (checked < total) {
-            alert(`Selesaikan semua tugas dulu (${checked}/${total})`);
+        const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+        
+        if (completed < total) {
+            showNotification(`Selesaikan semua tugas dulu (${completed}/${total})`, 'warning');
             return;
         }
-        alert('Laporan kebersihan berhasil dikirim! ✅');
+        
+        // Kumpulkan data dari semua checkbox
+        const checklistData = {
+            floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({
+                task: cb.nextElementSibling.textContent,
+                checked: cb.checked
+            })),
+            rack: Array.from(document.querySelectorAll('[data-card="rack"]')).map(cb => ({
+                task: cb.nextElementSibling.textContent,
+                checked: cb.checked
+            })),
+            dock: Array.from(document.querySelectorAll('[data-card="dock"]')).map(cb => ({
+                task: cb.nextElementSibling.textContent,
+                checked: cb.checked
+            })),
+            facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({
+                task: cb.nextElementSibling.textContent,
+                checked: cb.checked
+            })),
+            total: total,
+            completed: completed,
+            progress: 100
+        };
+        
+        // Simpan ke Supabase
+        const result = await saveToSupabase(checklistData);
+        
+        if (result) {
+            showNotification('Laporan berhasil dikirim! ID: ' + result.id.slice(0, 8), 'success');
+        }
     });
 
+    // ========== LOGOUT ==========
     logoutBtn?.addEventListener('click', () => {
         if (confirm('Logout?')) window.location.href = 'index.html';
     });
 
-    loadState();
+    // ========== AUTO-SAVE SETIAP 30 DETIK ==========
+    setInterval(async () => {
+        const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+        const total = allCheckboxes.length;
+        
+        if (completed > 0) {
+            const checklistData = {
+                floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({
+                    task: cb.nextElementSibling.textContent,
+                    checked: cb.checked
+                })),
+                rack: Array.from(document.querySelectorAll('[data-card="rack"]')).map(cb => ({
+                    task: cb.nextElementSibling.textContent,
+                    checked: cb.checked
+                })),
+                dock: Array.from(document.querySelectorAll('[data-card="dock"]')).map(cb => ({
+                    task: cb.nextElementSibling.textContent,
+                    checked: cb.checked
+                })),
+                facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({
+                    task: cb.nextElementSibling.textContent,
+                    checked: cb.checked
+                })),
+                total: total,
+                completed: completed,
+                progress: Math.round((completed / total) * 100)
+            };
+            
+            console.log('💾 Auto-saving to Supabase...');
+            await saveToSupabase(checklistData);
+        }
+    }, 30000);
+
+    // ========== LOAD SAAT HALAMAN DIBUKA ==========
+    window.addEventListener('load', async () => {
+        const savedData = await loadFromSupabase();
+        if (savedData) {
+            console.log('📥 Restored from Supabase');
+        }
+    });
+
+    // ========== INISIALISASI ==========
+    loadFromLocalStorage();
     updateStats();
 }
-document.getElementById('downloadReportBtn')?.addEventListener('click', async () => {
-    const { data, error } = await supabase
-        .from('checklist_submissions')
-        .select('*')
-        .eq('user_email', currentUser.email)
-        .order('created_at', { ascending: false })
-        .limit(10);
-    
-    if (error) {
-        showNotification('Gagal mengambil data', 'error');
-        return;
-    }
-    
-    // Convert ke CSV
-    const csv = convertToCSV(data);
-    downloadCSV(csv, 'laporan-kebersihan.csv');
-    showNotification('Laporan berhasil diunduh!', 'success');
-});
 
-function convertToCSV(data) {
-    const headers = ['Tanggal', 'User', 'Total Items', 'Completed', 'Progress', 'Status'];
-    const rows = data.map(row => [
-        new Date(row.created_at).toLocaleDateString('id-ID'),
-        row.user_name,
-        row.total_items,
-        row.completed_items,
-        row.progress_percentage + '%',
-        row.status
-    ]);
-    
-    return [headers, ...rows].map(row => row.join(',')).join('\n');
+/* ============================================
+   SUPABASE FUNCTIONS
+   ============================================ */
+
+// Pastikan supabaseClient tersedia
+function getSupabase() {
+    if (!window.supabaseClient) {
+        console.error('❌ Supabase client belum terinisialisasi');
+        return null;
+    }
+    return window.supabaseClient;
 }
 
-function downloadCSV(csv, filename) {
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
+// Simpan data checklist ke Supabase
+async function saveToSupabase(data) {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+    
+    try {
+        const { data: submission, error } = await supabase
+            .from('checklist_submissions')
+            .insert({
+                user_name: window.currentUser.name,
+                user_email: window.currentUser.email,
+                floor_items: data.floor,
+                rack_items: data.rack,
+                dock_items: data.dock,
+                facility_items: data.facility,
+                total_items: data.total,
+                completed_items: data.completed,
+                progress_percentage: data.progress,
+                status: data.progress === 100 ? 'completed' : 'in_progress'
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        
+        console.log('✅ Data saved to Supabase:', submission);
+        showNotification('Data berhasil disimpan ke database! ✅', 'success');
+        return submission;
+    } catch (error) {
+        console.error('❌ Error saving to Supabase:', error);
+        showNotification('Gagal menyimpan data: ' + error.message, 'error');
+        return null;
+    }
+}
+
+// Ambil data checklist terakhir dari Supabase
+async function loadFromSupabase() {
+    const supabase = getSupabase();
+    if (!supabase) return null;
+    
+    try {
+        const { data, error } = await supabase
+            .from('checklist_submissions')
+            .select('*')
+            .eq('user_email', window.currentUser.email)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        
+        if (data) {
+            console.log('📥 Loaded from Supabase:', data);
+            return data;
+        }
+        return null;
+    } catch (error) {
+        console.error('❌ Error loading from Supabase:', error);
+        return null;
+    }
+}
+
+/* ============================================
+   NOTIFICATION SYSTEM
+   ============================================ */
+function showNotification(message, type = 'info') {
+    const colors = {
+        success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' },
+        warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' },
+        error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' },
+        info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' }
+    };
+    
+    const c = colors[type] || colors.info;
+    
+    const notification = document.createElement('div');
+    notification.className = 'fixed top-6 right-6 z-50 px-6 py-4 rounded-xl text-white font-medium';
+    notification.style.cssText = `
+        background: ${c.bg};
+        backdrop-filter: blur(20px);
+        border: 1px solid ${c.border};
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    `;
+    notification.innerHTML = `
+        <div class="flex items-center gap-3">
+            <svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" />
+            </svg>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.4s ease forwards';
+        setTimeout(() => notification.remove(), 400);
+    }, 3000);
+}
+
+// Inject animation keyframes untuk notifikasi
+if (!document.getElementById('notif-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notif-styles';
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
 }
