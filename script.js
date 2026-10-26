@@ -289,11 +289,11 @@ function initChecklistPage() {
         allCheckboxes.forEach((cb, index) => {
             state[`cb_${index}`] = cb.checked;
         });
-        localStorage.setItem('mhe_checklist_state', JSON.stringify(state));
+        localStorage.setItem('gudang_clean_state', JSON.stringify(state));
     }
 
     function loadFromLocalStorage() {
-        const saved = localStorage.getItem('mhe_checklist_state');
+        const saved = localStorage.getItem('gudang_clean_state');
         if (!saved) return;
         
         try {
@@ -305,8 +305,8 @@ function initChecklistPage() {
                 }
             });
             
-            // Update semua progress
-            ['preflight', 'system', 'safety', 'final'].forEach(updateCardProgress);
+           // Update semua progress
+['floor', 'rack', 'dock', 'facility'].forEach(updateCardProgress);
             updateOverallProgress();
             updateStats();
         } catch (e) {
@@ -325,10 +325,10 @@ function initChecklistPage() {
             cb.closest('.checklist-item').classList.remove('completed');
         });
         
-        ['preflight', 'system', 'safety', 'final'].forEach(updateCardProgress);
+        ['floor', 'rack', 'dock', 'facility'].forEach(updateCardProgress);
         updateOverallProgress();
         updateStats();
-        localStorage.removeItem('mhe_checklist_state');
+       localStorage.removeItem('gudang_clean_state');
         
         showNotification('Checklist has been reset', 'info');
     });
