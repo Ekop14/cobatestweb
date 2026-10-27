@@ -323,5 +323,20 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="script.js"></script>
+    <script>
+    // Fungsi untuk handle navigasi di mobile
+    function handleNavClick(event) {
+        // Tutup sidebar di mobile
+        if (window.innerWidth < 1024) {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            
+            if (sidebar) sidebar.classList.remove('open');
+            if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        // Biarkan link berfungsi normal (tidak ada preventDefault)
+    }
+</script>
 </body>
 </html>
