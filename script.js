@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('loginForm')) {
         initLoginPage();
     }
+    if (document.getElementById('registerForm')) {
+        initRegisterPage();
+    }
     if (document.getElementById('checklistGrid')) {
         initChecklistPage();
     }
@@ -21,6 +24,7 @@ function initLoginPage() {
     const submitBtn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
 
+    // Toggle Show/Hide Password
     togglePassword?.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
@@ -29,15 +33,14 @@ function initLoginPage() {
             : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
     });
 
-    loginForm.addEventListener('submit', (e) => {
+    // Form Submit - Login dengan Supabase Auth
+    loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('email').value.trim();
         const password = passwordInput.value;
 
-        if (email !== 'admin@mhe.com' || password !== 'admin123') {
-            alert('Login Gagal!\nGunakan:\nEmail: admin@mhe.com\nPassword: admin123');
-            submitBtn.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(0)' }], { duration: 300 });
-            passwordInput.value = '';
+        if (!email || !password) {
+            showNotification('Email dan password harus diisi', 'error');
             return;
         }
 
@@ -47,9 +50,146 @@ function initLoginPage() {
         spinner.className = 'spinner';
         submitBtn.appendChild(spinner);
 
-        setTimeout(() => {
-            window.location.href = 'checklist.html';
-        }, 1500);
+        try {
+            const supabase = window.supabaseClient;
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+
+            if (error) throw error;
+
+            // Update last login di profiles table
+            if (data.user) {
+                await supabase
+                    .from('profiles')
+                    .update({ last_login: new Date().toISOString() })
+                    .eq('id', data.user.id);
+                
+                // Simpan user info
+                window.currentUser = {
+                    name: data.user.user_metadata?.full_name || 'User',
+                    email: data.user.email
+                };
+            }
+
+            showNotification('Login berhasil! Mengalihkan...', 'success');
+            
+            setTimeout(() => {
+                window.location.href = 'checklist.html';
+            }, 1000);
+
+        } catch (error) {
+            console.error('Login error:', error);
+            showNotification(error.message || 'Login gagal. Periksa email dan password.', 'error');
+            submitBtn.disabled = false;
+            btnText.innerText = 'Masuk';
+            if (spinner.parentNode) spinner.remove();
+        }
+    });
+}
+
+/* ============================================
+   HALAMAN REGISTER
+   ============================================ */
+function initRegisterPage() {
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+    const registerForm = document.getElementById('registerForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+
+    // Toggle Show/Hide Password
+    togglePassword?.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        eyeIcon.innerHTML = type === 'text' 
+            ? '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />'
+            : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
+    });
+
+    // Form Submit - Register dengan Supabase Auth
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fullName = document.getElementById('fullName').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = passwordInput.value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        // Validasi
+        if (!fullName || !email || !password || !confirmPassword) {
+            showNotification('Semua field harus diisi', 'error');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            showNotification('Password tidak cocok', 'error');
+            return;
+        }
+
+        if (password.length < 6) {
+            showNotification('Password minimal 6 karakter', 'error');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        btnText.innerText = 'Mendaftar...';
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner';
+        submitBtn.appendChild(spinner);
+
+        try {
+            const supabase = window.supabaseClient;
+            
+            // 1. Register user di Supabase Auth
+            const { data, error } = await supabase.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    data: {
+                        full_name: fullName
+                    }
+                }
+            });
+
+            if (error) throw error;
+
+            // 2. Buat profile di tabel profiles
+            if (data.user) {
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .insert({
+                        id: data.user.id,
+                        email: email,
+                        full_name: fullName,
+                        role: 'staff'
+                    });
+
+                if (profileError) throw profileError;
+            }
+
+            showNotification('Registrasi berhasil! Silakan login.', 'success');
+            
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+
+        } catch (error) {
+            console.error('Register error:', error);
+            let message = 'Registrasi gagal';
+            
+            if (error.message.includes('already registered')) {
+                message = 'Email sudah terdaftar. Silakan login.';
+            } else if (error.message) {
+                message = error.message;
+            }
+            
+            showNotification(message, 'error');
+            submitBtn.disabled = false;
+            btnText.innerText = 'Daftar Sekarang';
+            if (spinner.parentNode) spinner.remove();
+        }
     });
 }
 
@@ -57,7 +197,35 @@ function initLoginPage() {
    HALAMAN CHECKLIST
    ============================================ */
 function initChecklistPage() {
-    // 1. Ambil semua elemen DOM yang dibutuhkan
+    // Cek apakah user sudah login
+    const supabase = window.supabaseClient;
+    if (!supabase) {
+        showNotification('Database belum terhubung', 'error');
+        return;
+    }
+
+    // Ambil data user yang sedang login
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+            // User belum login, redirect ke login page
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        // Set currentUser dari session
+        window.currentUser = {
+            name: session.user.user_metadata?.full_name || 'User',
+            email: session.user.email
+        };
+        
+        console.log('👤 Logged in as:', window.currentUser);
+        
+        // Inisialisasi checklist setelah user terverifikasi
+        initChecklistLogic();
+    });
+}
+
+function initChecklistLogic() {
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -69,10 +237,10 @@ function initChecklistPage() {
     const logoutBtn = document.getElementById('logoutBtn');
     const searchInput = document.getElementById('searchInput');
 
-    // Helper: Dapatkan instance Supabase dengan aman
+    // Helper: Dapatkan instance Supabase
     function getSupabase() {
         if (!window.supabaseClient) {
-            console.error('❌ Supabase client belum terinisialisasi. Cek config.js');
+            console.error('❌ Supabase client belum terinisialisasi');
             return null;
         }
         return window.supabaseClient;
@@ -282,7 +450,7 @@ function initChecklistPage() {
         }
     }
 
-       // ========== SUBMIT BUTTON & AUTO RESET ==========
+    // ========== SUBMIT BUTTON & AUTO RESET ==========
     submitChecklistBtn?.addEventListener('click', async () => {
         const total = allCheckboxes.length;
         const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
@@ -292,7 +460,6 @@ function initChecklistPage() {
             return;
         }
         
-        // Kumpulkan data
         const checklistData = {
             floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({
                 task: cb.nextElementSibling.textContent,
@@ -315,36 +482,28 @@ function initChecklistPage() {
             progress: 100
         };
         
-        // Simpan ke Supabase
         const result = await saveToSupabase(checklistData);
         
         if (result) {
             showNotification('Laporan berhasil dikirim! ID: ' + result.id.slice(0, 8), 'success');
             
-            // === FITUR BARU: Reset Form Otomatis setelah 1.5 detik ===
+            // Reset form otomatis setelah 1.5 detik
             setTimeout(() => {
-                // 1. Hapus centang semua checkbox
                 allCheckboxes.forEach(cb => {
                     cb.checked = false;
                     cb.closest('.checklist-item').classList.remove('completed');
                 });
                 
-                // 2. Reset progress bar per kategori
                 ['floor', 'rack', 'dock', 'facility'].forEach(updateCardProgress);
-                
-                // 3. Reset progress utama dan statistik
                 updateOverallProgress();
                 updateStats();
-                
-                // 4. Hapus data dari LocalStorage agar tidak muncul lagi saat refresh
                 localStorage.removeItem('gudang_clean_state');
-                
-                // 5. Scroll ke atas halaman
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 
-            }, 1500); // Delay 1.5 detik agar user sempat membaca notifikasi sukses
+            }, 1500);
         }
     });
+
     // ========== AUTO-SAVE SETIAP 30 DETIK ==========
     setInterval(async () => {
         const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
@@ -378,17 +537,16 @@ function initChecklistPage() {
         }
     }, 30000);
 
-    // ========== LOAD SAAT HALAMAN DIBUKA ==========
-    window.addEventListener('load', async () => {
-        const savedData = await loadFromSupabase();
-        if (savedData) {
-            console.log('📥 Restored from Supabase');
-        }
-    });
-
     // ========== LOGOUT ==========
-    logoutBtn?.addEventListener('click', () => {
-        if (confirm('Logout?')) window.location.href = 'index.html';
+    logoutBtn?.addEventListener('click', async () => {
+        if (!confirm('Yakin ingin logout?')) return;
+        
+        const supabase = getSupabase();
+        if (supabase) {
+            await supabase.auth.signOut();
+        }
+        
+        window.location.href = 'index.html';
     });
 
     // ========== INISIALISASI ==========
