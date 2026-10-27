@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
    HALAMAN LOGIN
    ============================================ */
 function initLoginPage() {
-    // AMBIL INSTANCE SUPABASE DI SINI
     const supabase = window.supabaseClient;
     if (!supabase) {
         showNotification('Koneksi database gagal. Cek config.js', 'error');
@@ -69,10 +68,12 @@ function initLoginPage() {
                     email: data.user.email
                 };
                 
-                // Update last login (opsional, abaikan jika error RLS)
+                // Update last login (aman dengan try-catch jika RLS strict)
                 try {
                     await supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
-                } catch (e) { console.log('Profile update skipped'); }
+                } catch (e) { 
+                    console.log('Profile update skipped'); 
+                }
             }
 
             showNotification('Login berhasil! Mengalihkan...', 'success');
@@ -92,7 +93,6 @@ function initLoginPage() {
    HALAMAN REGISTER
    ============================================ */
 function initRegisterPage() {
-    // AMBIL INSTANCE SUPABASE DI SINI
     const supabase = window.supabaseClient;
     if (!supabase) {
         showNotification('Koneksi database gagal. Cek config.js', 'error');
@@ -141,24 +141,17 @@ function initRegisterPage() {
         submitBtn.appendChild(spinner);
 
         try {
+            // 1. Daftar user di Supabase Auth
+            // Database Trigger akan OTOMATIS membuat data di tabel 'profiles'
             const { data, error } = await supabase.auth.signUp({
                 email: email,
                 password: password,
-                options: { data: { full_name: fullName } }
+                options: { 
+                    data: { full_name: fullName } 
+                }
             });
 
             if (error) throw error;
-
-            if (data.user) {
-                try {
-                    await supabase.from('profiles').insert({
-                        id: data.user.id,
-                        email: email,
-                        full_name: fullName,
-                        role: 'staff'
-                    });
-                } catch (e) { console.log('Profile creation skipped or failed', e); }
-            }
 
             showNotification('Registrasi berhasil! Silakan login.', 'success');
             setTimeout(() => { window.location.href = 'index.html'; }, 2000);
@@ -166,8 +159,11 @@ function initRegisterPage() {
         } catch (error) {
             console.error('Register error:', error);
             let message = 'Registrasi gagal';
-            if (error.message.includes('already registered')) message = 'Email sudah terdaftar. Silakan login.';
-            else if (error.message) message = error.message;
+            if (error.message.includes('already registered')) {
+                message = 'Email sudah terdaftar. Silakan login.';
+            } else if (error.message) {
+                message = error.message;
+            }
             
             showNotification(message, 'error');
             submitBtn.disabled = false;
@@ -341,10 +337,16 @@ function initChecklistLogic() {
             const { data: submission, error } = await supabase.from('checklist_submissions').insert({
                 user_name: window.currentUser?.name || 'Unknown',
                 user_email: window.currentUser?.email || 'unknown@test.com',
-                floor_items: data.floor, rack_items: data.rack, dock_items: data.dock, facility_items: data.facility,
-                total_items: data.total, completed_items: data.completed, progress_percentage: data.progress,
+                floor_items: data.floor, 
+                rack_items: data.rack, 
+                dock_items: data.dock, 
+                facility_items: data.facility,
+                total_items: data.total, 
+                completed_items: data.completed, 
+                progress_percentage: data.progress,
                 status: data.progress === 100 ? 'completed' : 'in_progress'
             }).select().single();
+            
             if (error) throw error;
             showNotification('Data berhasil disimpan ke database! ✅', 'success');
             return submission;
