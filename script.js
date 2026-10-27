@@ -17,6 +17,13 @@ document.addEventListener('DOMContentLoaded', () => {
    HALAMAN LOGIN
    ============================================ */
 function initLoginPage() {
+    // AMBIL INSTANCE SUPABASE DI SINI
+    const supabase = window.supabaseClient;
+    if (!supabase) {
+        showNotification('Koneksi database gagal. Cek config.js', 'error');
+        return;
+    }
+
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eyeIcon');
@@ -24,7 +31,6 @@ function initLoginPage() {
     const submitBtn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
 
-    // Toggle Show/Hide Password
     togglePassword?.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
@@ -33,7 +39,6 @@ function initLoginPage() {
             : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
     });
 
-    // Form Submit - Login dengan Supabase Auth
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('email').value.trim();
@@ -51,7 +56,6 @@ function initLoginPage() {
         submitBtn.appendChild(spinner);
 
         try {
-            const supabase = window.supabaseClient;
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password
@@ -59,25 +63,20 @@ function initLoginPage() {
 
             if (error) throw error;
 
-            // Update last login di profiles table
             if (data.user) {
-                await supabase
-                    .from('profiles')
-                    .update({ last_login: new Date().toISOString() })
-                    .eq('id', data.user.id);
-                
-                // Simpan user info
                 window.currentUser = {
                     name: data.user.user_metadata?.full_name || 'User',
                     email: data.user.email
                 };
+                
+                // Update last login (opsional, abaikan jika error RLS)
+                try {
+                    await supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
+                } catch (e) { console.log('Profile update skipped'); }
             }
 
             showNotification('Login berhasil! Mengalihkan...', 'success');
-            
-            setTimeout(() => {
-                window.location.href = 'checklist.html';
-            }, 1000);
+            setTimeout(() => { window.location.href = 'checklist.html'; }, 1000);
 
         } catch (error) {
             console.error('Login error:', error);
@@ -93,6 +92,13 @@ function initLoginPage() {
    HALAMAN REGISTER
    ============================================ */
 function initRegisterPage() {
+    // AMBIL INSTANCE SUPABASE DI SINI
+    const supabase = window.supabaseClient;
+    if (!supabase) {
+        showNotification('Koneksi database gagal. Cek config.js', 'error');
+        return;
+    }
+
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eyeIcon');
@@ -100,7 +106,6 @@ function initRegisterPage() {
     const submitBtn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
 
-    // Toggle Show/Hide Password
     togglePassword?.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
@@ -109,7 +114,6 @@ function initRegisterPage() {
             : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
     });
 
-    // Form Submit - Register dengan Supabase Auth
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const fullName = document.getElementById('fullName').value.trim();
@@ -117,17 +121,14 @@ function initRegisterPage() {
         const password = passwordInput.value;
         const confirmPassword = document.getElementById('confirmPassword').value;
 
-        // Validasi
         if (!fullName || !email || !password || !confirmPassword) {
             showNotification('Semua field harus diisi', 'error');
             return;
         }
-
         if (password !== confirmPassword) {
             showNotification('Password tidak cocok', 'error');
             return;
         }
-
         if (password.length < 6) {
             showNotification('Password minimal 6 karakter', 'error');
             return;
@@ -140,50 +141,33 @@ function initRegisterPage() {
         submitBtn.appendChild(spinner);
 
         try {
-            const supabase = window.supabaseClient;
-            
-            // 1. Register user di Supabase Auth
             const { data, error } = await supabase.auth.signUp({
                 email: email,
                 password: password,
-                options: {
-                    data: {
-                        full_name: fullName
-                    }
-                }
+                options: { data: { full_name: fullName } }
             });
 
             if (error) throw error;
 
-            // 2. Buat profile di tabel profiles
             if (data.user) {
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .insert({
+                try {
+                    await supabase.from('profiles').insert({
                         id: data.user.id,
                         email: email,
                         full_name: fullName,
                         role: 'staff'
                     });
-
-                if (profileError) throw profileError;
+                } catch (e) { console.log('Profile creation skipped or failed', e); }
             }
 
             showNotification('Registrasi berhasil! Silakan login.', 'success');
-            
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 2000);
+            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
 
         } catch (error) {
             console.error('Register error:', error);
             let message = 'Registrasi gagal';
-            
-            if (error.message.includes('already registered')) {
-                message = 'Email sudah terdaftar. Silakan login.';
-            } else if (error.message) {
-                message = error.message;
-            }
+            if (error.message.includes('already registered')) message = 'Email sudah terdaftar. Silakan login.';
+            else if (error.message) message = error.message;
             
             showNotification(message, 'error');
             submitBtn.disabled = false;
@@ -197,30 +181,23 @@ function initRegisterPage() {
    HALAMAN CHECKLIST
    ============================================ */
 function initChecklistPage() {
-    // Cek apakah user sudah login
     const supabase = window.supabaseClient;
     if (!supabase) {
         showNotification('Database belum terhubung', 'error');
         return;
     }
 
-    // Ambil data user yang sedang login
     supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) {
-            // User belum login, redirect ke login page
             window.location.href = 'index.html';
             return;
         }
         
-        // Set currentUser dari session
         window.currentUser = {
             name: session.user.user_metadata?.full_name || 'User',
             email: session.user.email
         };
         
-        console.log('👤 Logged in as:', window.currentUser);
-        
-        // Inisialisasi checklist setelah user terverifikasi
         initChecklistLogic();
     });
 }
@@ -237,16 +214,8 @@ function initChecklistLogic() {
     const logoutBtn = document.getElementById('logoutBtn');
     const searchInput = document.getElementById('searchInput');
 
-    // Helper: Dapatkan instance Supabase
-    function getSupabase() {
-        if (!window.supabaseClient) {
-            console.error('❌ Supabase client belum terinisialisasi');
-            return null;
-        }
-        return window.supabaseClient;
-    }
+    function getSupabase() { return window.supabaseClient; }
 
-    // Helper: Update Progress per Card
     function updateCardProgress(category) {
         const card = document.querySelector(`.checklist-card[data-category="${category}"]`);
         if (!card) return;
@@ -256,40 +225,27 @@ function initChecklistLogic() {
         if (fill) fill.style.width = total ? (checked / total * 100) + '%' : '0%';
     }
 
-    // Helper: Update Overall Progress
     function updateOverallProgress() {
         const total = allCheckboxes.length;
         const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
         const percent = total ? Math.round((checked / total) * 100) : 0;
         
-        const bar = document.getElementById('overallProgressBar');
-        const text = document.getElementById('overallProgressText');
-        const compCount = document.getElementById('completedCount');
-        const totalCount = document.getElementById('totalCount');
-
-        if (bar) bar.style.width = percent + '%';
-        if (text) text.textContent = percent + '%';
-        if (compCount) compCount.textContent = checked;
-        if (totalCount) totalCount.textContent = total;
+        if (document.getElementById('overallProgressBar')) document.getElementById('overallProgressBar').style.width = percent + '%';
+        if (document.getElementById('overallProgressText')) document.getElementById('overallProgressText').textContent = percent + '%';
+        if (document.getElementById('completedCount')) document.getElementById('completedCount').textContent = checked;
+        if (document.getElementById('totalCount')) document.getElementById('totalCount').textContent = total;
     }
 
-    // Helper: Update Stats
     function updateStats() {
         const total = allCheckboxes.length;
         const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
         
-        const statTotal = document.getElementById('statTotal');
-        const statCompleted = document.getElementById('statCompleted');
-        const statPending = document.getElementById('statPending');
-        const statProgress = document.getElementById('statProgress');
-
-        if (statTotal) statTotal.textContent = total;
-        if (statCompleted) statCompleted.textContent = checked;
-        if (statPending) statPending.textContent = total - checked;
-        if (statProgress) statProgress.textContent = (total ? Math.round((checked / total) * 100) : 0) + '%';
+        if (document.getElementById('statTotal')) document.getElementById('statTotal').textContent = total;
+        if (document.getElementById('statCompleted')) document.getElementById('statCompleted').textContent = checked;
+        if (document.getElementById('statPending')) document.getElementById('statPending').textContent = total - checked;
+        if (document.getElementById('statProgress')) document.getElementById('statProgress').textContent = (total ? Math.round((checked / total) * 100) : 0) + '%';
     }
 
-    // Helper: Local Storage
     function saveToLocalStorage() {
         const state = {};
         allCheckboxes.forEach((cb, i) => state[`cb_${i}`] = cb.checked);
@@ -313,7 +269,6 @@ function initChecklistLogic() {
         } catch (e) { console.error(e); }
     }
 
-    // ========== SIDEBAR MOBILE ==========
     sidebarToggle?.addEventListener('click', () => {
         sidebar.classList.add('open');
         sidebarOverlay.classList.add('active');
@@ -328,12 +283,9 @@ function initChecklistLogic() {
 
     sidebarOverlay?.addEventListener('click', closeSidebar);
     document.querySelectorAll('.nav-item, .category-btn').forEach(item => {
-        item.addEventListener('click', () => {
-            if (window.innerWidth < 1024) closeSidebar();
-        });
+        item.addEventListener('click', () => { if (window.innerWidth < 1024) closeSidebar(); });
     });
 
-    // ========== FILTER KATEGORI ==========
     categoryButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             categoryButtons.forEach(b => b.classList.remove('active'));
@@ -345,7 +297,6 @@ function initChecklistLogic() {
         });
     });
 
-    // ========== SEARCH ==========
     searchInput?.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
         checklistCards.forEach(card => {
@@ -360,7 +311,6 @@ function initChecklistLogic() {
         });
     });
 
-    // ========== CHECKBOX LOGIC ==========
     allCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', () => {
             checkbox.closest('.checklist-item').classList.toggle('completed', checkbox.checked);
@@ -371,7 +321,6 @@ function initChecklistLogic() {
         });
     });
 
-    // ========== RESET ALL ==========
     resetAllBtn?.addEventListener('click', () => {
         if (!confirm('Reset semua checklist?')) return;
         allCheckboxes.forEach(cb => {
@@ -385,171 +334,60 @@ function initChecklistLogic() {
         showNotification('Checklist berhasil direset', 'info');
     });
 
-    // ========== SUPABASE: SAVE ==========
     async function saveToSupabase(data) {
         const supabase = getSupabase();
-        if (!supabase) {
-            showNotification('Database belum terhubung. Cek config.js', 'error');
-            return null;
-        }
-        
+        if (!supabase) return null;
         try {
-            const { data: submission, error } = await supabase
-                .from('checklist_submissions')
-                .insert({
-                    user_name: window.currentUser?.name || 'Unknown',
-                    user_email: window.currentUser?.email || 'unknown@test.com',
-                    floor_items: data.floor,
-                    rack_items: data.rack,
-                    dock_items: data.dock,
-                    facility_items: data.facility,
-                    total_items: data.total,
-                    completed_items: data.completed,
-                    progress_percentage: data.progress,
-                    status: data.progress === 100 ? 'completed' : 'in_progress'
-                })
-                .select()
-                .single();
-
+            const { data: submission, error } = await supabase.from('checklist_submissions').insert({
+                user_name: window.currentUser?.name || 'Unknown',
+                user_email: window.currentUser?.email || 'unknown@test.com',
+                floor_items: data.floor, rack_items: data.rack, dock_items: data.dock, facility_items: data.facility,
+                total_items: data.total, completed_items: data.completed, progress_percentage: data.progress,
+                status: data.progress === 100 ? 'completed' : 'in_progress'
+            }).select().single();
             if (error) throw error;
-            
-            console.log('✅ Data saved to Supabase:', submission);
             showNotification('Data berhasil disimpan ke database! ✅', 'success');
             return submission;
         } catch (error) {
-            console.error('❌ Error saving to Supabase:', error);
             showNotification('Gagal menyimpan: ' + error.message, 'error');
             return null;
         }
     }
 
-    // ========== SUPABASE: LOAD ==========
-    async function loadFromSupabase() {
-        const supabase = getSupabase();
-        if (!supabase) return null;
-        
-        try {
-            const { data, error } = await supabase
-                .from('checklist_submissions')
-                .select('*')
-                .eq('user_email', window.currentUser?.email || 'unknown@test.com')
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single();
-
-            if (error && error.code !== 'PGRST116') throw error;
-            
-            if (data) {
-                console.log('📥 Loaded from Supabase:', data);
-                return data;
-            }
-            return null;
-        } catch (error) {
-            console.error('❌ Error loading from Supabase:', error);
-            return null;
-        }
-    }
-
-    // ========== SUBMIT BUTTON & AUTO RESET ==========
     submitChecklistBtn?.addEventListener('click', async () => {
         const total = allCheckboxes.length;
         const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
-        
         if (completed < total) {
             showNotification(`Selesaikan semua tugas dulu (${completed}/${total})`, 'warning');
             return;
         }
-        
         const checklistData = {
-            floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({
-                task: cb.nextElementSibling.textContent,
-                checked: cb.checked
-            })),
-            rack: Array.from(document.querySelectorAll('[data-card="rack"]')).map(cb => ({
-                task: cb.nextElementSibling.textContent,
-                checked: cb.checked
-            })),
-            dock: Array.from(document.querySelectorAll('[data-card="dock"]')).map(cb => ({
-                task: cb.nextElementSibling.textContent,
-                checked: cb.checked
-            })),
-            facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({
-                task: cb.nextElementSibling.textContent,
-                checked: cb.checked
-            })),
-            total: total,
-            completed: completed,
-            progress: 100
+            floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({ task: cb.nextElementSibling.textContent, checked: cb.checked })),
+            rack: Array.from(document.querySelectorAll('[data-card="rack"]')).map(cb => ({ task: cb.nextElementSibling.textContent, checked: cb.checked })),
+            dock: Array.from(document.querySelectorAll('[data-card="dock"]')).map(cb => ({ task: cb.nextElementSibling.textContent, checked: cb.checked })),
+            facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({ task: cb.nextElementSibling.textContent, checked: cb.checked })),
+            total, completed, progress: 100
         };
-        
         const result = await saveToSupabase(checklistData);
-        
         if (result) {
             showNotification('Laporan berhasil dikirim! ID: ' + result.id.slice(0, 8), 'success');
-            
-            // Reset form otomatis setelah 1.5 detik
             setTimeout(() => {
-                allCheckboxes.forEach(cb => {
-                    cb.checked = false;
-                    cb.closest('.checklist-item').classList.remove('completed');
-                });
-                
+                allCheckboxes.forEach(cb => { cb.checked = false; cb.closest('.checklist-item').classList.remove('completed'); });
                 ['floor', 'rack', 'dock', 'facility'].forEach(updateCardProgress);
-                updateOverallProgress();
-                updateStats();
+                updateOverallProgress(); updateStats();
                 localStorage.removeItem('gudang_clean_state');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-                
             }, 1500);
         }
     });
 
-    // ========== AUTO-SAVE SETIAP 30 DETIK ==========
-    setInterval(async () => {
-        const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
-        const total = allCheckboxes.length;
-        
-        if (completed > 0) {
-            const checklistData = {
-                floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({
-                    task: cb.nextElementSibling.textContent,
-                    checked: cb.checked
-                })),
-                rack: Array.from(document.querySelectorAll('[data-card="rack"]')).map(cb => ({
-                    task: cb.nextElementSibling.textContent,
-                    checked: cb.checked
-                })),
-                dock: Array.from(document.querySelectorAll('[data-card="dock"]')).map(cb => ({
-                    task: cb.nextElementSibling.textContent,
-                    checked: cb.checked
-                })),
-                facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({
-                    task: cb.nextElementSibling.textContent,
-                    checked: cb.checked
-                })),
-                total: total,
-                completed: completed,
-                progress: Math.round((completed / total) * 100)
-            };
-            
-            console.log('💾 Auto-saving to Supabase...');
-            await saveToSupabase(checklistData);
-        }
-    }, 30000);
-
-    // ========== LOGOUT ==========
     logoutBtn?.addEventListener('click', async () => {
         if (!confirm('Yakin ingin logout?')) return;
-        
         const supabase = getSupabase();
-        if (supabase) {
-            await supabase.auth.signOut();
-        }
-        
+        if (supabase) await supabase.auth.signOut();
         window.location.href = 'index.html';
     });
 
-    // ========== INISIALISASI ==========
     loadFromLocalStorage();
     updateStats();
 }
@@ -564,47 +402,21 @@ function showNotification(message, type = 'info') {
         error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' },
         info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' }
     };
-    
     const c = colors[type] || colors.info;
-    
     const notification = document.createElement('div');
     notification.className = 'fixed top-6 right-6 z-50 px-6 py-4 rounded-xl text-white font-medium';
-    notification.style.cssText = `
-        background: ${c.bg};
-        backdrop-filter: blur(20px);
-        border: 1px solid ${c.border};
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    `;
-    notification.innerHTML = `
-        <div class="flex items-center gap-3">
-            <svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" />
-            </svg>
-            <span>${message}</span>
-        </div>
-    `;
+    notification.style.cssText = `background: ${c.bg}; backdrop-filter: blur(20px); border: 1px solid ${c.border}; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);`;
+    notification.innerHTML = `<div class="flex items-center gap-3"><svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" /></svg><span>${message}</span></div>`;
     document.body.appendChild(notification);
-
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.4s ease forwards';
         setTimeout(() => notification.remove(), 400);
     }, 3000);
 }
 
-// Inject animation keyframes untuk notifikasi
 if (!document.getElementById('notif-styles')) {
     const style = document.createElement('style');
     style.id = 'notif-styles';
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-    `;
+    style.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
     document.head.appendChild(style);
 }
