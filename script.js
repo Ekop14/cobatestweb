@@ -2,15 +2,9 @@
    INISIALISASI UTAMA
    ============================================ */
 document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('loginForm')) {
-        initLoginPage();
-    }
-    if (document.getElementById('registerForm')) {
-        initRegisterPage();
-    }
-    if (document.getElementById('checklistGrid')) {
-        initChecklistPage();
-    }
+    if (document.getElementById('loginForm')) initLoginPage();
+    if (document.getElementById('registerForm')) initRegisterPage();
+    if (document.getElementById('checklistGrid')) initChecklistPage();
 });
 
 /* ============================================
@@ -18,10 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
    ============================================ */
 function initLoginPage() {
     const supabase = window.supabaseClient;
-    if (!supabase) {
-        showNotification('Koneksi database gagal. Cek config.js', 'error');
-        return;
-    }
+    if (!supabase) { showNotification('Koneksi database gagal', 'error'); return; }
 
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
@@ -43,10 +34,7 @@ function initLoginPage() {
         const email = document.getElementById('email').value.trim();
         const password = passwordInput.value;
 
-        if (!email || !password) {
-            showNotification('Email dan password harus diisi', 'error');
-            return;
-        }
+        if (!email || !password) { showNotification('Email dan password harus diisi', 'error'); return; }
 
         submitBtn.disabled = true;
         btnText.innerText = 'Memproses...';
@@ -55,32 +43,12 @@ function initLoginPage() {
         submitBtn.appendChild(spinner);
 
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
-
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
-
-            if (data.user) {
-                window.currentUser = {
-                    name: data.user.user_metadata?.full_name || 'User',
-                    email: data.user.email
-                };
-                
-                // Update last login (aman dengan try-catch jika RLS strict)
-                try {
-                    await supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
-                } catch (e) { 
-                    console.log('Profile update skipped'); 
-                }
-            }
 
             showNotification('Login berhasil! Mengalihkan...', 'success');
             setTimeout(() => { window.location.href = 'checklist.html'; }, 1000);
-
         } catch (error) {
-            console.error('Login error:', error);
             showNotification(error.message || 'Login gagal. Periksa email dan password.', 'error');
             submitBtn.disabled = false;
             btnText.innerText = 'Masuk';
@@ -94,10 +62,7 @@ function initLoginPage() {
    ============================================ */
 function initRegisterPage() {
     const supabase = window.supabaseClient;
-    if (!supabase) {
-        showNotification('Koneksi database gagal. Cek config.js', 'error');
-        return;
-    }
+    if (!supabase) { showNotification('Koneksi database gagal', 'error'); return; }
 
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
@@ -121,18 +86,9 @@ function initRegisterPage() {
         const password = passwordInput.value;
         const confirmPassword = document.getElementById('confirmPassword').value;
 
-        if (!fullName || !email || !password || !confirmPassword) {
-            showNotification('Semua field harus diisi', 'error');
-            return;
-        }
-        if (password !== confirmPassword) {
-            showNotification('Password tidak cocok', 'error');
-            return;
-        }
-        if (password.length < 6) {
-            showNotification('Password minimal 6 karakter', 'error');
-            return;
-        }
+        if (!fullName || !email || !password || !confirmPassword) { showNotification('Semua field harus diisi', 'error'); return; }
+        if (password !== confirmPassword) { showNotification('Password tidak cocok', 'error'); return; }
+        if (password.length < 6) { showNotification('Password minimal 6 karakter', 'error'); return; }
 
         submitBtn.disabled = true;
         btnText.innerText = 'Mendaftar...';
@@ -141,31 +97,17 @@ function initRegisterPage() {
         submitBtn.appendChild(spinner);
 
         try {
-            // 1. Daftar user di Supabase Auth
-            // Database Trigger akan OTOMATIS membuat data di tabel 'profiles'
-            const { data, error } = await supabase.auth.signUp({
-                email: email,
-                password: password,
-                options: { 
-                    data: { full_name: fullName } 
-                }
+            const { error } = await supabase.auth.signUp({
+                email, password,
+                options: { data: { full_name: fullName } }
             });
-
             if (error) throw error;
 
             showNotification('Registrasi berhasil! Silakan login.', 'success');
             setTimeout(() => { window.location.href = 'index.html'; }, 2000);
-
         } catch (error) {
-            console.error('Register error:', error);
-            let message = 'Registrasi gagal';
-            if (error.message.includes('already registered')) {
-                message = 'Email sudah terdaftar. Silakan login.';
-            } else if (error.message) {
-                message = error.message;
-            }
-            
-            showNotification(message, 'error');
+            let message = error.message.includes('already registered') ? 'Email sudah terdaftar.' : error.message;
+            showNotification(message || 'Registrasi gagal', 'error');
             submitBtn.disabled = false;
             btnText.innerText = 'Daftar Sekarang';
             if (spinner.parentNode) spinner.remove();
@@ -178,22 +120,44 @@ function initRegisterPage() {
    ============================================ */
 function initChecklistPage() {
     const supabase = window.supabaseClient;
-    if (!supabase) {
-        showNotification('Database belum terhubung', 'error');
-        return;
-    }
+    if (!supabase) { showNotification('Database belum terhubung', 'error'); return; }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (!session) {
             window.location.href = 'index.html';
             return;
         }
         
+        // 1. Coba ambil nama dari metadata (saat register)
+        let userName = session.user.user_metadata?.full_name;
+        
+        // 2. Jika kosong, ambil dari tabel profiles (lebih akurat)
+        if (!userName) {
+            try {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', session.user.id)
+                    .single();
+                if (profile && profile.full_name) userName = profile.full_name;
+            } catch (e) { console.log('Gagal mengambil profil'); }
+        }
+
+        // Simpan ke global & update tampilan sidebar
         window.currentUser = {
-            name: session.user.user_metadata?.full_name || 'User',
+            name: userName || 'Pengguna Gudang',
             email: session.user.email
         };
+
+        // Update UI Sidebar dengan nama yang benar
+        const nameEl = document.getElementById('sidebarUserName');
+        const emailEl = document.getElementById('sidebarUserEmail');
+        const avatarEl = document.getElementById('userAvatar');
         
+        if (nameEl) nameEl.textContent = window.currentUser.name;
+        if (emailEl) emailEl.textContent = window.currentUser.email;
+        if (avatarEl) avatarEl.textContent = window.currentUser.name.charAt(0).toUpperCase();
+
         initChecklistLogic();
     });
 }
@@ -235,7 +199,6 @@ function initChecklistLogic() {
     function updateStats() {
         const total = allCheckboxes.length;
         const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
-        
         if (document.getElementById('statTotal')) document.getElementById('statTotal').textContent = total;
         if (document.getElementById('statCompleted')) document.getElementById('statCompleted').textContent = checked;
         if (document.getElementById('statPending')) document.getElementById('statPending').textContent = total - checked;
@@ -265,6 +228,7 @@ function initChecklistLogic() {
         } catch (e) { console.error(e); }
     }
 
+    // --- SIDEBAR MOBILE ---
     sidebarToggle?.addEventListener('click', () => {
         sidebar.classList.add('open');
         sidebarOverlay.classList.add('active');
@@ -282,13 +246,13 @@ function initChecklistLogic() {
         item.addEventListener('click', () => { if (window.innerWidth < 1024) closeSidebar(); });
     });
 
+    // --- FILTER & SEARCH ---
     categoryButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             categoryButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            const category = btn.dataset.category;
             checklistCards.forEach(card => {
-                card.classList.toggle('hidden-card', category !== 'all' && card.dataset.category !== category);
+                card.classList.toggle('hidden-card', btn.dataset.category !== 'all' && card.dataset.category !== btn.dataset.category);
             });
         });
     });
@@ -296,9 +260,8 @@ function initChecklistLogic() {
     searchInput?.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
         checklistCards.forEach(card => {
-            const items = card.querySelectorAll('.checklist-text');
             let hasMatch = false;
-            items.forEach(item => {
+            card.querySelectorAll('.checklist-text').forEach(item => {
                 const match = item.textContent.toLowerCase().includes(query);
                 item.parentElement.style.display = query && !match ? 'none' : '';
                 if (match) hasMatch = true;
@@ -307,6 +270,7 @@ function initChecklistLogic() {
         });
     });
 
+    // --- CHECKBOX LOGIC ---
     allCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', () => {
             checkbox.closest('.checklist-item').classList.toggle('completed', checkbox.checked);
@@ -330,6 +294,7 @@ function initChecklistLogic() {
         showNotification('Checklist berhasil direset', 'info');
     });
 
+    // --- SUPABASE SAVE ---
     async function saveToSupabase(data) {
         const supabase = getSupabase();
         if (!supabase) return null;
@@ -337,18 +302,11 @@ function initChecklistLogic() {
             const { data: submission, error } = await supabase.from('checklist_submissions').insert({
                 user_name: window.currentUser?.name || 'Unknown',
                 user_email: window.currentUser?.email || 'unknown@test.com',
-                floor_items: data.floor, 
-                rack_items: data.rack, 
-                dock_items: data.dock, 
-                facility_items: data.facility,
-                total_items: data.total, 
-                completed_items: data.completed, 
-                progress_percentage: data.progress,
+                floor_items: data.floor, rack_items: data.rack, dock_items: data.dock, facility_items: data.facility,
+                total_items: data.total, completed_items: data.completed, progress_percentage: data.progress,
                 status: data.progress === 100 ? 'completed' : 'in_progress'
             }).select().single();
-            
             if (error) throw error;
-            showNotification('Data berhasil disimpan ke database! ✅', 'success');
             return submission;
         } catch (error) {
             showNotification('Gagal menyimpan: ' + error.message, 'error');
@@ -356,6 +314,7 @@ function initChecklistLogic() {
         }
     }
 
+    // --- SUBMIT BUTTON ---
     submitChecklistBtn?.addEventListener('click', async () => {
         const total = allCheckboxes.length;
         const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
@@ -370,9 +329,10 @@ function initChecklistLogic() {
             facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({ task: cb.nextElementSibling.textContent, checked: cb.checked })),
             total, completed, progress: 100
         };
+        
         const result = await saveToSupabase(checklistData);
         if (result) {
-            showNotification('Laporan berhasil dikirim! ID: ' + result.id.slice(0, 8), 'success');
+            showNotification('Laporan berhasil dikirim! ✅', 'success');
             setTimeout(() => {
                 allCheckboxes.forEach(cb => { cb.checked = false; cb.closest('.checklist-item').classList.remove('completed'); });
                 ['floor', 'rack', 'dock', 'facility'].forEach(updateCardProgress);
@@ -383,10 +343,16 @@ function initChecklistLogic() {
         }
     });
 
-    logoutBtn?.addEventListener('click', async () => {
-        if (!confirm('Yakin ingin logout?')) return;
+    // --- LOGOUT BUTTON (DIPERBAIKI UNTUK MOBILE) ---
+    logoutBtn?.addEventListener('click', async (e) => {
+        e.preventDefault();       // Mencegah perilaku default link/button
+        e.stopPropagation();      // Mencegah event "bubbling" ke parent (sidebar)
+        
+        if (!confirm('Yakin ingin keluar dari akun?')) return;
+        
         const supabase = getSupabase();
         if (supabase) await supabase.auth.signOut();
+        
         window.location.href = 'index.html';
     });
 
