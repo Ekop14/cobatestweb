@@ -128,7 +128,6 @@ function initChecklistPage() {
             return;
         }
         
-        // Ambil nama user - prioritas dari metadata, fallback ke tabel profiles
         let userName = session.user.user_metadata?.full_name;
         
         if (!userName) {
@@ -148,7 +147,6 @@ function initChecklistPage() {
             id: session.user.id
         };
 
-        // Update UI Sidebar
         const nameEl = document.getElementById('sidebarUserName');
         const emailEl = document.getElementById('sidebarUserEmail');
         const avatarEl = document.getElementById('userAvatar');
@@ -345,20 +343,14 @@ function initChecklistLogic() {
     });
 
     // ============================================
-    // LOGOUT BUTTON - EVENT DELEGATION (PASTI BERFUNGSI)
+    // LOGOUT BUTTON - DI HEADER (PASTI BERFUNGSI)
     // ============================================
     if (logoutBtn) {
-        // Hapus semua event listener lama
-        const newLogoutBtn = logoutBtn.cloneNode(true);
-        logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
-        
-        // Tambah event listener baru dengan capture phase
-        newLogoutBtn.addEventListener('click', async (e) => {
+        logoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
             
-            console.log('🔴 Logout clicked!');
+            console.log(' Logout clicked!');
             
             if (!confirm('Yakin ingin keluar dari akun?')) {
                 console.log('❌ Logout dibatalkan');
@@ -372,8 +364,9 @@ function initChecklistLogic() {
             }
             
             window.location.href = 'index.html';
-        }, { capture: true, once: false });
+        });
     }
+
     loadFromLocalStorage();
     updateStats();
 }
