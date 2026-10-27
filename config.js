@@ -4,7 +4,6 @@ function initSupabase() {
 
     window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // Default user (akan diupdate setelah login)
     window.currentUser = {
         name: 'User',
         email: 'user@example.com'
