@@ -172,6 +172,26 @@ function initChecklistLogic() {
     const resetAllBtn = document.getElementById('resetAllBtn');
     const submitChecklistBtn = document.getElementById('submitChecklistBtn');
     const logoutBtn = document.getElementById('logoutBtn');
+   if (logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            // Mencegah semua perilaku default dan menghentikan event secara total
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation(); 
+            
+            // Konfirmasi logout
+            if (!confirm('Yakin ingin keluar dari akun?')) return;
+            
+            // Proses logout Supabase
+            const supabase = getSupabase();
+            if (supabase) {
+                await supabase.auth.signOut();
+            }
+            
+            // Redirect ke halaman login
+            window.location.href = 'index.html';
+        });
+    }
     const searchInput = document.getElementById('searchInput');
 
     function getSupabase() { return window.supabaseClient; }
