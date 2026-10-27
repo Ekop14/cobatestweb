@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('loginForm')) initLoginPage();
     if (document.getElementById('registerForm')) initRegisterPage();
     if (document.getElementById('checklistGrid')) initChecklistPage();
+    if (document.getElementById('reportsTableBody')) initLaporanPage();
 });
 
 /* ============================================
@@ -123,40 +124,25 @@ function initChecklistPage() {
     if (!supabase) { showNotification('Database belum terhubung', 'error'); return; }
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (!session) {
-            window.location.href = 'index.html';
-            return;
-        }
+        if (!session) { window.location.href = 'index.html'; return; }
         
         let userName = session.user.user_metadata?.full_name;
-        
         if (!userName) {
             try {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('full_name')
-                    .eq('id', session.user.id)
-                    .single();
+                const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
                 if (profile && profile.full_name) userName = profile.full_name;
             } catch (e) { console.log('Gagal mengambil profil'); }
         }
 
-        window.currentUser = {
-            name: userName || 'Pengguna Gudang',
-            email: session.user.email,
-            id: session.user.id
-        };
+        window.currentUser = { name: userName || 'Pengguna Gudang', email: session.user.email, id: session.user.id };
 
         const nameEl = document.getElementById('sidebarUserName');
         const emailEl = document.getElementById('sidebarUserEmail');
         const avatarEl = document.getElementById('userAvatar');
-        
         if (nameEl) nameEl.textContent = window.currentUser.name;
         if (emailEl) emailEl.textContent = window.currentUser.email;
         if (avatarEl) avatarEl.textContent = window.currentUser.name.charAt(0).toUpperCase();
 
-        console.log('✅ User logged in:', window.currentUser);
-        
         initChecklistLogic();
     });
 }
@@ -188,7 +174,6 @@ function initChecklistLogic() {
         const total = allCheckboxes.length;
         const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
         const percent = total ? Math.round((checked / total) * 100) : 0;
-        
         if (document.getElementById('overallProgressBar')) document.getElementById('overallProgressBar').style.width = percent + '%';
         if (document.getElementById('overallProgressText')) document.getElementById('overallProgressText').textContent = percent + '%';
         if (document.getElementById('completedCount')) document.getElementById('completedCount').textContent = checked;
@@ -216,10 +201,7 @@ function initChecklistLogic() {
         try {
             const state = JSON.parse(saved);
             allCheckboxes.forEach((cb, i) => {
-                if (state[`cb_${i}`]) {
-                    cb.checked = true;
-                    cb.closest('.checklist-item').classList.add('completed');
-                }
+                if (state[`cb_${i}`]) { cb.checked = true; cb.closest('.checklist-item').classList.add('completed'); }
             });
             ['floor', 'rack', 'dock', 'facility'].forEach(updateCardProgress);
             updateOverallProgress();
@@ -227,7 +209,6 @@ function initChecklistLogic() {
         } catch (e) { console.error(e); }
     }
 
-    // --- SIDEBAR MOBILE ---
     sidebarToggle?.addEventListener('click', () => {
         sidebar.classList.add('open');
         sidebarOverlay.classList.add('active');
@@ -245,7 +226,6 @@ function initChecklistLogic() {
         item.addEventListener('click', () => { if (window.innerWidth < 1024) closeSidebar(); });
     });
 
-    // --- FILTER & SEARCH ---
     categoryButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             categoryButtons.forEach(b => b.classList.remove('active'));
@@ -269,7 +249,6 @@ function initChecklistLogic() {
         });
     });
 
-    // --- CHECKBOX LOGIC ---
     allCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', () => {
             checkbox.closest('.checklist-item').classList.toggle('completed', checkbox.checked);
@@ -282,10 +261,7 @@ function initChecklistLogic() {
 
     resetAllBtn?.addEventListener('click', () => {
         if (!confirm('Reset semua checklist?')) return;
-        allCheckboxes.forEach(cb => {
-            cb.checked = false;
-            cb.closest('.checklist-item').classList.remove('completed');
-        });
+        allCheckboxes.forEach(cb => { cb.checked = false; cb.closest('.checklist-item').classList.remove('completed'); });
         ['floor', 'rack', 'dock', 'facility'].forEach(updateCardProgress);
         updateOverallProgress();
         updateStats();
@@ -293,7 +269,6 @@ function initChecklistLogic() {
         showNotification('Checklist berhasil direset', 'info');
     });
 
-    // --- SUPABASE SAVE ---
     async function saveToSupabase(data) {
         const supabase = getSupabase();
         if (!supabase) return null;
@@ -313,14 +288,10 @@ function initChecklistLogic() {
         }
     }
 
-    // --- SUBMIT BUTTON ---
     submitChecklistBtn?.addEventListener('click', async () => {
         const total = allCheckboxes.length;
         const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
-        if (completed < total) {
-            showNotification(`Selesaikan semua tugas dulu (${completed}/${total})`, 'warning');
-            return;
-        }
+        if (completed < total) { showNotification(`Selesaikan semua tugas dulu (${completed}/${total})`, 'warning'); return; }
         const checklistData = {
             floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({ task: cb.nextElementSibling.textContent, checked: cb.checked })),
             rack: Array.from(document.querySelectorAll('[data-card="rack"]')).map(cb => ({ task: cb.nextElementSibling.textContent, checked: cb.checked })),
@@ -328,7 +299,6 @@ function initChecklistLogic() {
             facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({ task: cb.nextElementSibling.textContent, checked: cb.checked })),
             total, completed, progress: 100
         };
-        
         const result = await saveToSupabase(checklistData);
         if (result) {
             showNotification('Laporan berhasil dikirim! ✅', 'success');
@@ -342,33 +312,281 @@ function initChecklistLogic() {
         }
     });
 
-    // ============================================
-    // LOGOUT BUTTON - DI HEADER (PASTI BERFUNGSI)
-    // ============================================
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
-            e.stopPropagation();
-            
-            console.log(' Logout clicked!');
-            
-            if (!confirm('Yakin ingin keluar dari akun?')) {
-                console.log('❌ Logout dibatalkan');
-                return;
-            }
-            
-            console.log('✅ Logging out...');
+            if (!confirm('Yakin ingin keluar dari akun?')) return;
             const supabase = getSupabase();
-            if (supabase) {
-                await supabase.auth.signOut();
-            }
-            
+            if (supabase) await supabase.auth.signOut();
             window.location.href = 'index.html';
         });
     }
 
     loadFromLocalStorage();
     updateStats();
+}
+
+/* ============================================
+   HALAMAN LAPORAN (BARU)
+   ============================================ */
+function initLaporanPage() {
+    const supabase = window.supabaseClient;
+    if (!supabase) { showNotification('Database belum terhubung', 'error'); return; }
+
+    // Cek autentikasi
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (!session) { window.location.href = 'index.html'; return; }
+        
+        let userName = session.user.user_metadata?.full_name;
+        if (!userName) {
+            try {
+                const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
+                if (profile && profile.full_name) userName = profile.full_name;
+            } catch (e) {}
+        }
+
+        window.currentUser = { name: userName || 'Pengguna Gudang', email: session.user.email };
+        
+        const nameEl = document.getElementById('sidebarUserName');
+        const emailEl = document.getElementById('sidebarUserEmail');
+        const avatarEl = document.getElementById('userAvatar');
+        if (nameEl) nameEl.textContent = window.currentUser.name;
+        if (emailEl) emailEl.textContent = window.currentUser.email;
+        if (avatarEl) avatarEl.textContent = window.currentUser.name.charAt(0).toUpperCase();
+
+        // Set default filter: 30 hari terakhir
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        document.getElementById('filterFrom').value = thirtyDaysAgo.toISOString().split('T')[0];
+        document.getElementById('filterTo').value = today.toISOString().split('T')[0];
+
+        // Load data awal
+        await loadReports();
+
+        // Event listener filter
+        document.getElementById('applyFilterBtn').addEventListener('click', loadReports);
+
+        // Event listener download
+        document.getElementById('downloadPdfBtn').addEventListener('click', downloadPDF);
+        document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
+
+        // Logout
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (!confirm('Yakin ingin keluar dari akun?')) return;
+                await supabase.auth.signOut();
+                window.location.href = 'index.html';
+            });
+        }
+
+        // Sidebar mobile
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        
+        sidebarToggle?.addEventListener('click', () => {
+            sidebar.classList.add('open');
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        sidebarOverlay?.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+    });
+}
+
+// Variabel global untuk menyimpan data laporan yang difilter
+let filteredReports = [];
+
+async function loadReports() {
+    const supabase = window.supabaseClient;
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
+    const tableBody = document.getElementById('reportsTableBody');
+    const countText = document.getElementById('reportCountText');
+    const pdfBtn = document.getElementById('downloadPdfBtn');
+    const excelBtn = document.getElementById('downloadExcelBtn');
+
+    if (!from || !to) {
+        showNotification('Pilih rentang tanggal terlebih dahulu', 'warning');
+        return;
+    }
+
+    // Tampilkan loading
+    tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-white/50 py-8"><div class="flex flex-col items-center gap-2"><div class="spinner"></div><p>Memuat data...</p></div></td></tr>`;
+    pdfBtn.disabled = true;
+    excelBtn.disabled = true;
+
+    try {
+        const { data, error } = await supabase
+            .from('checklist_submissions')
+            .select('*')
+            .gte('created_at', from + 'T00:00:00')
+            .lte('created_at', to + 'T23:59:59')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        filteredReports = data || [];
+        renderReports(filteredReports);
+        updateReportStats(filteredReports);
+        
+        countText.textContent = `Menampilkan ${filteredReports.length} laporan`;
+        pdfBtn.disabled = filteredReports.length === 0;
+        excelBtn.disabled = filteredReports.length === 0;
+
+    } catch (error) {
+        console.error('Error loading reports:', error);
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-red-400 py-8">Gagal memuat data: ${error.message}</td></tr>`;
+        showNotification('Gagal memuat laporan', 'error');
+    }
+}
+
+function renderReports(reports) {
+    const tableBody = document.getElementById('reportsTableBody');
+    
+    if (reports.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-white/50 py-8">Tidak ada laporan dalam rentang tanggal ini</td></tr>`;
+        return;
+    }
+
+    tableBody.innerHTML = reports.map(report => {
+        const date = new Date(report.created_at).toLocaleDateString('id-ID', { 
+            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+        });
+        const statusColor = report.status === 'completed' ? 'bg-green-500/20 text-green-300' : 'bg-amber-500/20 text-amber-300';
+        const statusText = report.status === 'completed' ? 'Selesai' : 'Proses';
+        const progressColor = report.progress_percentage === 100 ? 'text-green-400' : report.progress_percentage >= 50 ? 'text-amber-400' : 'text-red-400';
+
+        return `
+            <tr class="border-b border-white/5 hover:bg-white/5 transition">
+                <td class="px-4 py-3 text-sm text-white">${date}</td>
+                <td class="px-4 py-3 text-sm text-white">${report.user_name || '-'}</td>
+                <td class="px-4 py-3 text-sm text-white text-center">${report.total_items || 0}</td>
+                <td class="px-4 py-3 text-sm text-white text-center">${report.completed_items || 0}</td>
+                <td class="px-4 py-3 text-sm font-semibold text-center ${progressColor}">${report.progress_percentage || 0}%</td>
+                <td class="px-4 py-3 text-center">
+                    <span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor}">${statusText}</span>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function updateReportStats(reports) {
+    const total = reports.length;
+    const completed = reports.filter(r => r.status === 'completed').length;
+    const avgProgress = total > 0 ? Math.round(reports.reduce((sum, r) => sum + (r.progress_percentage || 0), 0) / total) : 0;
+    const uniqueUsers = new Set(reports.map(r => r.user_email)).size;
+
+    if (document.getElementById('statTotalReports')) document.getElementById('statTotalReports').textContent = total;
+    if (document.getElementById('statCompletedReports')) document.getElementById('statCompletedReports').textContent = completed;
+    if (document.getElementById('statAvgProgress')) document.getElementById('statAvgProgress').textContent = avgProgress + '%';
+    if (document.getElementById('statActiveUsers')) document.getElementById('statActiveUsers').textContent = uniqueUsers;
+}
+
+// ============================================
+// DOWNLOAD PDF
+// ============================================
+function downloadPDF() {
+    if (filteredReports.length === 0) {
+        showNotification('Tidak ada data untuk diunduh', 'warning');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
+
+    // Header
+    doc.setFontSize(18);
+    doc.setTextColor(30, 30, 80);
+    doc.text('Laporan Kebersihan Gudang', 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Periode: ${from} s/d ${to}`, 14, 28);
+    doc.text(`Dicetak: ${new Date().toLocaleDateString('id-ID')}`, 14, 34);
+    doc.text(`Total Laporan: ${filteredReports.length}`, 14, 40);
+
+    // Table
+    const tableData = filteredReports.map(r => [
+        new Date(r.created_at).toLocaleDateString('id-ID'),
+        r.user_name || '-',
+        r.total_items || 0,
+        r.completed_items || 0,
+        (r.progress_percentage || 0) + '%',
+        r.status === 'completed' ? 'Selesai' : 'Proses'
+    ]);
+
+    doc.autoTable({
+        startY: 45,
+        head: [['Tanggal', 'User', 'Total', 'Selesai', 'Progress', 'Status']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [102, 126, 234], textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 9, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [240, 240, 250] }
+    });
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Halaman ${i} dari ${pageCount} - Gudang Clean System`, 14, doc.internal.pageSize.height - 10);
+    }
+
+    doc.save(`Laporan-Kebersihan-${from}-to-${to}.pdf`);
+    showNotification('PDF berhasil diunduh! ✅', 'success');
+}
+
+// ============================================
+// DOWNLOAD EXCEL
+// ============================================
+function downloadExcel() {
+    if (filteredReports.length === 0) {
+        showNotification('Tidak ada data untuk diunduh', 'warning');
+        return;
+    }
+
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
+
+    // Data untuk Excel
+    const excelData = filteredReports.map(r => ({
+        'Tanggal': new Date(r.created_at).toLocaleDateString('id-ID'),
+        'Waktu': new Date(r.created_at).toLocaleTimeString('id-ID'),
+        'User': r.user_name || '-',
+        'Email': r.user_email || '-',
+        'Total Tugas': r.total_items || 0,
+        'Tugas Selesai': r.completed_items || 0,
+        'Progress (%)': r.progress_percentage || 0,
+        'Status': r.status === 'completed' ? 'Selesai' : 'Proses'
+    }));
+
+    // Buat workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Atur lebar kolom
+    ws['!cols'] = [
+        { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 25 }, 
+        { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 10 }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Laporan Kebersihan');
+    XLSX.writeFile(wb, `Laporan-Kebersihan-${from}-to-${to}.xlsx`);
+    showNotification('Excel berhasil diunduh! ✅', 'success');
 }
 
 /* ============================================
