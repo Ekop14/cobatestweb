@@ -329,3 +329,16 @@ function showNotification(message, type = 'info') {
     document.body.appendChild(el); setTimeout(() => { el.style.animation = 'slideOut 0.4s ease forwards'; setTimeout(() => el.remove(), 400); }, 3000);
 }
 if (!document.getElementById('notif-styles')) { const s = document.createElement('style'); s.id = 'notif-styles'; s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`; document.head.appendChild(s); }
+async function resendConfirmationEmail(email) {
+    const supabase = window.supabaseClient;
+    const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+    });
+
+    if (error) {
+        showNotification('Gagal mengirim ulang: ' + error.message, 'error');
+    } else {
+        showNotification('Link konfirmasi telah dikirim ulang ke email Anda!', 'success');
+    }
+}
