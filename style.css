@@ -655,3 +655,26 @@ body {
     animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* Tombol Logout - Posisi Absolut & Anti-Event-Bubbling */
+@media (max-width: 1024px) {
+    .logout-btn {
+        position: absolute !important;
+        right: 1.5rem !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        z-index: 200 !important;
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        -webkit-tap-highlight-color: rgba(239, 68, 68, 0.5);
+        touch-action: manipulation;
+        isolation: isolate;
+    }
+    
+    .logout-btn:hover {
+        background: rgba(239, 68, 68, 0.4) !important;
+    }
+    
+    .logout-btn:active {
+        transform: translateY(-50%) scale(0.9) !important;
+    }
+}
