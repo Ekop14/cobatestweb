@@ -35,7 +35,7 @@ function initLoginPage() {
             const { error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
             showNotification('Login berhasil!', 'success');
-            setTimeout(() => { window.location.href = 'checklist.html'; }, 1000);
+            setTimeout(() => { window.location.replace('checklist.html'); }, 1000);
         } catch (error) {
             showNotification(error.message || 'Login gagal.', 'error');
             submitBtn.disabled = false; btnText.innerText = 'Masuk'; if (spinner.parentNode) spinner.remove();
@@ -77,7 +77,7 @@ function initRegisterPage() {
             const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
             if (error) throw error;
             showNotification('Registrasi berhasil! Silakan login.', 'success');
-            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+            setTimeout(() => { window.location.replace('index.html'); }, 2000);
         } catch (error) {
             let message = error.message.includes('already registered') ? 'Email sudah terdaftar.' : error.message;
             showNotification(message || 'Registrasi gagal', 'error');
@@ -93,7 +93,7 @@ function initChecklistPage() {
     const supabase = window.supabaseClient;
     if (!supabase) return;
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (!session) { window.location.href = 'index.html'; return; }
+        if (!session) { window.location.replace('index.html'); return; }
         let userName = session.user.user_metadata?.full_name;
         if (!userName) { try { const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single(); if (profile) userName = profile.full_name; } catch (e) {} }
         window.currentUser = { name: userName || 'User', email: session.user.email };
@@ -103,6 +103,9 @@ function initChecklistPage() {
 }
 
 function initChecklistLogic() {
+    // PERBAIKAN: Deklarasikan supabase di sini agar bisa diakses saat logout
+    const supabase = window.supabaseClient; 
+    
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -118,7 +121,6 @@ function initChecklistLogic() {
     const closeSidebar = () => { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('active'); document.body.style.overflow = ''; };
     sidebarOverlay?.addEventListener('click', closeSidebar);
     
-    // Auto close sidebar saat klik link navigasi (mobile)
     document.querySelectorAll('.nav-item').forEach(link => {
         link.addEventListener('click', () => { if (window.innerWidth < 1024) closeSidebar(); });
     });
@@ -173,9 +175,16 @@ function initChecklistLogic() {
         }
     });
 
+    // PERBAIKAN: Menggunakan window.location.replace agar tidak bisa di-back
     logoutBtn?.addEventListener('click', async (e) => {
-        e.preventDefault(); if (!confirm('Yakin logout?')) return;
-        await supabase.auth.signOut(); window.location.href = 'index.html';
+        e.preventDefault(); 
+        if (!confirm('Yakin ingin keluar dari akun?')) return;
+        
+        if (supabase) {
+            await supabase.auth.signOut();
+        }
+        // replace() mencegah user kembali ke halaman checklist dengan tombol "Back" browser
+        window.location.replace('index.html'); 
     });
 
     loadFromLocalStorage(); updateProgress();
@@ -210,7 +219,7 @@ function initLaporanPage() {
     const supabase = window.supabaseClient;
     if (!supabase) return;
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (!session) { window.location.href = 'index.html'; return; }
+        if (!session) { window.location.replace('index.html'); return; }
         let userName = session.user.user_metadata?.full_name;
         if (!userName) { try { const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single(); if (profile) userName = profile.full_name; } catch (e) {} }
         window.currentUser = { name: userName || 'User', email: session.user.email };
@@ -226,7 +235,12 @@ function initLaporanPage() {
         document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
         
         const logoutBtn = document.getElementById('logoutBtn');
-        logoutBtn?.addEventListener('click', async (e) => { e.preventDefault(); if (!confirm('Yakin logout?')) return; await supabase.auth.signOut(); window.location.href = 'index.html'; });
+        logoutBtn?.addEventListener('click', async (e) => { 
+            e.preventDefault(); 
+            if (!confirm('Yakin ingin keluar dari akun?')) return; 
+            await supabase.auth.signOut(); 
+            window.location.replace('index.html'); 
+        });
 
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebarToggle');
@@ -234,7 +248,6 @@ function initLaporanPage() {
         sidebarToggle?.addEventListener('click', () => { sidebar.classList.add('open'); sidebarOverlay.classList.add('active'); document.body.style.overflow = 'hidden'; });
         sidebarOverlay?.addEventListener('click', () => { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('active'); document.body.style.overflow = ''; });
         
-        // Auto close sidebar saat klik link navigasi (mobile)
         document.querySelectorAll('.nav-item').forEach(link => {
             link.addEventListener('click', () => { if (window.innerWidth < 1024) { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('active'); document.body.style.overflow = ''; } });
         });
