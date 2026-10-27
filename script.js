@@ -345,16 +345,20 @@ function initChecklistLogic() {
     });
 
     // ============================================
-    // LOGOUT BUTTON - CAPTURE PHASE (PASTI BERFUNGSI)
+    // LOGOUT BUTTON - EVENT DELEGATION (PASTI BERFUNGSI)
     // ============================================
     if (logoutBtn) {
-        // Gunakan capture phase (true) agar event diproses SEBELUM bubbling
-        logoutBtn.addEventListener('click', async (e) => {
+        // Hapus semua event listener lama
+        const newLogoutBtn = logoutBtn.cloneNode(true);
+        logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+        
+        // Tambah event listener baru dengan capture phase
+        newLogoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
             
-            console.log('🔴 Logout button clicked!');
+            console.log('🔴 Logout clicked!');
             
             if (!confirm('Yakin ingin keluar dari akun?')) {
                 console.log('❌ Logout dibatalkan');
@@ -368,9 +372,8 @@ function initChecklistLogic() {
             }
             
             window.location.href = 'index.html';
-        }, true); // TRUE = CAPTURE PHASE
+        }, { capture: true, once: false });
     }
-
     loadFromLocalStorage();
     updateStats();
 }
