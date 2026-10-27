@@ -3,257 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checklist | Gudang Clean</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+    <title>Checklist Kebersihan Gudang</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div class="background-mesh">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-    </div>
+<body class="font-['Inter'] min-h-screen relative">
+    <div class="background-mesh"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
     <div class="noise-overlay"></div>
 
-    <div class="app-container">
+    <div class="flex min-h-screen relative z-10">
         <!-- SIDEBAR -->
         <aside id="sidebar" class="sidebar">
-            <div class="sidebar-header">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <div class="glass-icon">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                    </div>
-                    <div>
-                        <h1 style="font-size: 1.1rem; font-weight: 700;">Gudang Clean</h1>
-                        <p style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">Hygiene System</p>
-                    </div>
-                </div>
+            <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+                <div class="glass-icon p-2.5"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg></div>
+                <div><h1 class="text-white font-bold text-lg">Gudang Clean</h1><p class="text-white/50 text-xs">Hygiene System</p></div>
             </div>
-
-            <div style="padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span style="font-size: 0.7rem; color: rgba(255,255,255,0.6); text-transform: uppercase;">Progress</span>
-                    <span id="progressText" style="font-size: 0.85rem; font-weight: 600;">0%</span>
-                </div>
-                <div class="glass-progress">
-                    <div id="progressBar" class="glass-progress-fill" style="width: 0%;"></div>
-                </div>
-                <p style="font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 0.5rem;">
-                    <span id="completedCount">0</span> dari <span id="totalCount">0</span> selesai
-                </p>
+            <div class="px-6 py-5 border-b border-white/10">
+                <div class="flex justify-between mb-2"><span class="text-xs text-white/60 uppercase tracking-wider font-medium">Progress</span><span id="overallProgressText" class="text-sm text-white font-semibold">0%</span></div>
+                <div class="glass-progress"><div id="overallProgressBar" class="glass-progress-fill" style="width: 0%"></div></div>
+                <p class="text-xs text-white/50 mt-2"><span id="completedCount">0</span> dari <span id="totalCount">0</span> selesai</p>
             </div>
-
-            <nav class="sidebar-nav">
-                <p class="nav-section-title">Menu</p>
-                <a href="#" class="nav-link">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                    <span>Dashboard</span>
-                </a>
-                <a href="checklist.html" class="nav-link active">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                    <span>Checklist</span>
-                </a>
-                <a href="laporan.html" class="nav-link">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    <span>Laporan</span>
-                </a>
-
-                <p class="nav-section-title">Area Gudang</p>
-                <button class="category-btn active" data-category="all">Semua Area</button>
-                <button class="category-btn" data-category="floor">Lantai & Koridor</button>
-                <button class="category-btn" data-category="rack">Rak & Palet</button>
-                <button class="category-btn" data-category="dock">Loading Dock</button>
-                <button class="category-btn" data-category="facility">Fasilitas</button>
+            <nav class="px-4 py-5 flex-1 overflow-y-auto">
+                <p class="text-xs text-white/40 uppercase tracking-widest font-medium px-3 mb-3">Menu</p>
+                <ul class="space-y-1">
+                    <li><a href="#" class="nav-item"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg><span>Dashboard</span></a></li>
+                    <li><a href="checklist.html" class="nav-item active"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg><span>Checklist</span></a></li>
+                    <li><a href="laporan.html" class="nav-item"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg><span>Laporan</span></a></li>
+                </ul>
+                <p class="text-xs text-white/40 uppercase tracking-widest font-medium px-3 mt-6 mb-3">Area Gudang</p>
+                <ul class="space-y-1" id="categoryFilter">
+                    <li><button class="category-btn active" data-category="all">Semua Area</button></li>
+                    <li><button class="category-btn" data-category="floor">Lantai & Koridor</button></li>
+                    <li><button class="category-btn" data-category="rack">Rak & Palet</button></li>
+                    <li><button class="category-btn" data-category="dock">Loading Dock</button></li>
+                    <li><button class="category-btn" data-category="facility">Fasilitas Pendukung</button></li>
+                </ul>
             </nav>
-
-            <div class="sidebar-footer">
-                <div class="user-info">
-                    <div class="user-avatar" id="userAvatar">U</div>
-                    <div class="user-details">
-                        <div class="user-name" id="sidebarUserName">Memuat...</div>
-                        <div class="user-email" id="sidebarUserEmail">user@email.com</div>
-                    </div>
+            <div class="px-4 py-4 border-t border-white/10">
+                <div class="flex items-center gap-3 p-2 rounded-xl bg-white/5">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold flex-shrink-0" id="userAvatar">U</div>
+                    <div class="flex-1 min-w-0"><p class="text-white text-sm font-medium truncate" id="sidebarUserName">Memuat...</p><p class="text-white/50 text-xs truncate" id="sidebarUserEmail">user@email.com</p></div>
                 </div>
             </div>
         </aside>
 
-        <!-- MAIN -->
-        <main class="main-content">
-            <header class="top-header">
-                <div class="header-left">
-                    <button id="menuToggle" class="menu-toggle">
-                        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    </button>
-                    
-        <!-- Overlay (di luar app-container, sebelum script) -->
-                <div id="sidebarOverlay" class="sidebar-overlay"></div>
-                    <div>
-                        <h2 class="header-title">Checklist Kebersihan</h2>
-                        <p class="header-subtitle">Kelola tugas harian</p>
-                    </div>
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 w-full overflow-y-auto">
+            <header class="sticky top-0 z-20 glass-header px-4 sm:px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <button id="sidebarToggle" class="lg:hidden text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
+                    <div><h2 class="text-lg sm:text-xl font-bold text-white">Checklist Kebersihan</h2><p class="text-white/50 text-xs sm:text-sm">Selasa, 27 Oktober 2026</p></div>
                 </div>
-                <div class="header-actions">
-                    <button id="logoutBtn" class="logout-btn">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                        <span class="logout-text">Logout</span>
-                    </button>
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="hidden md:flex items-center glass-input px-4 py-2"><svg class="h-4 w-4 text-white/50 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg><input type="text" id="searchInput" placeholder="Cari tugas..." class="bg-transparent outline-none text-white text-sm placeholder-white/40 w-40"></div>
+                    <button id="resetAllBtn" class="glass-button-outline !py-2 !px-3" title="Reset"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
+                    <button type="button" id="logoutBtn" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 hover:text-red-200 transition"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg><span class="hidden sm:inline text-sm font-medium">Logout</span></button>
                 </div>
             </header>
 
-            <div class="content-area">
-                <!-- Stats -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">
-                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                        </div>
-                        <div>
-                            <div class="stat-label">Total</div>
-                            <div class="stat-value" id="statTotal">0</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(34, 197, 94, 0.2); color: #4ade80;">
-                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                        </div>
-                        <div>
-                            <div class="stat-label">Selesai</div>
-                            <div class="stat-value" id="statCompleted">0</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">
-                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        </div>
-                        <div>
-                            <div class="stat-label">Pending</div>
-                            <div class="stat-value" id="statPending">0</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: rgba(168, 85, 247, 0.2); color: #c084fc;">
-                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        </div>
-                        <div>
-                            <div class="stat-label">Progress</div>
-                            <div class="stat-value" id="statProgress">0%</div>
-                        </div>
-                    </div>
+            <div class="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="stat-card"><div class="stat-icon bg-blue-500/20 text-blue-400"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg></div><div><p class="text-white/50 text-xs uppercase">Total</p><p id="statTotal" class="text-2xl font-bold text-white mt-1">0</p></div></div>
+                    <div class="stat-card"><div class="stat-icon bg-green-500/20 text-green-400"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div><div><p class="text-white/50 text-xs uppercase">Selesai</p><p id="statCompleted" class="text-2xl font-bold text-white mt-1">0</p></div></div>
+                    <div class="stat-card"><div class="stat-icon bg-amber-500/20 text-amber-400"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div><p class="text-white/50 text-xs uppercase">Pending</p><p id="statPending" class="text-2xl font-bold text-white mt-1">0</p></div></div>
+                    <div class="stat-card"><div class="stat-icon bg-purple-500/20 text-purple-400"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div><p class="text-white/50 text-xs uppercase">Progress</p><p id="statProgress" class="text-2xl font-bold text-white mt-1">0%</p></div></div>
                 </div>
 
-                <!-- Search & Reset -->
-                <div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-                    <input type="text" id="searchInput" class="glass-input" placeholder="Cari tugas..." style="flex: 1; min-width: 200px;">
-                    <button id="resetBtn" class="glass-button-outline">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                        Reset
-                    </button>
-                </div>
-
-                <!-- Checklist Cards -->
-                <div id="checklistGrid" class="checklist-grid">
+                <div id="checklistGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     <div class="checklist-card" data-category="floor">
-                        <div class="checklist-header">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <div class="card-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-                                </div>
-                                <div>
-                                    <h3 class="checklist-title">Lantai & Koridor</h3>
-                                    <p class="checklist-subtitle">Area jalan & sirkulasi</p>
-                                </div>
-                            </div>
-                            <span class="checklist-badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd;">Zona 1</span>
-                        </div>
-                        <div class="glass-progress" style="margin-bottom: 1rem;"><div class="card-progress-fill" style="width: 0%;"></div></div>
-                        <ul class="checklist-items">
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="floor"><span class="checklist-text">Menyapu seluruh area lantai</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="floor"><span class="checklist-text">Mengepel dari noda/tumpahan</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="floor"><span class="checklist-text">Membersihkan marka forklift</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="floor"><span class="checklist-text">Jalur evakuasi bebas hambatan</span></li>
-                        </ul>
+                        <div class="flex items-start justify-between mb-4"><div class="flex items-center gap-3"><div class="card-icon bg-blue-500/20 text-blue-400"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg></div><div><h3 class="text-white font-semibold">Lantai & Koridor</h3><p class="text-white/50 text-xs">Area jalan & sirkulasi</p></div></div><span class="card-badge bg-blue-500/20 text-blue-300">Zona 1</span></div>
+                        <div class="glass-progress mb-4"><div class="card-progress-fill bg-gradient-to-r from-blue-400 to-blue-600" style="width: 0%"></div></div>
+                        <ul class="checklist-items space-y-2"><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="floor"><span class="checklist-text">Menyapu seluruh area lantai gudang</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="floor"><span class="checklist-text">Mengepel lantai dari noda/tumpahan</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="floor"><span class="checklist-text">Membersihkan marka jalur forklift</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="floor"><span class="checklist-text">Memastikan jalur evakuasi bebas hambatan</span></li></ul>
                     </div>
-
                     <div class="checklist-card" data-category="rack">
-                        <div class="checklist-header">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <div class="card-icon" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                                </div>
-                                <div>
-                                    <h3 class="checklist-title">Rak & Palet</h3>
-                                    <p class="checklist-subtitle">Area penyimpanan</p>
-                                </div>
-                            </div>
-                            <span class="checklist-badge" style="background: rgba(168, 85, 247, 0.2); color: #d8b4fe;">Zona 2</span>
-                        </div>
-                        <div class="glass-progress" style="margin-bottom: 1rem;"><div class="card-progress-fill" style="width: 0%;"></div></div>
-                        <ul class="checklist-items">
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="rack"><span class="checklist-text">Membersihkan debu di atas rak</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="rack"><span class="checklist-text">Menata barang berantakan</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="rack"><span class="checklist-text">Memeriksa kondisi palet</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="rack"><span class="checklist-text">Membersihkan label kotor</span></li>
-                        </ul>
+                        <div class="flex items-start justify-between mb-4"><div class="flex items-center gap-3"><div class="card-icon bg-purple-500/20 text-purple-400"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg></div><div><h3 class="text-white font-semibold">Rak & Palet</h3><p class="text-white/50 text-xs">Area penyimpanan</p></div></div><span class="card-badge bg-purple-500/20 text-purple-300">Zona 2</span></div>
+                        <div class="glass-progress mb-4"><div class="card-progress-fill bg-gradient-to-r from-purple-400 to-purple-600" style="width: 0%"></div></div>
+                        <ul class="checklist-items space-y-2"><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="rack"><span class="checklist-text">Membersihkan debu di atas rak</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="rack"><span class="checklist-text">Menata ulang barang yang berantakan</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="rack"><span class="checklist-text">Memeriksa kondisi palet (tidak rusak)</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="rack"><span class="checklist-text">Membersihkan label/barcode yang kotor</span></li></ul>
                     </div>
-
                     <div class="checklist-card" data-category="dock">
-                        <div class="checklist-header">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <div class="card-icon" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                                </div>
-                                <div>
-                                    <h3 class="checklist-title">Loading Dock</h3>
-                                    <p class="checklist-subtitle">Area bongkar muat</p>
-                                </div>
-                            </div>
-                            <span class="checklist-badge" style="background: rgba(245, 158, 11, 0.2); color: #fcd34d;">Zona 3</span>
-                        </div>
-                        <div class="glass-progress" style="margin-bottom: 1rem;"><div class="card-progress-fill" style="width: 0%;"></div></div>
-                        <ul class="checklist-items">
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="dock"><span class="checklist-text">Menyapu area loading dock</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="dock"><span class="checklist-text">Membersihkan sampah kardus</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="dock"><span class="checklist-text">Memeriksa pintu dock & seal</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="dock"><span class="checklist-text">Menata alat bantu</span></li>
-                        </ul>
+                        <div class="flex items-start justify-between mb-4"><div class="flex items-center gap-3"><div class="card-icon bg-amber-500/20 text-amber-400"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg></div><div><h3 class="text-white font-semibold">Loading Dock</h3><p class="text-white/50 text-xs">Area bongkar muat</p></div></div><span class="card-badge bg-amber-500/20 text-amber-300">Zona 3</span></div>
+                        <div class="glass-progress mb-4"><div class="card-progress-fill bg-gradient-to-r from-amber-400 to-amber-600" style="width: 0%"></div></div>
+                        <ul class="checklist-items space-y-2"><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="dock"><span class="checklist-text">Menyapu area loading dock</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="dock"><span class="checklist-text">Membersihkan sampah kardus & packing</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="dock"><span class="checklist-text">Memeriksa kondisi pintu dock & seal</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="dock"><span class="checklist-text">Menata alat bantu (hand pallet, dll)</span></li></ul>
                     </div>
-
                     <div class="checklist-card" data-category="facility">
-                        <div class="checklist-header">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <div class="card-icon" style="background: rgba(34, 197, 94, 0.2); color: #4ade80; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.25 17.747 8.85 18 10 18 12c0 2.21-.637 4.273-1.724 6.017A7.97 7.97 0 0112 20a7.97 7.97 0 01-4.343-1.343z"/></svg>
-                                </div>
-                                <div>
-                                    <h3 class="checklist-title">Fasilitas</h3>
-                                    <p class="checklist-subtitle">Toilet, pantry & umum</p>
-                                </div>
-                            </div>
-                            <span class="checklist-badge" style="background: rgba(34, 197, 94, 0.2); color: #86efac;">Zona 4</span>
-                        </div>
-                        <div class="glass-progress" style="margin-bottom: 1rem;"><div class="card-progress-fill" style="width: 0%;"></div></div>
-                        <ul class="checklist-items">
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="facility"><span class="checklist-text">Membersihkan toilet & wastafel</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="facility"><span class="checklist-text">Mengosongkan tempat sampah</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="facility"><span class="checklist-text">Membersihkan pantry</span></li>
-                            <li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="facility"><span class="checklist-text">Mengecek APAR</span></li>
-                        </ul>
+                        <div class="flex items-start justify-between mb-4"><div class="flex items-center gap-3"><div class="card-icon bg-green-500/20 text-green-400"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.25 17.747 8.85 18 10 18 12c0 2.21-.637 4.273-1.724 6.017A7.97 7.97 0 0112 20a7.97 7.97 0 01-4.343-1.343z" /></svg></div><div><h3 class="text-white font-semibold">Fasilitas Pendukung</h3><p class="text-white/50 text-xs">Toilet, pantry & umum</p></div></div><span class="card-badge bg-green-500/20 text-green-300">Zona 4</span></div>
+                        <div class="glass-progress mb-4"><div class="card-progress-fill bg-gradient-to-r from-green-400 to-green-600" style="width: 0%"></div></div>
+                        <ul class="checklist-items space-y-2"><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="facility"><span class="checklist-text">Membersihkan toilet & wastafel</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="facility"><span class="checklist-text">Mengosongkan tempat sampah</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="facility"><span class="checklist-text">Membersihkan area pantry</span></li><li class="checklist-item"><input type="checkbox" class="glass-checkbox" data-card="facility"><span class="checklist-text">Mengecek kondisi APAR</span></li></ul>
                     </div>
                 </div>
 
-                <!-- Submit Button -->
-                <button id="submitBtn" class="glass-button" style="width: 100%; padding: 1rem;">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                    Kirim Laporan
-                </button>
+                <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 glass-card !p-5">
+                    <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><div><p class="text-white font-medium text-sm">Siap mengirim laporan?</p><p class="text-white/50 text-xs">Selesaikan semua zona untuk submit</p></div></div>
+                    <button id="submitChecklistBtn" class="glass-button !py-2.5 !px-6"><span>Kirim Laporan</span><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></button>
+                </div>
             </div>
         </main>
     </div>
-
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="script.js"></script>
