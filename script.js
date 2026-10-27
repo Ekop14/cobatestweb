@@ -486,4 +486,109 @@ if (document.getElementById('reportsTableBody')) {
         
         await loadReports();
     })();
+    /* ============================================
+   HILANGKAN SCROLLBAR & PERBAIKI MOBILE
+   ============================================ */
+
+/* Hilangkan scrollbar di seluruh halaman */
+* {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+*::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
+}
+
+/* Tapi tetap bisa scroll */
+body {
+    overflow-y: scroll;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Sidebar scroll tanpa scrollbar */
+.sidebar {
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.sidebar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Main content scroll tanpa scrollbar */
+.main-content {
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.main-content::-webkit-scrollbar {
+    display: none;
+}
+
+/* ============================================
+   MOBILE MENU BURGER
+   ============================================ */
+@media (max-width: 1024px) {
+    /* Sembunyikan sidebar di mobile */
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        z-index: 40;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+    }
+    
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    
+    /* Tampilkan tombol burger */
+    .menu-toggle {
+        display: flex !important;
+    }
+    
+    /* Overlay gelap saat sidebar terbuka */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 30;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+    
+    /* Sembunyikan teks logout di mobile */
+    .logout-text {
+        display: none;
+    }
+}
+
+/* Desktop: sidebar selalu terlihat */
+@media (min-width: 1025px) {
+    .sidebar {
+        position: sticky;
+        transform: translateX(0) !important;
+    }
+    
+    .menu-toggle {
+        display: none !important;
+    }
+    
+    .sidebar-overlay {
+        display: none !important;
+    }
+}
 }
