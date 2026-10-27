@@ -49,7 +49,7 @@ function initLoginPage() {
             showNotification('Login berhasil! Mengalihkan...', 'success');
             setTimeout(() => { window.location.href = 'checklist.html'; }, 1000);
         } catch (error) {
-            showNotification(error.message || 'Login gagal. Periksa email dan password.', 'error');
+            showNotification(error.message || 'Login gagal.', 'error');
             submitBtn.disabled = false;
             btnText.innerText = 'Masuk';
             if (spinner.parentNode) spinner.remove();
@@ -128,10 +128,9 @@ function initChecklistPage() {
             return;
         }
         
-        // 1. Coba ambil nama dari metadata (saat register)
+        // Ambil nama user - prioritas dari metadata, fallback ke tabel profiles
         let userName = session.user.user_metadata?.full_name;
         
-        // 2. Jika kosong, ambil dari tabel profiles (lebih akurat)
         if (!userName) {
             try {
                 const { data: profile } = await supabase
@@ -143,13 +142,13 @@ function initChecklistPage() {
             } catch (e) { console.log('Gagal mengambil profil'); }
         }
 
-        // Simpan ke global & update tampilan sidebar
         window.currentUser = {
             name: userName || 'Pengguna Gudang',
-            email: session.user.email
+            email: session.user.email,
+            id: session.user.id
         };
 
-        // Update UI Sidebar dengan nama yang benar
+        // Update UI Sidebar
         const nameEl = document.getElementById('sidebarUserName');
         const emailEl = document.getElementById('sidebarUserEmail');
         const avatarEl = document.getElementById('userAvatar');
@@ -158,6 +157,8 @@ function initChecklistPage() {
         if (emailEl) emailEl.textContent = window.currentUser.email;
         if (avatarEl) avatarEl.textContent = window.currentUser.name.charAt(0).toUpperCase();
 
+        console.log('✅ User logged in:', window.currentUser);
+        
         initChecklistLogic();
     });
 }
@@ -172,26 +173,6 @@ function initChecklistLogic() {
     const resetAllBtn = document.getElementById('resetAllBtn');
     const submitChecklistBtn = document.getElementById('submitChecklistBtn');
     const logoutBtn = document.getElementById('logoutBtn');
-   if (logoutBtn) {
-        logoutBtn.addEventListener('click', async (e) => {
-            // Mencegah semua perilaku default dan menghentikan event secara total
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation(); 
-            
-            // Konfirmasi logout
-            if (!confirm('Yakin ingin keluar dari akun?')) return;
-            
-            // Proses logout Supabase
-            const supabase = getSupabase();
-            if (supabase) {
-                await supabase.auth.signOut();
-            }
-            
-            // Redirect ke halaman login
-            window.location.href = 'index.html';
-        });
-    }
     const searchInput = document.getElementById('searchInput');
 
     function getSupabase() { return window.supabaseClient; }
@@ -363,18 +344,32 @@ function initChecklistLogic() {
         }
     });
 
-    // --- LOGOUT BUTTON (DIPERBAIKI UNTUK MOBILE) ---
-    logoutBtn?.addEventListener('click', async (e) => {
-        e.preventDefault();       // Mencegah perilaku default link/button
-        e.stopPropagation();      // Mencegah event "bubbling" ke parent (sidebar)
-        
-        if (!confirm('Yakin ingin keluar dari akun?')) return;
-        
-        const supabase = getSupabase();
-        if (supabase) await supabase.auth.signOut();
-        
-        window.location.href = 'index.html';
-    });
+    // ============================================
+    // LOGOUT BUTTON - CAPTURE PHASE (PASTI BERFUNGSI)
+    // ============================================
+    if (logoutBtn) {
+        // Gunakan capture phase (true) agar event diproses SEBELUM bubbling
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            console.log('🔴 Logout button clicked!');
+            
+            if (!confirm('Yakin ingin keluar dari akun?')) {
+                console.log('❌ Logout dibatalkan');
+                return;
+            }
+            
+            console.log('✅ Logging out...');
+            const supabase = getSupabase();
+            if (supabase) {
+                await supabase.auth.signOut();
+            }
+            
+            window.location.href = 'index.html';
+        }, true); // TRUE = CAPTURE PHASE
+    }
 
     loadFromLocalStorage();
     updateStats();
