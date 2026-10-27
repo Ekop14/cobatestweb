@@ -4,20 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checklist Kebersihan Gudang</title>
-    
-    <!-- Favicon Inline (Menghilangkan error 404) -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
-
-    <!-- Suppressor Warning Tailwind CDN -->
     <script>
         if (typeof tailwind !== 'undefined') {
             const originalWarn = console.warn;
@@ -30,7 +20,6 @@
 </head>
 <body class="font-['Inter'] min-h-screen relative">
 
-    <!-- Background Mesh -->
     <div class="background-mesh">
         <div class="blob blob-1"></div>
         <div class="blob blob-2"></div>
@@ -38,14 +27,10 @@
     </div>
     <div class="noise-overlay"></div>
 
-    <!-- Layout Container -->
     <div class="flex min-h-screen relative z-10">
         
-        <!-- ============================================
-             SIDEBAR
-             ============================================ -->
+        <!-- SIDEBAR -->
         <aside id="sidebar" class="sidebar">
-            <!-- Logo -->
             <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
                 <div class="glass-icon p-2.5">
                     <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -58,7 +43,6 @@
                 </div>
             </div>
 
-            <!-- Overall Progress -->
             <div class="px-6 py-5 border-b border-white/10">
                 <div class="flex justify-between mb-2">
                     <span class="text-xs text-white/60 uppercase tracking-wider font-medium">Progress</span>
@@ -72,7 +56,6 @@
                 </p>
             </div>
 
-            <!-- Navigation Menu -->
             <nav class="px-4 py-5 flex-1 overflow-y-auto">
                 <p class="text-xs text-white/40 uppercase tracking-widest font-medium px-3 mb-3">Menu</p>
                 <ul class="space-y-1">
@@ -100,28 +83,28 @@
                 </ul>
             </nav>
 
-               <!-- User Profile -->
+            <!-- User Profile dengan Tombol Logout TERPISAH -->
             <div class="px-4 py-4 border-t border-white/10">
-                <button type="button" id="logoutBtn" class="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-white/5 transition text-left relative z-10">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold" id="userAvatar">
+                <div class="flex items-center gap-3 p-2 rounded-xl bg-white/5">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold flex-shrink-0" id="userAvatar">
                         U
                     </div>
-                    <div class="flex-1 min-w-0 text-left">
+                    <div class="flex-1 min-w-0">
                         <p class="text-white text-sm font-medium truncate" id="sidebarUserName">Memuat...</p>
                         <p class="text-white/50 text-xs truncate" id="sidebarUserEmail">user@email.com</p>
                     </div>
-                    <svg class="h-4 w-4 text-white/50 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                </button>
+                    <!-- Tombol Logout Terpisah -->
+                    <button type="button" id="logoutBtn" class="logout-btn flex-shrink-0 p-2 rounded-lg transition" title="Logout">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </aside>
 
-        <!-- ============================================
-             MAIN CONTENT
-             ============================================ -->
+        <!-- MAIN CONTENT -->
         <main class="flex-1 w-full overflow-y-auto">
-            <!-- Top Header -->
             <header class="sticky top-0 z-20 glass-header px-6 py-4 flex items-center justify-between">
                 <div class="flex items-center gap-4">
                     <button id="sidebarToggle" class="lg:hidden text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition">
@@ -149,7 +132,6 @@
                 </div>
             </header>
 
-            <!-- Content Area -->
             <div class="px-6 py-6 max-w-7xl mx-auto">
                 
                 <!-- Stats Cards -->
@@ -195,7 +177,6 @@
                 <!-- Checklist Cards Grid -->
                 <div id="checklistGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-5">
                     
-                    <!-- Card 1: Lantai & Koridor -->
                     <div class="checklist-card" data-category="floor">
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex items-center gap-3">
@@ -220,7 +201,6 @@
                         </ul>
                     </div>
 
-                    <!-- Card 2: Rak & Palet -->
                     <div class="checklist-card" data-category="rack">
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex items-center gap-3">
@@ -245,7 +225,6 @@
                         </ul>
                     </div>
 
-                    <!-- Card 3: Loading Dock -->
                     <div class="checklist-card" data-category="dock">
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex items-center gap-3">
@@ -270,7 +249,6 @@
                         </ul>
                     </div>
 
-                    <!-- Card 4: Fasilitas Pendukung -->
                     <div class="checklist-card" data-category="facility">
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex items-center gap-3">
@@ -325,16 +303,9 @@
     <!-- Mobile Sidebar Overlay -->
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
-    <!-- ============================================
-         SCRIPTS (URUTAN WAJIB INI)
-         ============================================ -->
-    <!-- 1. Supabase JS Library -->
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- 2. Config Supabase -->
     <script src="config.js"></script>
-    
-    <!-- 3. Main Script -->
     <script src="script.js"></script>
 </body>
 </html>
