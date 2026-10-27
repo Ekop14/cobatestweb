@@ -195,325 +195,6 @@ body {
     border: none;
     background: transparent;
     text-align: left;
-}
-.nav-item:hover, .category-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-}
-.nav-item.active, .category-btn.active {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-}
-
-/* ============================================
-   CHECKLIST CARDS
-   ============================================ */
-.stat-card, .checklist-card {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 1.5rem;
-    transition: all 0.3s ease;
-    animation: fadeIn 0.5s ease forwards;
-}
-.stat-card:hover, .checklist-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateY(-2px);
-}
-
-.card-icon, .stat-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-.card-badge {
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.3rem 0.7rem;
-    border-radius: 20px;
-}
-
-.checklist-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.65rem;
-    border-radius: 10px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-.checklist-item:hover {
-    background: rgba(255, 255, 255, 0.04);
-}
-.checklist-text {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 0.9rem;
-    flex: 1;
-}
-.checklist-item.completed .checklist-text {
-    color: rgba(255, 255, 255, 0.4);
-    text-decoration: line-through;
-}
-
-.checklist-card.hidden-card {
-    display: none;
-}
-
-/* ============================================
-   MOBILE RESPONSIVE
-   ============================================ */
-@media (max-width: 1024px) {
-    .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        transform: translateX(-100%);
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
-    }
-    .sidebar.open {
-        transform: translateX(0);
-    }
-    
-    .sidebar-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.3);
-        z-index: 40;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    .sidebar-overlay.active {
-        display: block;
-        opacity: 1;
-    }
-}
-
-@media (max-width: 640px) {
-    .glass-card { padding: 1.5rem; }
-    .stat-card, .checklist-card { padding: 1.25rem; }
-    .card-icon, .stat-icon { width: 38px; height: 38px; }
-    h2 { font-size: 1.25rem; }
-    h3 { font-size: 1.1rem; }
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Spinner for loading */
-.spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-/* ============================================
-   BASE & BACKGROUND
-   ============================================ */
-body {
-    background: #0a0a1f;
-    color: white;
-}
-
-.background-mesh {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-    overflow: hidden;
-}
-
-.blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.5;
-    animation: float 20s infinite ease-in-out;
-}
-.blob-1 { width: 500px; height: 500px; background: #667eea; top: -100px; left: -100px; }
-.blob-2 { width: 400px; height: 400px; background: #f093fb; top: 50%; right: -100px; animation-delay: -5s; }
-.blob-3 { width: 450px; height: 450px; background: #4facfe; bottom: -100px; left: 30%; animation-delay: -10s; }
-
-@keyframes float {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(30px, -30px) scale(1.05); }
-    66% { transform: translate(-20px, 20px) scale(0.95); }
-}
-
-.noise-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1;
-    opacity: 0.03;
-    pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-}
-
-/* ============================================
-   GLASS COMPONENTS
-   ============================================ */
-.glass-card {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    padding: 2.5rem;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-}
-
-.glass-icon {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-}
-
-.glass-input {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    transition: all 0.3s ease;
-    outline: none;
-}
-.glass-input:focus {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
-}
-
-.glass-checkbox {
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 5px;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-.glass-checkbox:checked {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-color: transparent;
-}
-.glass-checkbox:checked::after {
-    content: '';
-    position: absolute;
-    left: 5px;
-    top: 1px;
-    width: 5px;
-    height: 10px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-.glass-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    font-weight: 600;
-    padding: 0.9rem 1.5rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-.glass-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
-}
-.glass-button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.glass-button-outline {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-.glass-button-outline:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-.glass-progress {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    overflow: hidden;
-}
-.glass-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    border-radius: 10px;
-    transition: width 0.5s ease;
-}
-
-/* ============================================
-   LAYOUT & SIDEBAR
-   ============================================ */
-.sidebar {
-    width: 280px;
-    height: 100vh;
-    background: rgba(15, 12, 41, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    z-index: 50;
-}
-
-.glass-header {
-    background: rgba(10, 10, 31, 0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.nav-item, .category-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    width: 100%;
-    padding: 0.65rem 0.85rem;
-    border-radius: 10px;
-    color: rgba(255, 255, 255, 0.65);
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    border: none;
-    background: transparent;
-    text-align: left;
     text-decoration: none;
 }
 .nav-item:hover, .category-btn:hover {
@@ -585,6 +266,20 @@ body {
 }
 
 /* ============================================
+   LOGOUT BUTTON DI HEADER
+   ============================================ */
+.logout-header-btn {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(239, 68, 68, 0.3);
+}
+
+.logout-header-btn:active {
+    transform: scale(0.95);
+}
+
+/* ============================================
    MOBILE RESPONSIVE
    ============================================ */
 @media (max-width: 1024px) {
@@ -612,33 +307,14 @@ body {
         display: block;
         opacity: 1;
     }
-
-    /* Tombol Logout di Mobile - PASTI BISA DIKLIK */
-    .logout-btn {
-        pointer-events: auto !important;
-        cursor: pointer !important;
-        position: relative;
-        z-index: 100 !important;
-        -webkit-tap-highlight-color: rgba(239, 68, 68, 0.3);
-        touch-action: manipulation;
-    }
-    
-    .logout-btn:hover {
-        background: rgba(239, 68, 68, 0.2) !important;
-        color: #ef4444 !important;
-    }
-    
-    .logout-btn:active {
-        transform: scale(0.95);
-    }
 }
 
 @media (max-width: 640px) {
     .glass-card { padding: 1.5rem; }
     .stat-card, .checklist-card { padding: 1.25rem; }
     .card-icon, .stat-icon { width: 38px; height: 38px; }
-    h2 { font-size: 1.25rem; }
-    h3 { font-size: 1.1rem; }
+    h2 { font-size: 1.1rem; }
+    h3 { font-size: 1.05rem; }
 }
 
 @keyframes fadeIn {
@@ -655,26 +331,3 @@ body {
     animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-/* Tombol Logout - Posisi Absolut & Anti-Event-Bubbling */
-@media (max-width: 1024px) {
-    .logout-btn {
-        position: absolute !important;
-        right: 1.5rem !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
-        z-index: 200 !important;
-        pointer-events: auto !important;
-        cursor: pointer !important;
-        -webkit-tap-highlight-color: rgba(239, 68, 68, 0.5);
-        touch-action: manipulation;
-        isolation: isolate;
-    }
-    
-    .logout-btn:hover {
-        background: rgba(239, 68, 68, 0.4) !important;
-    }
-    
-    .logout-btn:active {
-        transform: translateY(-50%) scale(0.9) !important;
-    }
-}
