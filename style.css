@@ -201,3 +201,24 @@ PERBAIKAN LAYOUT DESKTOP - ALIGNMENT SIDEBAR & CONTENT
 .stat-card, .checklist-card {
     width: 100%;
 }
+/* ============================================
+PERBAIKAN ALIGNMENT DESKTOP (CARD SEJAJAR SIDEBAR)
+============================================ */
+@media (min-width: 1025px) {
+    /* 1. Hapus padding atas pada area konten agar card naik ke paling atas */
+    .px-4.sm\:px-6.py-6.max-w-7xl.mx-auto {
+        padding-top: 0 !important;
+    }
+
+    /* 2. Sesuaikan padding header utama agar sejajar dengan header sidebar */
+    /* Sidebar header menggunakan py-5 (1.25rem), kita samakan di sini */
+    header.glass-header {
+        padding-top: 1.25rem !important;
+        padding-bottom: 1.25rem !important;
+    }
+
+    /* 3. Pastikan tidak ada margin atau spacing tambahan di main content */
+    main {
+        margin-top: 0 !important;
+    }
+}
