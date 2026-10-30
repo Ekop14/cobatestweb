@@ -475,7 +475,15 @@ body {
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
-
+/* ============================================
+10. SIDEBAR BLUR EFFECT (TAMBAHKAN DI PALING BAWAH)
+============================================ */
+.sidebar, #sidebar {
+    background: rgba(15, 12, 41, 0.70) !important; /* Lebih transparan (dari 0.95) */
+    backdrop-filter: blur(40px) !important;        /* Blur 2x lebih kuat (dari 20px) */
+    -webkit-backdrop-filter: blur(40px) !important; /* Agar berfungsi di Safari/iPhone */
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
