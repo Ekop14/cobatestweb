@@ -457,3 +457,128 @@ if (!document.getElementById('notif-styles')) {
     s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
     document.head.appendChild(s);
 }
+/* ============================================
+   LOGIKA KHUSUS HALAMAN DASHBOARD
+   ============================================ */
+
+document.addEventListener('DOMContentLoaded', () => {
+    initDashboardPage();
+});
+
+function initDashboardPage() {
+    const supabase = window.supabaseClient;
+    if (!supabase) return;
+    
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+        // Jika belum login, tendang ke halaman index
+        if (!session) { 
+            window.location.replace('index.html'); 
+            return; 
+        }
+        
+        let userName = session.user.user_metadata?.full_name;
+        if (!userName) {
+            try {
+                const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
+                if (profile) userName = profile.full_name;
+            } catch (e) {
+                console.error("Gagal mengambil profil:", e);
+            }
+        }
+        
+        window.currentUser = { name: userName || 'User', email: session.user.email };
+        
+        // Update nama di banner selamat datang
+        const nameEl = document.getElementById('dashboardUserName');
+        if (nameEl) nameEl.textContent = window.currentUser.name;
+        
+        // Update info user di sidebar (jika sidebar-loader sudah dimuat)
+        if (typeof updateSidebarUserInfo === 'function') {
+            updateSidebarUserInfo();
+        }
+        
+        // Muat statistik dashboard
+        loadDashboardStats();
+    });
+
+    // Handle Logout Button
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!confirm('Yakin ingin keluar dari akun?')) return;
+            const supabase = window.supabaseClient;
+            if (supabase) await supabase.auth.signOut();
+            window.location.replace('index.html');
+        });
+    }
+}
+
+async function loadDashboardStats() {
+    const supabase = window.supabaseClient;
+    try {
+        // 1. Total Laporan
+        const { count: totalLaporan } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
+        
+        // 2. Rata-rata Progress
+        const { data: submissions } = await supabase.from('checklist_submissions').select('progress_percentage');
+        let avgProgress = 0;
+        if (submissions && submissions.length > 0) {
+            const sum = submissions.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0);
+            avgProgress = Math.round(sum / submissions.length);
+        }
+
+        // 3. Laporan Hari Ini
+        const today = new Date().toISOString().split('T')[0];
+        const { count: todayLaporan } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', today + 'T00:00:00');
+
+        // Update UI Stats
+        const elTotal = document.getElementById('statTotalLaporan');
+        const elAvg = document.getElementById('statAvgProgress');
+        const elToday = document.getElementById('statTodayLaporan');
+        
+        if (elTotal) elTotal.textContent = totalLaporan || 0;
+        if (elAvg) elAvg.textContent = avgProgress + '%';
+        if (elToday) elToday.textContent = todayLaporan || 0;
+        
+        // 4. Recent Activity (5 terakhir)
+        const { data: recent } = await supabase.from('checklist_submissions')
+            .select('user_name, progress_percentage, created_at, status')
+            .order('created_at', { ascending: false })
+            .limit(5);
+            
+        renderRecentActivity(recent || []);
+
+    } catch (error) {
+        console.error("Dashboard load error:", error);
+        const tbody = document.getElementById('recentActivityBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-400">Gagal memuat data. Periksa koneksi.</td></tr>`;
+        }
+    }
+}
+
+function renderRecentActivity(data) {
+    const tbody = document.getElementById('recentActivityBody');
+    if (!tbody) return;
+
+    if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-white/50">Belum ada aktivitas checklist</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = data.map(r => {
+        const date = new Date(r.created_at).toLocaleDateString('id-ID', { 
+            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
+        });
+        const statusColor = r.status === 'completed' ? 'text-green-400' : 'text-amber-400';
+        const badgeClass = r.status === 'completed' ? 'bg-green-500/20 text-green-300' : 'bg-amber-500/20 text-amber-300';
+        
+        return `<tr>
+            <td class="px-4 py-3 text-sm">${r.user_name || 'User'}</td>
+            <td class="px-4 py-3 text-sm text-white/70">${date}</td>
+            <td class="px-4 py-3 text-sm font-semibold text-center ${statusColor}">${r.progress_percentage}%</td>
+            <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ${badgeClass}">${r.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
+        </tr>`;
+    }).join('');
+}
