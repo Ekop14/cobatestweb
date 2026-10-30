@@ -103,7 +103,6 @@ function initChecklistPage() {
 }
 
 function initChecklistLogic() {
-    // PERBAIKAN: Deklarasikan supabase di sini agar bisa diakses saat logout
     const supabase = window.supabaseClient; 
     
     const sidebar = document.getElementById('sidebar');
@@ -117,18 +116,40 @@ function initChecklistLogic() {
     const logoutBtn = document.getElementById('logoutBtn');
     const searchInput = document.getElementById('searchInput');
 
-    sidebarToggle?.addEventListener('click', () => { sidebar.classList.add('open'); sidebarOverlay.classList.add('active'); document.body.style.overflow = 'hidden'; });
-    const closeSidebar = () => { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('active'); document.body.style.overflow = ''; };
+    const closeSidebar = () => {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    };
+
+    sidebarToggle?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebar.classList.add('open');
+        sidebarOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    });
+
     sidebarOverlay?.addEventListener('click', closeSidebar);
-    
+
+    // Buka/tutup menu di mobile tanpa menggagalkan navigasi bawaan tautan (a tag)
     document.querySelectorAll('.nav-item').forEach(link => {
-        link.addEventListener('click', () => { if (window.innerWidth < 1024) closeSidebar(); });
+        link.addEventListener('click', () => {
+            if (window.innerWidth < 1024) {
+                closeSidebar();
+            }
+        });
     });
 
     categoryButtons.forEach(btn => {
         btn.addEventListener('click', () => {
-            categoryButtons.forEach(b => b.classList.remove('active')); btn.classList.add('active');
-            checklistCards.forEach(card => { card.classList.toggle('hidden-card', btn.dataset.category !== 'all' && card.dataset.category !== btn.dataset.category); });
+            categoryButtons.forEach(b => b.classList.remove('active')); 
+            btn.classList.add('active');
+            checklistCards.forEach(card => { 
+                card.classList.toggle('hidden-card', btn.dataset.category !== 'all' && card.dataset.category !== btn.dataset.category); 
+            });
+            if (window.innerWidth < 1024) {
+                closeSidebar();
+            }
         });
     });
 
@@ -138,7 +159,8 @@ function initChecklistLogic() {
             let hasMatch = false;
             card.querySelectorAll('.checklist-text').forEach(item => {
                 const match = item.textContent.toLowerCase().includes(query);
-                item.parentElement.style.display = query && !match ? 'none' : ''; if (match) hasMatch = true;
+                item.parentElement.style.display = query && !match ? 'none' : ''; 
+                if (match) hasMatch = true;
             });
             card.classList.toggle('hidden-card', query && !hasMatch);
         });
@@ -175,7 +197,6 @@ function initChecklistLogic() {
         }
     });
 
-    // PERBAIKAN: Menggunakan window.location.replace agar tidak bisa di-back
     logoutBtn?.addEventListener('click', async (e) => {
         e.preventDefault(); 
         if (!confirm('Yakin ingin keluar dari akun?')) return;
@@ -183,7 +204,6 @@ function initChecklistLogic() {
         if (supabase) {
             await supabase.auth.signOut();
         }
-        // replace() mencegah user kembali ke halaman checklist dengan tombol "Back" browser
         window.location.replace('index.html'); 
     });
 
@@ -245,11 +265,26 @@ function initLaporanPage() {
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebarOverlay = document.getElementById('sidebarOverlay');
-        sidebarToggle?.addEventListener('click', () => { sidebar.classList.add('open'); sidebarOverlay.classList.add('active'); document.body.style.overflow = 'hidden'; });
-        sidebarOverlay?.addEventListener('click', () => { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('active'); document.body.style.overflow = ''; });
+        const closeSidebar = () => {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        };
+
+        sidebarToggle?.addEventListener('click', (e) => { 
+            e.stopPropagation();
+            sidebar.classList.add('open'); 
+            sidebarOverlay.classList.add('active'); 
+            document.body.style.overflow = 'hidden'; 
+        });
+        sidebarOverlay?.addEventListener('click', closeSidebar);
         
         document.querySelectorAll('.nav-item').forEach(link => {
-            link.addEventListener('click', () => { if (window.innerWidth < 1024) { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('active'); document.body.style.overflow = ''; } });
+            link.addEventListener('click', () => { 
+                if (window.innerWidth < 1024) { 
+                    closeSidebar();
+                } 
+            });
         });
     });
 }
