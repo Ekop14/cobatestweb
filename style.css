@@ -72,6 +72,40 @@ body { background: #0a0a1f; color: white; font-family: 'Inter', sans-serif; }
   h3 { font-size: 1.05rem; }
   .report-table th:nth-child(5), .report-table td:nth-child(5) { display: none; }
 }
+/* ============================================
+   PERBAIKAN KHUSUS MOBILE (ANTI-BLOKIR KLIK)
+   TAMBAHKAN INI DI PALING BAWAH FILE style (1).css
+   ============================================ */
+@media (max-width: 1024px) {
+    /* 1. Paksa Sidebar berada di lapisan PALING ATAS dari segalanya */
+    .sidebar {
+        z-index: 99999 !important;
+        overscroll-behavior: contain !important; /* Mencegah scroll tembus ke belakang */
+    }
+
+    /* 2. Pastikan overlay ada di tepat bawah sidebar, dan hanya aktif saat terbuka */
+    .sidebar-overlay {
+        z-index: 99998 !important;
+        pointer-events: none !important; /* Jangan blokir apa pun saat tersembunyi */
+    }
+    .sidebar-overlay.active {
+        pointer-events: auto !important; /* Blokir konten utama saat sidebar terbuka */
+    }
+
+    /* 3. PAKSA TOMBOL MENU BISA DIKLIK (Silver Bullet) */
+    .nav-item, .category-btn {
+        position: relative !important;
+        z-index: 100000 !important; /* Lebih tinggi dari sidebar itu sendiri */
+        touch-action: manipulation !important; /* KUNCI: Mencegah HP menganggap sentuhan sebagai "zoom/scroll", memaksanya jadi "klik" */
+        pointer-events: auto !important;
+        -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2); /* Memberi efek kedip saat disentuh, membuktikan klik terdaftar */
+    }
+
+    /* 4. Mencegah Ikon SVG atau Teks "mencuri" fokus klik dari tag <a> pembungkusnya */
+    .nav-item svg, .nav-item span, .category-btn svg, .category-btn span {
+        pointer-events: none !important;
+    }
+}
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .spinner { width: 24px; height: 24px; border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
