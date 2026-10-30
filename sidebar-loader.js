@@ -2,28 +2,6 @@
    SIDEBAR LOADER - KOMPONEN TERPISAH
    ============================================ */
 
-// Fungsi navigasi yang DIJAMIN berfungsi di semua HP
-function navigateTo(url) {
-    // Tutup sidebar di mobile dulu
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    if (sidebar && window.innerWidth < 1024) {
-        sidebar.classList.remove('open');
-        if (overlay) overlay.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-    
-    // Jika URL sama dengan halaman saat ini, jangan reload
-    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-    if (currentPage === url) return;
-    
-    // Navigasi dengan delay kecil agar animasi sidebar selesai
-    setTimeout(() => {
-        window.location.href = url;
-    }, 100);
-}
-
-// Load sidebar dari file eksternal
 async function loadSidebar() {
     const slot = document.getElementById('sidebar-slot');
     if (!slot) return;
@@ -34,25 +12,37 @@ async function loadSidebar() {
         const html = await response.text();
         slot.innerHTML = html;
         
-        // Tandai menu aktif berdasarkan halaman saat ini
         highlightActiveMenu();
-        
-        // Setup toggle mobile
         setupSidebarToggle();
-        
-        // Update info user jika sudah login
+        setupSidebarNavigation(); // <-- Fungsi navigasi yang diperbaiki
         updateSidebarUserInfo();
-        
-        // Setup filter area (jika ada di halaman checklist)
         setupCategoryFilter();
         
     } catch (error) {
         console.error('Error loading sidebar:', error);
-        slot.innerHTML = '<div class="p-6 text-red-400">Gagal memuat menu</div>';
+        slot.innerHTML = '<div class="p-6 text-red-400 text-sm">Gagal memuat menu. Periksa koneksi.</div>';
     }
 }
 
-// Tandai menu yang sedang aktif
+// FUNGSI NAVIGASI YANG AMAN (TIDAK MEMBATALKAN DEFAULT BROWSER)
+function setupSidebarNavigation() {
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // KITA TIDAK MENGGUNAKAN e.preventDefault()
+            // Biarkan browser melakukan navigasi secara normal.
+            // Kita hanya bertugas menutup sidebar agar UI rapi.
+            if (window.innerWidth < 1024) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (sidebar) sidebar.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    });
+}
+
 function highlightActiveMenu() {
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     document.querySelectorAll('.nav-item').forEach(link => {
@@ -67,7 +57,6 @@ function highlightActiveMenu() {
     });
 }
 
-// Setup toggle sidebar untuk mobile
 function setupSidebarToggle() {
     const sidebar = document.getElementById('sidebar');
     const toggle = document.getElementById('sidebarToggle');
@@ -90,7 +79,6 @@ function setupSidebarToggle() {
     }
 }
 
-// Update info user di sidebar
 function updateSidebarUserInfo() {
     if (window.currentUser) {
         const nameEl = document.getElementById('sidebarUserName');
@@ -103,7 +91,6 @@ function updateSidebarUserInfo() {
     }
 }
 
-// Setup filter kategori (untuk halaman checklist)
 function setupCategoryFilter() {
     const categoryButtons = document.querySelectorAll('.category-btn');
     const checklistCards = document.querySelectorAll('.checklist-card');
@@ -112,8 +99,10 @@ function setupCategoryFilter() {
     
     categoryButtons.forEach(btn => {
         btn.addEventListener('click', () => {
-            categoryButtons.forEach(b => b.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10'));
-            categoryButtons.forEach(b => b.classList.add('text-white/60'));
+            categoryButtons.forEach(b => {
+                b.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10');
+                b.classList.add('text-white/60');
+            });
             
             btn.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10');
             btn.classList.remove('text-white/60');
@@ -126,7 +115,6 @@ function setupCategoryFilter() {
     });
 }
 
-// Fungsi untuk update progress bar di sidebar (dipanggil dari script.js)
 function updateSidebarProgress() {
     const allCheckboxes = document.querySelectorAll('.checklist-card .glass-checkbox');
     if (allCheckboxes.length === 0) return;
@@ -146,7 +134,6 @@ function updateSidebarProgress() {
     if (totalEl) totalEl.textContent = total;
 }
 
-// Auto-load sidebar saat DOM siap
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', loadSidebar);
 } else {
