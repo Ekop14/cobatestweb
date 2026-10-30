@@ -21,7 +21,7 @@ function initLoginPage() {
     togglePassword?.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
-        eyeIcon.innerHTML = type === 'text' ? '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />' : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
+        eyeIcon.innerHTML = type === 'text' ? '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />' : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943-9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
     });
 
     loginForm.addEventListener('submit', async (e) => {
@@ -59,7 +59,7 @@ function initRegisterPage() {
     togglePassword?.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
-        eyeIcon.innerHTML = type === 'text' ? '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />' : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
+        eyeIcon.innerHTML = type === 'text' ? '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />' : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943-9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
     });
 
     registerForm.addEventListener('submit', async (e) => {
@@ -116,22 +116,30 @@ function initChecklistLogic() {
     const logoutBtn = document.getElementById('logoutBtn');
     const searchInput = document.getElementById('searchInput');
 
+    const openSidebar = () => {
+        if (sidebar) sidebar.classList.add('open');
+        if (sidebarOverlay) sidebarOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    };
+
     const closeSidebar = () => {
-        sidebar.classList.remove('open');
-        sidebarOverlay.classList.remove('active');
+        if (sidebar) sidebar.classList.remove('open');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('active');
         document.body.style.overflow = '';
     };
 
     sidebarToggle?.addEventListener('click', (e) => {
         e.stopPropagation();
-        sidebar.classList.add('open');
-        sidebarOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
+        if (sidebar?.classList.contains('open')) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
     });
 
     sidebarOverlay?.addEventListener('click', closeSidebar);
 
-    // Buka/tutup menu di mobile tanpa menggagalkan navigasi bawaan tautan (a tag)
+    // Navigasi menu utama di mobile
     document.querySelectorAll('.nav-item').forEach(link => {
         link.addEventListener('click', () => {
             if (window.innerWidth < 1024) {
@@ -200,10 +208,7 @@ function initChecklistLogic() {
     logoutBtn?.addEventListener('click', async (e) => {
         e.preventDefault(); 
         if (!confirm('Yakin ingin keluar dari akun?')) return;
-        
-        if (supabase) {
-            await supabase.auth.signOut();
-        }
+        if (supabase) { await supabase.auth.signOut(); }
         window.location.replace('index.html'); 
     });
 
@@ -265,17 +270,26 @@ function initLaporanPage() {
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        const openSidebar = () => {
+            if (sidebar) sidebar.classList.add('open');
+            if (sidebarOverlay) sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        };
+
         const closeSidebar = () => {
-            sidebar.classList.remove('open');
-            sidebarOverlay.classList.remove('active');
+            if (sidebar) sidebar.classList.remove('open');
+            if (sidebarOverlay) sidebarOverlay.classList.remove('active');
             document.body.style.overflow = '';
         };
 
         sidebarToggle?.addEventListener('click', (e) => { 
             e.stopPropagation();
-            sidebar.classList.add('open'); 
-            sidebarOverlay.classList.add('active'); 
-            document.body.style.overflow = 'hidden'; 
+            if (sidebar?.classList.contains('open')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
         });
         sidebarOverlay?.addEventListener('click', closeSidebar);
         
@@ -377,8 +391,3 @@ async function resendConfirmationEmail(email) {
         showNotification('Link konfirmasi telah dikirim ulang ke email Anda!', 'success');
     }
 }
-const closeSidebar = () => {
-    if (sidebar) sidebar.classList.remove('open', 'active');
-    if (sidebarOverlay) sidebarOverlay.classList.remove('active');
-    document.body.style.overflow = '';
-};
