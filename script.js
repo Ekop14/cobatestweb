@@ -377,3 +377,8 @@ async function resendConfirmationEmail(email) {
         showNotification('Link konfirmasi telah dikirim ulang ke email Anda!', 'success');
     }
 }
+const closeSidebar = () => {
+    if (sidebar) sidebar.classList.remove('open', 'active');
+    if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+};
