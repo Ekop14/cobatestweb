@@ -9,81 +9,81 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="font-['Inter'] min-h-screen relative">
+<body class="font-['Inter'] min-h-screen relative overflow-x-hidden">
     <div class="background-mesh"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
     <div class="noise-overlay"></div>
 
     <div class="flex min-h-screen relative z-10">
         <!-- SIDEBAR -->
-<aside id="sidebar" class="sidebar">
-    <!-- 1. HEADER (Tetap di atas, tidak ter-scroll) -->
-    <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10 flex-shrink-0">
-        <div class="glass-icon p-2.5">
-            <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-        </div>
-        <div><h1 class="text-white font-bold text-lg">Gudang Clean</h1><p class="text-white/50 text-xs">Hygiene System</p></div>
-    </div>
-
-    <!-- 2. MENU UTAMA (TERPISAH, TIDAK SCROLL, DIJAMIN BISA DIKLIK) -->
-    <!-- flex-shrink-0 memastikan area ini tidak pernah terjepit atau ter-scroll -->
-    <div class="px-4 py-4 flex-shrink-0 border-b border-white/10 bg-white/5 relative z-20">
-        <p class="text-xs text-white/40 uppercase tracking-widest font-medium px-3 mb-3">Menu Utama</p>
-        <ul class="space-y-2">
-            <li>
-                <!-- PERBAIKAN: href="#" diubah menjadi href="index.html" -->
-                <a href="index.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200 group">
-                    <svg class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                    <span class="font-medium">Dashboard</span>
-                </a>
-            </li>
-            <li>
-                <a href="checklist.html" class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/10 text-white border border-white/10 shadow-lg">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                    <span class="font-medium">Checklist</span>
-                </a>
-            </li>
-            <li>
-                <a href="laporan.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200 group">
-                    <svg class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                    <span class="font-medium">Laporan</span>
-                </a>
-            </li>
-        </ul>
-    </div>
-
-    <!-- 3. FILTER AREA GUDANG (INI SATU-SATUNYA YANG BOLEH DI-SCROLL) -->
-    <div class="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
-        <p class="text-xs text-white/40 uppercase tracking-widest font-medium px-3 mb-3">Area Gudang</p>
-        <ul class="space-y-1" id="categoryFilter">
-            <li><button class="category-btn active w-full text-left px-3 py-2 rounded-lg text-sm text-white bg-white/10 border border-white/10 transition" data-category="all">Semua Area</button></li>
-            <li><button class="category-btn w-full text-left px-3 py-2 rounded-lg text-sm text-white/60 hover:bg-white/10 hover:text-white transition" data-category="floor">Lantai & Koridor</button></li>
-            <li><button class="category-btn w-full text-left px-3 py-2 rounded-lg text-sm text-white/60 hover:bg-white/10 hover:text-white transition" data-category="rack">Rak & Palet</button></li>
-            <li><button class="category-btn w-full text-left px-3 py-2 rounded-lg text-sm text-white/60 hover:bg-white/10 hover:text-white transition" data-category="dock">Loading Dock</button></li>
-            <li><button class="category-btn w-full text-left px-3 py-2 rounded-lg text-sm text-white/60 hover:bg-white/10 hover:text-white transition" data-category="facility">Fasilitas Pendukung</button></li>
-        </ul>
-    </div>
-
-    <!-- 4. PROGRESS & USER (Tetap di bawah, tidak ter-scroll) -->
-    <div class="flex-shrink-0 border-t border-white/10 bg-[#0f0c29]/80">
-        <div class="px-6 py-4 border-b border-white/10">
-            <div class="flex justify-between mb-2"><span class="text-xs text-white/60 uppercase tracking-wider font-medium">Progress</span><span id="overallProgressText" class="text-sm text-white font-semibold">0%</span></div>
-            <div class="glass-progress"><div id="overallProgressBar" class="glass-progress-fill" style="width: 0%"></div></div>
-            <p class="text-xs text-white/50 mt-2"><span id="completedCount">0</span> dari <span id="totalCount">0</span> selesai</p>
-        </div>
-        <div class="px-4 py-4">
-            <div class="flex items-center gap-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold flex-shrink-0" id="userAvatar">U</div>
-                <div class="flex-1 min-w-0"><p class="text-white text-sm font-medium truncate" id="sidebarUserName">Memuat...</p><p class="text-white/50 text-xs truncate" id="sidebarUserEmail">user@email.com</p></div>
+        <aside id="sidebar" class="sidebar">
+            <!-- 1. HEADER -->
+            <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10 flex-shrink-0">
+                <div class="glass-icon p-2.5">
+                    <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                </div>
+                <div><h1 class="text-white font-bold text-lg">Gudang Clean</h1><p class="text-white/50 text-xs">Hygiene System</p></div>
             </div>
-        </div>
-    </div>
-</aside>
+
+            <!-- 2. MENU UTAMA -->
+            <div class="px-4 py-4 flex-shrink-0 border-b border-white/10 bg-white/5 relative z-20">
+                <p class="text-xs text-white/40 uppercase tracking-widest font-medium px-3 mb-3">Menu Utama</p>
+                <ul class="space-y-2">
+                    <li>
+                        <a href="index.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200 group">
+                            <svg class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                            <span class="font-medium">Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="checklist.html" class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/10 text-white border border-white/10 shadow-lg">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                            <span class="font-medium">Checklist</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="laporan.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200 group">
+                            <svg class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                            <span class="font-medium">Laporan</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- 3. FILTER AREA GUDANG -->
+            <div class="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
+                <p class="text-xs text-white/40 uppercase tracking-widest font-medium px-3 mb-3">Area Gudang</p>
+                <ul class="space-y-1" id="categoryFilter">
+                    <li><button class="category-btn active w-full text-left px-3 py-2 rounded-lg text-sm text-white bg-white/10 border border-white/10 transition" data-category="all">Semua Area</button></li>
+                    <li><button class="category-btn w-full text-left px-3 py-2 rounded-lg text-sm text-white/60 hover:bg-white/10 hover:text-white transition" data-category="floor">Lantai & Koridor</button></li>
+                    <li><button class="category-btn w-full text-left px-3 py-2 rounded-lg text-sm text-white/60 hover:bg-white/10 hover:text-white transition" data-category="rack">Rak & Palet</button></li>
+                    <li><button class="category-btn w-full text-left px-3 py-2 rounded-lg text-sm text-white/60 hover:bg-white/10 hover:text-white transition" data-category="dock">Loading Dock</button></li>
+                    <li><button class="category-btn w-full text-left px-3 py-2 rounded-lg text-sm text-white/60 hover:bg-white/10 hover:text-white transition" data-category="facility">Fasilitas Pendukung</button></li>
+                </ul>
+            </div>
+
+            <!-- 4. PROGRESS & USER -->
+            <div class="flex-shrink-0 border-t border-white/10 bg-[#0f0c29]/80">
+                <div class="px-6 py-4 border-b border-white/10">
+                    <div class="flex justify-between mb-2"><span class="text-xs text-white/60 uppercase tracking-wider font-medium">Progress</span><span id="overallProgressText" class="text-sm text-white font-semibold">0%</span></div>
+                    <div class="glass-progress"><div id="overallProgressBar" class="glass-progress-fill" style="width: 0%"></div></div>
+                    <p class="text-xs text-white/50 mt-2"><span id="completedCount">0</span> dari <span id="totalCount">0</span> selesai</p>
+                </div>
+                <div class="px-4 py-4">
+                    <div class="flex items-center gap-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold flex-shrink-0" id="userAvatar">U</div>
+                        <div class="flex-1 min-w-0"><p class="text-white text-sm font-medium truncate" id="sidebarUserName">Memuat...</p><p class="text-white/50 text-xs truncate" id="sidebarUserEmail">user@email.com</p></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
 
         <!-- MAIN CONTENT -->
-        <main class="flex-1 w-full overflow-y-auto">
+        <main class="flex-1 w-full overflow-y-auto min-w-0">
             <header class="sticky top-0 z-20 glass-header px-4 sm:px-6 py-4 flex items-center justify-between">
                 <div class="flex items-center gap-3 sm:gap-4">
-                    <button id="sidebarToggle" class="lg:hidden text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
+                    <button id="sidebarToggle" type="button" class="lg:hidden text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    </button>
                     <div><h2 class="text-lg sm:text-xl font-bold text-white">Checklist Kebersihan</h2><p class="text-white/50 text-xs sm:text-sm">Selasa, 27 Oktober 2026</p></div>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-3">
@@ -131,9 +131,12 @@
             </div>
         </main>
     </div>
+
+    <!-- OVERLAY SIDEBAR FOR MOBILE -->
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="script.js"></script>
 </body>
-</html> 
+</html>
