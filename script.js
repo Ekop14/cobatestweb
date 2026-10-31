@@ -1,12 +1,138 @@
+/* ============================================
+   GLOBAL & SIDEBAR LOADER (Berjalan di Semua Halaman)
+   ============================================ */
 document.addEventListener('DOMContentLoaded', () => {
+    loadSidebar();
+    
     if (document.getElementById('loginForm')) initLoginPage();
     if (document.getElementById('registerForm')) initRegisterPage();
     if (document.getElementById('checklistGrid')) initChecklistPage();
     if (document.getElementById('reportsTableBody')) initLaporanPage();
+    if (document.getElementById('dashboardUserName')) initDashboardPage();
 });
 
+async function loadSidebar() {
+    const slot = document.getElementById('sidebar-slot');
+    if (!slot) return;
+    
+    try {
+        const response = await fetch('sidebar.html');
+        if (!response.ok) throw new Error('Gagal memuat sidebar');
+        const html = await response.text();
+        slot.innerHTML = html;
+        
+        highlightActiveMenu();
+        setupSidebarToggle();
+        setupSidebarNavigation();
+        updateSidebarUserInfo();
+        setupCategoryFilter();
+    } catch (error) {
+        console.error('Error loading sidebar:', error);
+        slot.innerHTML = '<div class="p-6 text-red-400 text-sm">Gagal memuat menu.</div>';
+    }
+}
+
+function setupSidebarNavigation() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            if (window.innerWidth < 1024) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (sidebar) sidebar.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    });
+}
+
+function highlightActiveMenu() {
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    document.querySelectorAll('.nav-item').forEach(link => {
+        link.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
+        link.classList.add('text-white/70');
+        const page = link.getAttribute('data-page');
+        if (page === currentPage) {
+            link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
+            link.classList.remove('text-white/70');
+        }
+    });
+}
+
+function setupSidebarToggle() {
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    if (toggle && sidebar) {
+        toggle.addEventListener('click', () => {
+            sidebar.classList.add('open');
+            if (overlay) overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+    }
+    if (overlay && sidebar) {
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+    }
+}
+
+function updateSidebarUserInfo() {
+    if (window.currentUser) {
+        const nameEl = document.getElementById('sidebarUserName');
+        const emailEl = document.getElementById('sidebarUserEmail');
+        const avatarEl = document.getElementById('userAvatar');
+        if (nameEl) nameEl.textContent = window.currentUser.name || 'User';
+        if (emailEl) emailEl.textContent = window.currentUser.email || 'user@email.com';
+        if (avatarEl) avatarEl.textContent = (window.currentUser.name || 'U').charAt(0).toUpperCase();
+    }
+}
+
+function setupCategoryFilter() {
+    const categoryButtons = document.querySelectorAll('.category-btn');
+    const checklistCards = document.querySelectorAll('.checklist-card');
+    if (categoryButtons.length === 0) return;
+    
+    categoryButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            categoryButtons.forEach(b => {
+                b.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10');
+                b.classList.add('text-white/60');
+            });
+            btn.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10');
+            btn.classList.remove('text-white/60');
+            
+            checklistCards.forEach(card => {
+                const show = btn.dataset.category === 'all' || card.dataset.category === btn.dataset.category;
+                card.classList.toggle('hidden-card', !show);
+            });
+        });
+    });
+}
+
+function updateSidebarProgress() {
+    const allCheckboxes = document.querySelectorAll('.checklist-card .glass-checkbox');
+    if (allCheckboxes.length === 0) return;
+    const total = allCheckboxes.length;
+    const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+    const percent = total ? Math.round((checked / total) * 100) : 0;
+    
+    const bar = document.getElementById('overallProgressBar');
+    const text = document.getElementById('overallProgressText');
+    const completed = document.getElementById('completedCount');
+    const totalEl = document.getElementById('totalCount');
+    
+    if (bar) bar.style.width = percent + '%';
+    if (text) text.textContent = percent + '%';
+    if (completed) completed.textContent = checked;
+    if (totalEl) totalEl.textContent = total;
+}
+
 /* ============================================
-   HALAMAN LOGIN
+   HALAMAN LOGIN & REGISTER
    ============================================ */
 function initLoginPage() {
     const supabase = window.supabaseClient;
@@ -21,7 +147,9 @@ function initLoginPage() {
     togglePassword?.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
-        eyeIcon.innerHTML = type === 'text' ? '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />' : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
+        eyeIcon.innerHTML = type === 'text' 
+            ? '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />' 
+            : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
     });
 
     loginForm.addEventListener('submit', async (e) => {
@@ -43,9 +171,6 @@ function initLoginPage() {
     });
 }
 
-/* ============================================
-   HALAMAN REGISTER
-   ============================================ */
 function initRegisterPage() {
     const supabase = window.supabaseClient;
     if (!supabase) return;
@@ -59,7 +184,9 @@ function initRegisterPage() {
     togglePassword?.addEventListener('click', () => {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
-        eyeIcon.innerHTML = type === 'text' ? '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />' : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
+        eyeIcon.innerHTML = type === 'text' 
+            ? '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />' 
+            : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
     });
 
     registerForm.addEventListener('submit', async (e) => {
@@ -102,19 +229,13 @@ function initChecklistPage() {
             } catch (e) {}
         }
         window.currentUser = { name: userName || 'User', email: session.user.email };
-
-        // Update info user di sidebar (setelah sidebar dimuat oleh sidebar-loader.js)
-        if (typeof updateSidebarUserInfo === 'function') updateSidebarUserInfo();
-
+        updateSidebarUserInfo();
         initChecklistLogic();
     });
 }
 
 function initChecklistLogic() {
     const supabase = window.supabaseClient;
-
-    // HANYA ambil elemen yang dibutuhkan untuk logika checklist
-    // (Sidebar toggle, nav-item, category filter sudah di-handle oleh sidebar-loader.js)
     const checklistCards = document.querySelectorAll('.checklist-card');
     const allCheckboxes = document.querySelectorAll('.checklist-card .glass-checkbox');
     const resetAllBtn = document.getElementById('resetAllBtn');
@@ -122,7 +243,6 @@ function initChecklistLogic() {
     const logoutBtn = document.getElementById('logoutBtn');
     const searchInput = document.getElementById('searchInput');
 
-    // Search input filter
     searchInput?.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
         checklistCards.forEach(card => {
@@ -136,7 +256,6 @@ function initChecklistLogic() {
         });
     });
 
-    // Checkbox change handler
     allCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', () => {
             checkbox.closest('.checklist-item').classList.toggle('completed', checkbox.checked);
@@ -145,7 +264,6 @@ function initChecklistLogic() {
         });
     });
 
-    // Reset all button
     resetAllBtn?.addEventListener('click', () => {
         if (!confirm('Reset semua checklist?')) return;
         allCheckboxes.forEach(cb => {
@@ -157,19 +275,13 @@ function initChecklistLogic() {
         showNotification('Checklist direset', 'info');
     });
 
-    // Save to Supabase
     async function saveToSupabase(data) {
         try {
             const { data: submission, error } = await supabase.from('checklist_submissions').insert({
                 user_name: window.currentUser.name,
                 user_email: window.currentUser.email,
-                floor_items: data.floor,
-                rack_items: data.rack,
-                dock_items: data.dock,
-                facility_items: data.facility,
-                total_items: data.total,
-                completed_items: data.completed,
-                progress_percentage: data.progress,
+                floor_items: data.floor, rack_items: data.rack, dock_items: data.dock, facility_items: data.facility,
+                total_items: data.total, completed_items: data.completed, progress_percentage: data.progress,
                 status: data.progress === 100 ? 'completed' : 'in_progress'
             }).select().single();
             if (error) throw error;
@@ -180,7 +292,6 @@ function initChecklistLogic() {
         }
     }
 
-    // Submit checklist
     submitChecklistBtn?.addEventListener('click', async () => {
         const total = allCheckboxes.length;
         const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
@@ -199,10 +310,7 @@ function initChecklistLogic() {
         if (result) {
             showNotification('Laporan terkirim! ✅', 'success');
             setTimeout(() => {
-                allCheckboxes.forEach(cb => {
-                    cb.checked = false;
-                    cb.closest('.checklist-item').classList.remove('completed');
-                });
+                allCheckboxes.forEach(cb => { cb.checked = false; cb.closest('.checklist-item').classList.remove('completed'); });
                 updateProgress();
                 localStorage.removeItem('gudang_clean_state');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -210,7 +318,6 @@ function initChecklistLogic() {
         }
     });
 
-    // Logout
     logoutBtn?.addEventListener('click', async (e) => {
         e.preventDefault();
         if (!confirm('Yakin ingin keluar dari akun?')) return;
@@ -246,8 +353,6 @@ function updateProgress() {
             if (fill) fill.style.width = t ? (c / t * 100) + '%' : '0%';
         }
     });
-
-    // PENTING: Update progress di sidebar (karena sidebar dimuat secara async)
     if (typeof updateSidebarProgress === 'function') updateSidebarProgress();
 }
 
@@ -289,9 +394,7 @@ function initLaporanPage() {
             } catch (e) {}
         }
         window.currentUser = { name: userName || 'User', email: session.user.email };
-
-        // Update info user di sidebar
-        if (typeof updateSidebarUserInfo === 'function') updateSidebarUserInfo();
+        updateSidebarUserInfo();
 
         const today = new Date();
         const thirtyDaysAgo = new Date();
@@ -304,7 +407,6 @@ function initLaporanPage() {
         document.getElementById('downloadPdfBtn').addEventListener('click', downloadPDF);
         document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
 
-        // Logout (satu-satunya event listener yang masih dibutuhkan di sini)
         const logoutBtn = document.getElementById('logoutBtn');
         logoutBtn?.addEventListener('click', async (e) => {
             e.preventDefault();
@@ -324,8 +426,7 @@ async function loadReports() {
     const excelBtn = document.getElementById('downloadExcelBtn');
 
     tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>`;
-    pdfBtn.disabled = true;
-    excelBtn.disabled = true;
+    pdfBtn.disabled = true; excelBtn.disabled = true;
 
     try {
         const { data, error } = await supabase.from('checklist_submissions')
@@ -383,21 +484,12 @@ function downloadPDF() {
     const doc = new jsPDF();
     const from = document.getElementById('filterFrom').value;
     const to = document.getElementById('filterTo').value;
-    doc.setFontSize(18);
-    doc.text('Laporan Kebersihan Gudang', 14, 20);
-    doc.setFontSize(10);
-    doc.text(`Periode: ${from} s/d ${to}`, 14, 28);
+    doc.setFontSize(18); doc.text('Laporan Kebersihan Gudang', 14, 20);
+    doc.setFontSize(10); doc.text(`Periode: ${from} s/d ${to}`, 14, 28);
     doc.autoTable({
         startY: 35,
         head: [['Tanggal', 'User', 'Total', 'Selesai', 'Progress', 'Status']],
-        body: filteredReports.map(r => [
-            new Date(r.created_at).toLocaleDateString('id-ID'),
-            r.user_name,
-            r.total_items,
-            r.completed_items,
-            r.progress_percentage + '%',
-            r.status === 'completed' ? 'Selesai' : 'Proses'
-        ]),
+        body: filteredReports.map(r => [new Date(r.created_at).toLocaleDateString('id-ID'), r.user_name, r.total_items, r.completed_items, r.progress_percentage + '%', r.status === 'completed' ? 'Selesai' : 'Proses']),
         theme: 'grid',
         headStyles: { fillColor: [102, 126, 234] }
     });
@@ -422,6 +514,100 @@ function downloadExcel() {
     XLSX.utils.book_append_sheet(wb, ws, 'Laporan');
     XLSX.writeFile(wb, `Laporan-${from}-to-${to}.xlsx`);
     showNotification('Excel diunduh! ✅', 'success');
+}
+
+/* ============================================
+   HALAMAN DASHBOARD
+   ============================================ */
+function initDashboardPage() {
+    const supabase = window.supabaseClient;
+    if (!supabase) return;
+    
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (!session) { window.location.replace('index.html'); return; }
+        
+        let userName = session.user.user_metadata?.full_name;
+        if (!userName) {
+            try {
+                const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
+                if (profile) userName = profile.full_name;
+            } catch (e) { console.error("Gagal mengambil profil:", e); }
+        }
+        
+        window.currentUser = { name: userName || 'User', email: session.user.email };
+        const nameEl = document.getElementById('dashboardUserName');
+        if (nameEl) nameEl.textContent = window.currentUser.name;
+        
+        updateSidebarUserInfo();
+        loadDashboardStats();
+    });
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!confirm('Yakin ingin keluar dari akun?')) return;
+            const supabase = window.supabaseClient;
+            if (supabase) await supabase.auth.signOut();
+            window.location.replace('index.html');
+        });
+    }
+}
+
+async function loadDashboardStats() {
+    const supabase = window.supabaseClient;
+    try {
+        const { count: totalLaporan } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
+        
+        const { data: submissions } = await supabase.from('checklist_submissions').select('progress_percentage');
+        let avgProgress = 0;
+        if (submissions && submissions.length > 0) {
+            const sum = submissions.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0);
+            avgProgress = Math.round(sum / submissions.length);
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+        const { count: todayLaporan } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', today + 'T00:00:00');
+
+        const elTotal = document.getElementById('statTotalLaporan');
+        const elAvg = document.getElementById('statAvgProgress');
+        const elToday = document.getElementById('statTodayLaporan');
+        
+        if (elTotal) elTotal.textContent = totalLaporan || 0;
+        if (elAvg) elAvg.textContent = avgProgress + '%';
+        if (elToday) elToday.textContent = todayLaporan || 0;
+        
+        const { data: recent } = await supabase.from('checklist_submissions')
+            .select('user_name, progress_percentage, created_at, status')
+            .order('created_at', { ascending: false })
+            .limit(5);
+            
+        renderRecentActivity(recent || []);
+    } catch (error) {
+        console.error("Dashboard load error:", error);
+        const tbody = document.getElementById('recentActivityBody');
+        if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-400">Gagal memuat data.</td></tr>`;
+    }
+}
+
+function renderRecentActivity(data) {
+    const tbody = document.getElementById('recentActivityBody');
+    if (!tbody) return;
+    if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-white/50">Belum ada aktivitas checklist</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = data.map(r => {
+        const date = new Date(r.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        const statusColor = r.status === 'completed' ? 'text-green-400' : 'text-amber-400';
+        const badgeClass = r.status === 'completed' ? 'bg-green-500/20 text-green-300' : 'bg-amber-500/20 text-amber-300';
+        return `<tr>
+            <td class="px-4 py-3 text-sm">${r.user_name || 'User'}</td>
+            <td class="px-4 py-3 text-sm text-white/70">${date}</td>
+            <td class="px-4 py-3 text-sm font-semibold text-center ${statusColor}">${r.progress_percentage}%</td>
+            <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ${badgeClass}">${r.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
+        </tr>`;
+    }).join('');
 }
 
 /* ============================================
@@ -456,129 +642,4 @@ if (!document.getElementById('notif-styles')) {
     s.id = 'notif-styles';
     s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
     document.head.appendChild(s);
-}
-/* ============================================
-   LOGIKA KHUSUS HALAMAN DASHBOARD
-   ============================================ */
-
-document.addEventListener('DOMContentLoaded', () => {
-    initDashboardPage();
-});
-
-function initDashboardPage() {
-    const supabase = window.supabaseClient;
-    if (!supabase) return;
-    
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-        // Jika belum login, tendang ke halaman index
-        if (!session) { 
-            window.location.replace('index.html'); 
-            return; 
-        }
-        
-        let userName = session.user.user_metadata?.full_name;
-        if (!userName) {
-            try {
-                const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
-                if (profile) userName = profile.full_name;
-            } catch (e) {
-                console.error("Gagal mengambil profil:", e);
-            }
-        }
-        
-        window.currentUser = { name: userName || 'User', email: session.user.email };
-        
-        // Update nama di banner selamat datang
-        const nameEl = document.getElementById('dashboardUserName');
-        if (nameEl) nameEl.textContent = window.currentUser.name;
-        
-        // Update info user di sidebar (jika sidebar-loader sudah dimuat)
-        if (typeof updateSidebarUserInfo === 'function') {
-            updateSidebarUserInfo();
-        }
-        
-        // Muat statistik dashboard
-        loadDashboardStats();
-    });
-
-    // Handle Logout Button
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            if (!confirm('Yakin ingin keluar dari akun?')) return;
-            const supabase = window.supabaseClient;
-            if (supabase) await supabase.auth.signOut();
-            window.location.replace('index.html');
-        });
-    }
-}
-
-async function loadDashboardStats() {
-    const supabase = window.supabaseClient;
-    try {
-        // 1. Total Laporan
-        const { count: totalLaporan } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
-        
-        // 2. Rata-rata Progress
-        const { data: submissions } = await supabase.from('checklist_submissions').select('progress_percentage');
-        let avgProgress = 0;
-        if (submissions && submissions.length > 0) {
-            const sum = submissions.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0);
-            avgProgress = Math.round(sum / submissions.length);
-        }
-
-        // 3. Laporan Hari Ini
-        const today = new Date().toISOString().split('T')[0];
-        const { count: todayLaporan } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', today + 'T00:00:00');
-
-        // Update UI Stats
-        const elTotal = document.getElementById('statTotalLaporan');
-        const elAvg = document.getElementById('statAvgProgress');
-        const elToday = document.getElementById('statTodayLaporan');
-        
-        if (elTotal) elTotal.textContent = totalLaporan || 0;
-        if (elAvg) elAvg.textContent = avgProgress + '%';
-        if (elToday) elToday.textContent = todayLaporan || 0;
-        
-        // 4. Recent Activity (5 terakhir)
-        const { data: recent } = await supabase.from('checklist_submissions')
-            .select('user_name, progress_percentage, created_at, status')
-            .order('created_at', { ascending: false })
-            .limit(5);
-            
-        renderRecentActivity(recent || []);
-
-    } catch (error) {
-        console.error("Dashboard load error:", error);
-        const tbody = document.getElementById('recentActivityBody');
-        if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-400">Gagal memuat data. Periksa koneksi.</td></tr>`;
-        }
-    }
-}
-
-function renderRecentActivity(data) {
-    const tbody = document.getElementById('recentActivityBody');
-    if (!tbody) return;
-
-    if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-white/50">Belum ada aktivitas checklist</td></tr>`;
-        return;
-    }
-    
-    tbody.innerHTML = data.map(r => {
-        const date = new Date(r.created_at).toLocaleDateString('id-ID', { 
-            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
-        });
-        const statusColor = r.status === 'completed' ? 'text-green-400' : 'text-amber-400';
-        const badgeClass = r.status === 'completed' ? 'bg-green-500/20 text-green-300' : 'bg-amber-500/20 text-amber-300';
-        
-        return `<tr>
-            <td class="px-4 py-3 text-sm">${r.user_name || 'User'}</td>
-            <td class="px-4 py-3 text-sm text-white/70">${date}</td>
-            <td class="px-4 py-3 text-sm font-semibold text-center ${statusColor}">${r.progress_percentage}%</td>
-            <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ${badgeClass}">${r.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
-        </tr>`;
-    }).join('');
 }
