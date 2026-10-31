@@ -3,6 +3,7 @@
    ============================================ */
 document.addEventListener('DOMContentLoaded', () => {
     loadSidebar();
+    updateCurrentDate(); // <-- TAMBAHAN: Panggil fungsi update tanggal
     
     if (document.getElementById('loginForm')) initLoginPage();
     if (document.getElementById('registerForm')) initRegisterPage();
@@ -10,6 +11,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('reportsTableBody')) initLaporanPage();
     if (document.getElementById('dashboardUserName')) initDashboardPage();
 });
+
+// <-- TAMBAHAN: Fungsi untuk menampilkan tanggal saat ini dalam bahasa Indonesia
+function updateCurrentDate() {
+    const dateElement = document.getElementById('currentDate');
+    if (dateElement) {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const today = new Date().toLocaleDateString('id-ID', options);
+        dateElement.textContent = today; // Contoh hasil: "Minggu, 1 November 2026"
+    }
+}
 
 async function loadSidebar() {
     const slot = document.getElementById('sidebar-slot');
