@@ -37,7 +37,7 @@ async function loadSidebar() {
         updateSidebarUserInfo();
         setupCategoryFilter();
         
-        // ✅ Panggil AI Assistant SETELAH sidebar selesai dimuat
+        // Panggil AI Assistant setelah sidebar selesai dimuat
         initAiAssistant();
     } catch (error) {
         console.error('Error loading sidebar:', error);
@@ -256,6 +256,66 @@ function initChecklistLogic() {
     const logoutBtn = document.getElementById('logoutBtn');
     const searchInput = document.getElementById('searchInput');
 
+    // ===== FITUR: 1 USER = 1 SUBMISSION PER HARI =====
+    async function checkDailySubmission() {
+        const today = new Date().toISOString().split('T')[0];
+        const todayStart = today + 'T00:00:00';
+        const todayEnd = today + 'T23:59:59';
+
+        try {
+            const { data, error } = await supabase
+                .from('checklist_submissions')
+                .select('id, created_at, progress_percentage')
+                .eq('user_email', window.currentUser.email)
+                .gte('created_at', todayStart)
+                .lte('created_at', todayEnd)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                disableSubmitButton(data[0]);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error checking daily submission:', error);
+            return false;
+        }
+    }
+
+    function disableSubmitButton(lastSubmission) {
+        if (submitChecklistBtn) {
+            submitChecklistBtn.disabled = true;
+            submitChecklistBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            submitChecklistBtn.innerHTML = `
+                <span>✅ Sudah Submit Hari Ini</span>
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            `;
+        }
+        const infoBox = document.getElementById('dailySubmissionInfo');
+        if (infoBox) infoBox.classList.remove('hidden');
+    }
+
+    function enableSubmitButton() {
+        if (submitChecklistBtn) {
+            submitChecklistBtn.disabled = false;
+            submitChecklistBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            submitChecklistBtn.innerHTML = `
+                <span>Kirim Laporan</span>
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+            `;
+        }
+    }
+
+    // Jalankan pengecekan saat halaman load
+    checkDailySubmission();
+
     searchInput?.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
         checklistCards.forEach(card => {
@@ -290,13 +350,44 @@ function initChecklistLogic() {
 
     async function saveToSupabase(data) {
         try {
-            const { data: submission, error } = await supabase.from('checklist_submissions').insert({
-                user_name: window.currentUser.name,
-                user_email: window.currentUser.email,
-                floor_items: data.floor, rack_items: data.rack, dock_items: data.dock, facility_items: data.facility,
-                total_items: data.total, completed_items: data.completed, progress_percentage: data.progress,
-                status: data.progress === 100 ? 'completed' : 'in_progress'
-            }).select().single();
+            // Double check sebelum insert
+            const today = new Date().toISOString().split('T')[0];
+            const todayStart = today + 'T00:00:00';
+            const todayEnd = today + 'T23:59:59';
+
+            const { data: existing, error: checkError } = await supabase
+                .from('checklist_submissions')
+                .select('id')
+                .eq('user_email', window.currentUser.email)
+                .gte('created_at', todayStart)
+                .lte('created_at', todayEnd)
+                .limit(1);
+
+            if (checkError) throw checkError;
+
+            if (existing && existing.length > 0) {
+                showNotification('Anda sudah submit checklist hari ini!', 'warning');
+                disableSubmitButton(existing[0]);
+                return null;
+            }
+
+            const { data: submission, error } = await supabase
+                .from('checklist_submissions')
+                .insert({
+                    user_name: window.currentUser.name,
+                    user_email: window.currentUser.email,
+                    floor_items: data.floor,
+                    rack_items: data.rack,
+                    dock_items: data.dock,
+                    facility_items: data.facility,
+                    total_items: data.total,
+                    completed_items: data.completed,
+                    progress_percentage: data.progress,
+                    status: data.progress === 100 ? 'completed' : 'in_progress'
+                })
+                .select()
+                .single();
+
             if (error) throw error;
             return submission;
         } catch (error) {
@@ -308,10 +399,12 @@ function initChecklistLogic() {
     submitChecklistBtn?.addEventListener('click', async () => {
         const total = allCheckboxes.length;
         const completed = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+        
         if (completed < total) {
             showNotification(`Selesaikan semua tugas (${completed}/${total})`, 'warning');
             return;
         }
+
         const checklistData = {
             floor: Array.from(document.querySelectorAll('[data-card="floor"]')).map(cb => ({ task: cb.nextElementSibling.textContent, checked: cb.checked })),
             rack: Array.from(document.querySelectorAll('[data-card="rack"]')).map(cb => ({ task: cb.nextElementSibling.textContent, checked: cb.checked })),
@@ -319,11 +412,18 @@ function initChecklistLogic() {
             facility: Array.from(document.querySelectorAll('[data-card="facility"]')).map(cb => ({ task: cb.nextElementSibling.textContent, checked: cb.checked })),
             total, completed, progress: 100
         };
+
         const result = await saveToSupabase(checklistData);
+        
         if (result) {
             showNotification('Laporan terkirim! ✅', 'success');
+            disableSubmitButton(result);
+            
             setTimeout(() => {
-                allCheckboxes.forEach(cb => { cb.checked = false; cb.closest('.checklist-item').classList.remove('completed'); });
+                allCheckboxes.forEach(cb => { 
+                    cb.checked = false; 
+                    cb.closest('.checklist-item').classList.remove('completed'); 
+                });
                 updateProgress();
                 localStorage.removeItem('gudang_clean_state');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -658,7 +758,7 @@ if (!document.getElementById('notif-styles')) {
 }
 
 /* ============================================
-   AI ASSISTANT (SUDAH DIPERBAIKI STRUKTURNYA)
+   AI ASSISTANT (Dengan Rekap H-1)
    ============================================ */
 function initAiAssistant() {
     const modal = document.getElementById('aiChatModal');
@@ -712,7 +812,7 @@ function initAiAssistant() {
 
         try {
             const context = await getSupabaseContext();
-            const answer = await getAiResponse(question, context); // ✅ Dipanggil dengan benar
+            const answer = await getAiResponse(question, context);
             
             removeTypingIndicator(typingId);
             addMessage(answer, 'ai');
@@ -788,12 +888,30 @@ function initAiAssistant() {
         if (!supabase) return 'Tidak ada koneksi database';
 
         try {
-            const today = new Date().toISOString().split('T')[0];
-            const { count: todayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', today + 'T00:00:00');
-            const { count: totalCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
-            const { data: recent } = await supabase.from('checklist_submissions').select('user_name, progress_percentage, status, created_at').order('created_at', { ascending: false }).limit(5);
-            const { data: allSubmissions } = await supabase.from('checklist_submissions').select('progress_percentage');
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
             
+            const todayStr = today.toISOString().split('T')[0];
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            
+            const yesterdayStart = yesterdayStr + 'T00:00:00';
+            const yesterdayEnd = yesterdayStr + 'T23:59:59';
+
+            const { count: todayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', todayStr + 'T00:00:00');
+            const { count: totalCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
+            
+            // Data H-1 (Kemarin)
+            const { count: yesterdayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', yesterdayStart).lte('created_at', yesterdayEnd);
+            const { data: yesterdayDetails } = await supabase.from('checklist_submissions').select('user_name, progress_percentage, status, created_at').gte('created_at', yesterdayStart).lte('created_at', yesterdayEnd);
+            
+            let yesterdayAvg = 0;
+            if (yesterdayDetails && yesterdayDetails.length > 0) {
+                const sum = yesterdayDetails.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0);
+                yesterdayAvg = Math.round(sum / yesterdayDetails.length);
+            }
+
+            const { data: allSubmissions } = await supabase.from('checklist_submissions').select('progress_percentage');
             let avgProgress = 0;
             if (allSubmissions && allSubmissions.length > 0) {
                 const sum = allSubmissions.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0);
@@ -801,6 +919,7 @@ function initAiAssistant() {
             }
 
             const { count: completedCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).eq('status', 'completed');
+            const { data: recent } = await supabase.from('checklist_submissions').select('user_name, progress_percentage, status, created_at').order('created_at', { ascending: false }).limit(5);
 
             return JSON.stringify({
                 today_submissions: todayCount || 0,
@@ -808,8 +927,15 @@ function initAiAssistant() {
                 average_progress: avgProgress + '%',
                 completed_submissions: completedCount || 0,
                 recent_activity: recent || [],
+                
+                // Data H-1
+                yesterday_date_str: yesterday.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                yesterday_submissions_count: yesterdayCount || 0,
+                yesterday_avg_progress: yesterdayAvg + '%',
+                yesterday_details: yesterdayDetails || [],
+                
                 current_user: window.currentUser?.name || 'User',
-                current_date: new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                current_date: today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
             }, null, 2);
         } catch (error) {
             return 'Error mengambil data: ' + error.message;
@@ -821,7 +947,15 @@ function initAiAssistant() {
             return getRuleBasedResponse(question, context);
         }
 
-        const systemPrompt = `Anda adalah AI Assistant untuk sistem "Gudang Clean". Jawab dalam bahasa Indonesia yang ramah, profesional, dan gunakan emoji. Maksimal 150 kata.\n\nDATA DATABASE:\n${context}`;
+        const systemPrompt = `Anda adalah AI Assistant untuk sistem "Gudang Clean". 
+Jawab dalam bahasa Indonesia yang ramah, profesional, dan gunakan emoji. Maksimal 150 kata.
+
+ATURAN KHUSUS:
+- Jika user meminta "rekap H-1", "rekap kemarin", atau "laporan kemarin", WAJIB gunakan data dari variabel "yesterday_date_str", "yesterday_submissions_count", dan "yesterday_avg_progress" untuk membuat ringkasan yang detail.
+- Sebutkan tanggal kemarinya secara eksplisit (contoh: "Berikut rekap untuk hari Minggu, 31 Oktober 2026:").
+
+DATA DATABASE TERKINI:
+${context}`;
 
         try {
             const response = await fetch(GROQ_API_URL, {
@@ -859,19 +993,30 @@ function initAiAssistant() {
             const data = JSON.parse(context);
             const q = question.toLowerCase();
 
-            if (q.includes('ringkasan') || q.includes('hari ini')) {
-                return `📊 **Ringkasan Hari Ini**\n• Total laporan hari ini: **${data.today_submissions}**\n• Rata-rata progress: **${data.average_progress}**\n• Laporan selesai: **${data.completed_submissions}**`;
+            // Rekap H-1 (Fallback)
+            if (q.includes('h-1') || q.includes('kemarin') || q.includes('rekap kemarin')) {
+                return `📅 **Rekap Laporan H-1 (${data.yesterday_date_str})**\n\n` +
+                       `• Total laporan masuk: **${data.yesterday_submissions_count}**\n` +
+                       `• Rata-rata progress tim: **${data.yesterday_avg_progress}**\n\n` +
+                       `💡 *Data ini diambil otomatis dari sistem untuk evaluasi harian.*`;
             }
+
+            if (q.includes('ringkasan') || q.includes('hari ini')) {
+                return `📊 **Ringkasan Hari Ini (${data.current_date})**\n\n• Total laporan: **${data.today_submissions}**\n• Rata-rata progress: **${data.average_progress}**\n• Laporan selesai: **${data.completed_submissions}**`;
+            }
+
             if (q.includes('progress') || q.includes('rata-rata')) {
                 return `📈 Rata-rata progress semua laporan: **${data.average_progress}**. Dari ${data.total_submissions} total laporan, ${data.completed_submissions} sudah selesai.`;
             }
+
             if (q.includes('user') || q.includes('terbaik')) {
                 const recent = data.recent_activity || [];
                 if (recent.length === 0) return '🏆 Belum ada data aktivitas.';
                 const topUser = recent.reduce((acc, curr) => (curr.progress_percentage || 0) > (acc.progress_percentage || 0) ? curr : acc);
                 return `🏆 User terbaik: **${topUser.user_name}** dengan progress **${topUser.progress_percentage}%**.`;
             }
-            return `🤖 Saya bisa bantu: "Ringkasan hari ini", "Progress rata-rata", atau "User terbaik".`;
+
+            return `🤖 Saya bisa bantu:\n• "Ringkasan hari ini"\n• "Rekap H-1 (kemarin)"\n• "Progress rata-rata"\n• "User terbaik"`;
         } catch (error) {
             return `🤖 Halo! Saya AI Assistant Gudang Clean. Silakan tanyakan tentang laporan atau progress checklist.`;
         }
