@@ -723,8 +723,56 @@ function initAiAssistant() {
             // Get context from Supabase
             const context = await getSupabaseContext();
             
-            // Get AI response
-            const answer = await getAiResponse(question, context);
+          async function getAiResponse(question, context) {
+        // Cek apakah API Key sudah diisi dengan benar
+        if (typeof GROQ_API_KEY === 'undefined' || !GROQ_API_KEY || GROQ_API_KEY === 'gsk_your_api_key_here') {
+            return getRuleBasedResponse(question, context);
+        }
+
+        const systemPrompt = `Anda adalah AI Assistant untuk sistem "Gudang Clean" - sistem checklist kebersihan gudang. 
+Anda membantu user menjawab pertanyaan seputar proses checklist dan laporan.
+
+DATA TERKINI DARI DATABASE:
+${context}
+
+ATURAN:
+1. Jawab dalam bahasa Indonesia yang ramah dan profesional
+2. Gunakan data dari database untuk menjawab
+3. Berikan insight dan saran jika relevan
+4. Format jawaban dengan rapi, gunakan emoji jika sesuai
+5. Maksimal 150 kata per jawaban`;
+
+        try {
+            const response = await fetch(GROQ_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${GROQ_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: GROQ_MODEL,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: question }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 500
+                })
+            });
+
+            // ✅ PERBAIKAN: Tangkap error asli dari Groq
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(`HTTP ${response.status}: ${errData.error?.message || response.statusText}`);
+            }
+            
+            const data = await response.json();
+            return data.choices[0].message.content;
+        } catch (error) {
+            console.error("🔴 Groq API Error Detail:", error); // <-- Error asli akan muncul di Console
+            throw new Error('Gagal menghubungi AI: ' + error.message);
+        }
+    }
             
             // Remove typing indicator
             removeTypingIndicator(typingId);
