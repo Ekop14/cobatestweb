@@ -4,7 +4,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadSidebar();
     updateCurrentDate(); // <-- TAMBAHAN: Panggil fungsi update tanggal
-    
+    initAiAssistant(); // <-- TAMBAH INI
     if (document.getElementById('loginForm')) initLoginPage();
     if (document.getElementById('registerForm')) initRegisterPage();
     if (document.getElementById('checklistGrid')) initChecklistPage();
