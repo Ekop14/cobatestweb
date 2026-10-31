@@ -3,7 +3,8 @@
    ============================================ */
 document.addEventListener('DOMContentLoaded', () => {
     loadSidebar();
-    updateCurrentDate(); // <-- TAMBAHAN: Panggil fungsi update tanggal
+    updateCurrentDate();
+    
     if (document.getElementById('loginForm')) initLoginPage();
     if (document.getElementById('registerForm')) initRegisterPage();
     if (document.getElementById('checklistGrid')) initChecklistPage();
@@ -11,13 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('dashboardUserName')) initDashboardPage();
 });
 
-// <-- TAMBAHAN: Fungsi untuk menampilkan tanggal saat ini dalam bahasa Indonesia
 function updateCurrentDate() {
     const dateElement = document.getElementById('currentDate');
     if (dateElement) {
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         const today = new Date().toLocaleDateString('id-ID', options);
-        dateElement.textContent = today; // Contoh hasil: "Minggu, 1 November 2026"
+        dateElement.textContent = today;
     }
 }
 
@@ -37,7 +37,7 @@ async function loadSidebar() {
         updateSidebarUserInfo();
         setupCategoryFilter();
         
-        // ✅ TAMBAHKAN DI SINI - setelah sidebar selesai dimuat
+        // ✅ Panggil AI Assistant SETELAH sidebar selesai dimuat
         initAiAssistant();
     } catch (error) {
         console.error('Error loading sidebar:', error);
@@ -656,8 +656,9 @@ if (!document.getElementById('notif-styles')) {
     s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
     document.head.appendChild(s);
 }
+
 /* ============================================
-   AI ASSISTANT
+   AI ASSISTANT (SUDAH DIPERBAIKI STRUKTURNYA)
    ============================================ */
 function initAiAssistant() {
     const modal = document.getElementById('aiChatModal');
@@ -671,27 +672,20 @@ function initAiAssistant() {
 
     if (!modal || !aiBtn) return;
 
-    // Open modal
     aiBtn.addEventListener('click', () => {
         modal.classList.remove('hidden');
-        setTimeout(() => {
-            panel.classList.remove('translate-x-full');
-        }, 10);
+        setTimeout(() => { panel.classList.remove('translate-x-full'); }, 10);
         input.focus();
     });
 
-    // Close modal
     function closeModal() {
         panel.classList.add('translate-x-full');
-        setTimeout(() => {
-            modal.classList.add('hidden');
-        }, 300);
+        setTimeout(() => { modal.classList.add('hidden'); }, 300);
     }
 
     closeBtn?.addEventListener('click', closeModal);
     overlay?.addEventListener('click', closeModal);
 
-    // Quick actions
     document.querySelectorAll('.quick-action').forEach(btn => {
         btn.addEventListener('click', () => {
             const text = btn.textContent.replace(/^[^\s]+\s/, '');
@@ -700,7 +694,6 @@ function initAiAssistant() {
         });
     });
 
-    // Send on Enter
     input?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleAiSend();
     });
@@ -711,73 +704,17 @@ function initAiAssistant() {
         const question = input.value.trim();
         if (!question) return;
 
-        // Add user message
         addMessage(question, 'user');
         input.value = '';
         sendBtn.disabled = true;
 
-        // Show typing indicator
         const typingId = addTypingIndicator();
 
         try {
-            // Get context from Supabase
             const context = await getSupabaseContext();
+            const answer = await getAiResponse(question, context); // ✅ Dipanggil dengan benar
             
-          async function getAiResponse(question, context) {
-        // Cek apakah API Key sudah diisi dengan benar
-        if (typeof GROQ_API_KEY === 'undefined' || !GROQ_API_KEY || GROQ_API_KEY === 'gsk_your_api_key_here') {
-            return getRuleBasedResponse(question, context);
-        }
-
-        const systemPrompt = `Anda adalah AI Assistant untuk sistem "Gudang Clean" - sistem checklist kebersihan gudang. 
-Anda membantu user menjawab pertanyaan seputar proses checklist dan laporan.
-
-DATA TERKINI DARI DATABASE:
-${context}
-
-ATURAN:
-1. Jawab dalam bahasa Indonesia yang ramah dan profesional
-2. Gunakan data dari database untuk menjawab
-3. Berikan insight dan saran jika relevan
-4. Format jawaban dengan rapi, gunakan emoji jika sesuai
-5. Maksimal 150 kata per jawaban`;
-
-        try {
-            const response = await fetch(GROQ_API_URL, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${GROQ_API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: GROQ_MODEL,
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: question }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 500
-                })
-            });
-
-            // ✅ PERBAIKAN: Tangkap error asli dari Groq
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(`HTTP ${response.status}: ${errData.error?.message || response.statusText}`);
-            }
-            
-            const data = await response.json();
-            return data.choices[0].message.content;
-        } catch (error) {
-            console.error("🔴 Groq API Error Detail:", error); // <-- Error asli akan muncul di Console
-            throw new Error('Gagal menghubungi AI: ' + error.message);
-        }
-    }
-            
-            // Remove typing indicator
             removeTypingIndicator(typingId);
-            
-            // Add AI response
             addMessage(answer, 'ai');
         } catch (error) {
             removeTypingIndicator(typingId);
@@ -813,7 +750,6 @@ ATURAN:
                 <p class="text-white text-sm whitespace-pre-wrap">${text}</p>
             </div>
         `;
-        
         messagesContainer.appendChild(div);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
@@ -852,29 +788,11 @@ ATURAN:
         if (!supabase) return 'Tidak ada koneksi database';
 
         try {
-            // Get today's stats
             const today = new Date().toISOString().split('T')[0];
-            const { count: todayCount } = await supabase
-                .from('checklist_submissions')
-                .select('*', { count: 'exact', head: true })
-                .gte('created_at', today + 'T00:00:00');
-
-            // Get total stats
-            const { count: totalCount } = await supabase
-                .from('checklist_submissions')
-                .select('*', { count: 'exact', head: true });
-
-            // Get recent submissions
-            const { data: recent } = await supabase
-                .from('checklist_submissions')
-                .select('user_name, progress_percentage, status, created_at')
-                .order('created_at', { ascending: false })
-                .limit(5);
-
-            // Get average progress
-            const { data: allSubmissions } = await supabase
-                .from('checklist_submissions')
-                .select('progress_percentage');
+            const { count: todayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', today + 'T00:00:00');
+            const { count: totalCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
+            const { data: recent } = await supabase.from('checklist_submissions').select('user_name, progress_percentage, status, created_at').order('created_at', { ascending: false }).limit(5);
+            const { data: allSubmissions } = await supabase.from('checklist_submissions').select('progress_percentage');
             
             let avgProgress = 0;
             if (allSubmissions && allSubmissions.length > 0) {
@@ -882,11 +800,7 @@ ATURAN:
                 avgProgress = Math.round(sum / allSubmissions.length);
             }
 
-            // Get completed vs in progress
-            const { count: completedCount } = await supabase
-                .from('checklist_submissions')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'completed');
+            const { count: completedCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).eq('status', 'completed');
 
             return JSON.stringify({
                 today_submissions: todayCount || 0,
@@ -903,25 +817,11 @@ ATURAN:
     }
 
     async function getAiResponse(question, context) {
-        // Check if Groq API key is configured
         if (typeof GROQ_API_KEY === 'undefined' || !GROQ_API_KEY || GROQ_API_KEY === 'gsk_your_api_key_here') {
-            // Fallback: Rule-based AI
             return getRuleBasedResponse(question, context);
         }
 
-        const systemPrompt = `Anda adalah AI Assistant untuk sistem "Gudang Clean" - sistem checklist kebersihan gudang. 
-Anda membantu user menjawab pertanyaan seputar proses checklist dan laporan.
-
-DATA TERKINI DARI DATABASE:
-${context}
-
-ATURAN:
-1. Jawab dalam bahasa Indonesia yang ramah dan profesional
-2. Gunakan data dari database untuk menjawab
-3. Berikan insight dan saran jika relevan
-4. Jika ditanya tentang hal di luar scope, arahkan ke supervisor
-5. Format jawaban dengan rapi, gunakan emoji jika sesuai
-6. Maksimal 150 kata per jawaban`;
+        const systemPrompt = `Anda adalah AI Assistant untuk sistem "Gudang Clean". Jawab dalam bahasa Indonesia yang ramah, profesional, dan gunakan emoji. Maksimal 150 kata.\n\nDATA DATABASE:\n${context}`;
 
         try {
             const response = await fetch(GROQ_API_URL, {
@@ -941,68 +841,39 @@ ATURAN:
                 })
             });
 
-            if (!response.ok) throw new Error('API request failed');
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(`HTTP ${response.status}: ${errData.error?.message || response.statusText}`);
+            }
             
             const data = await response.json();
             return data.choices[0].message.content;
         } catch (error) {
+            console.error("🔴 Groq API Error Detail:", error);
             throw new Error('Gagal menghubungi AI: ' + error.message);
         }
     }
 
     function getRuleBasedResponse(question, context) {
-        // Fallback AI sederhana jika tidak ada API key
-        const data = JSON.parse(context);
-        const q = question.toLowerCase();
+        try {
+            const data = JSON.parse(context);
+            const q = question.toLowerCase();
 
-        if (q.includes('ringkasan') || q.includes('hari ini') || q.includes('today')) {
-            return `📊 **Ringkasan Hari Ini (${data.current_date})**\n\n` +
-                   `• Total laporan hari ini: **${data.today_submissions}**\n` +
-                   `• Total semua laporan: **${data.total_submissions}**\n` +
-                   `• Rata-rata progress: **${data.average_progress}**\n` +
-                   `• Laporan selesai: **${data.completed_submissions}**\n\n` +
-                   `💡 *Setup Groq API key di config.js untuk fitur AI lengkap!*`;
-        }
-
-        if (q.includes('progress') || q.includes('rata-rata') || q.includes('average')) {
-            return `📈 **Progress Checklist**\n\n` +
-                   `Rata-rata progress semua laporan: **${data.average_progress}**\n\n` +
-                   `Dari ${data.total_submissions} total laporan, ${data.completed_submissions} sudah selesai (100%).\n\n` +
-                   `💪 ${data.average_progress.replace('%','') >= 80 ? 'Bagus! Tim Anda sangat produktif!' : 'Masih ada ruang untuk improvement. Semangat!'}`;
-        }
-
-        if (q.includes('user') || q.includes('terbaik') || q.includes('top')) {
-            const recent = data.recent_activity || [];
-            if (recent.length === 0) {
-                return '🏆 Belum ada data aktivitas untuk dianalisis.';
+            if (q.includes('ringkasan') || q.includes('hari ini')) {
+                return `📊 **Ringkasan Hari Ini**\n• Total laporan hari ini: **${data.today_submissions}**\n• Rata-rata progress: **${data.average_progress}**\n• Laporan selesai: **${data.completed_submissions}**`;
             }
-            const topUser = recent.reduce((acc, curr) => 
-                (curr.progress_percentage || 0) > (acc.progress_percentage || 0) ? curr : acc
-            );
-            return `🏆 **User dengan Progress Tertinggi**\n\n` +
-                   `Nama: **${topUser.user_name}**\n` +
-                   `Progress: **${topUser.progress_percentage}%**\n` +
-                   `Status: ${topUser.status === 'completed' ? '✅ Selesai' : '⏳ Dalam proses'}\n\n` +
-                   `Kerja bagus, ${topUser.user_name}! 🎉`;
+            if (q.includes('progress') || q.includes('rata-rata')) {
+                return `📈 Rata-rata progress semua laporan: **${data.average_progress}**. Dari ${data.total_submissions} total laporan, ${data.completed_submissions} sudah selesai.`;
+            }
+            if (q.includes('user') || q.includes('terbaik')) {
+                const recent = data.recent_activity || [];
+                if (recent.length === 0) return '🏆 Belum ada data aktivitas.';
+                const topUser = recent.reduce((acc, curr) => (curr.progress_percentage || 0) > (acc.progress_percentage || 0) ? curr : acc);
+                return `🏆 User terbaik: **${topUser.user_name}** dengan progress **${topUser.progress_percentage}%**.`;
+            }
+            return `🤖 Saya bisa bantu: "Ringkasan hari ini", "Progress rata-rata", atau "User terbaik".`;
+        } catch (error) {
+            return `🤖 Halo! Saya AI Assistant Gudang Clean. Silakan tanyakan tentang laporan atau progress checklist.`;
         }
-
-        if (q.includes('laporan') || q.includes('total')) {
-            return `📋 **Informasi Laporan**\n\n` +
-                   `• Total laporan: **${data.total_submissions}**\n` +
-                   `• Laporan hari ini: **${data.today_submissions}**\n` +
-                   `• Sudah selesai: **${data.completed_submissions}**\n` +
-                   `• Dalam proses: **${data.total_submissions - data.completed_submissions}**`;
-        }
-
-        return `🤖 Saya bisa membantu Anda dengan:\n\n` +
-               `• "Ringkasan hari ini" - Lihat statistik hari ini\n` +
-               `• "Progress rata-rata" - Rata-rata progress checklist\n` +
-               `• "User terbaik" - Siapa yang paling produktif\n` +
-               `• "Total laporan" - Informasi lengkap laporan\n\n` +
-               `⚠️ *Untuk fitur AI lengkap, tambahkan Groq API key di config.js*`;
     }
 }
-
-// Panggil initAiAssistant di DOMContentLoaded
-// Tambahkan baris ini di dalam document.addEventListener('DOMContentLoaded', () => { ... })
-// initAiAssistant();
