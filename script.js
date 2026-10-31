@@ -4,7 +4,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadSidebar();
     updateCurrentDate(); // <-- TAMBAHAN: Panggil fungsi update tanggal
-    initAiAssistant(); // <-- TAMBAH INI
     if (document.getElementById('loginForm')) initLoginPage();
     if (document.getElementById('registerForm')) initRegisterPage();
     if (document.getElementById('checklistGrid')) initChecklistPage();
@@ -37,6 +36,9 @@ async function loadSidebar() {
         setupSidebarNavigation();
         updateSidebarUserInfo();
         setupCategoryFilter();
+        
+        // ✅ TAMBAHKAN DI SINI - setelah sidebar selesai dimuat
+        initAiAssistant();
     } catch (error) {
         console.error('Error loading sidebar:', error);
         slot.innerHTML = '<div class="p-6 text-red-400 text-sm">Gagal memuat menu.</div>';
