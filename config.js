@@ -13,3 +13,7 @@ if (document.readyState === 'loading') {
 } else {
     initSupabase();
 }
+// Tambahkan di config.js
+const GROQ_API_KEY = 'gsk_your_api_key_here'; // Ganti dengan API key dari console.groq.com
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile'; // Model gratis & cepat
