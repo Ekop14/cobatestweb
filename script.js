@@ -592,15 +592,17 @@ async function loadReports() {
 function renderReports(reports) {
     const tableBody = document.getElementById('reportsTableBody');
     if (reports.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-white/50 py-8">Tidak ada laporan</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-white/50 py-8">Tidak ada laporan</td></tr>`;
         return;
     }
     tableBody.innerHTML = reports.map(r => {
         const date = new Date(r.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        const time = r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
         const statusColor = r.status === 'completed' ? 'bg-green-500/20 text-green-300' : 'bg-amber-500/20 text-amber-300';
         const progressColor = r.progress_percentage === 100 ? 'text-green-400' : r.progress_percentage >= 50 ? 'text-amber-400' : 'text-red-400';
         return `<tr>
             <td class="px-4 py-3 text-sm">${date}</td>
+            <td class="px-4 py-3 text-sm font-mono">${time}</td>
             <td class="px-4 py-3 text-sm">${r.user_name || '-'}</td>
             <td class="px-4 py-3 text-sm text-center">${r.total_items || 0}</td>
             <td class="px-4 py-3 text-sm text-center">${r.completed_items || 0}</td>
