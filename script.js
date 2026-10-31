@@ -1,5 +1,5 @@
 /* ============================================
-   GLOBAL & SIDEBAR LOADER (Berjalan di Semua Halaman)
+   GLOBAL & SIDEBAR LOADER
    ============================================ */
 document.addEventListener('DOMContentLoaded', () => {
     loadSidebar();
@@ -36,8 +36,6 @@ async function loadSidebar() {
         setupSidebarNavigation();
         updateSidebarUserInfo();
         setupCategoryFilter();
-        
-        // Panggil AI Assistant setelah sidebar selesai dimuat
         initAiAssistant();
     } catch (error) {
         console.error('Error loading sidebar:', error);
@@ -256,7 +254,6 @@ function initChecklistLogic() {
     const logoutBtn = document.getElementById('logoutBtn');
     const searchInput = document.getElementById('searchInput');
 
-    // ===== FITUR: 1 USER = 1 SUBMISSION PER HARI =====
     async function checkDailySubmission() {
         const today = new Date().toISOString().split('T')[0];
         const todayStart = today + 'T00:00:00';
@@ -265,7 +262,7 @@ function initChecklistLogic() {
         try {
             const { data, error } = await supabase
                 .from('checklist_submissions')
-                .select('id, created_at, progress_percentage')
+                .select('id, created_at, progress_percentage, submission_time')
                 .eq('user_email', window.currentUser.email)
                 .gte('created_at', todayStart)
                 .lte('created_at', todayEnd)
@@ -273,7 +270,6 @@ function initChecklistLogic() {
                 .limit(1);
 
             if (error) throw error;
-
             if (data && data.length > 0) {
                 disableSubmitButton(data[0]);
                 return true;
@@ -296,15 +292,11 @@ function initChecklistLogic() {
                 </svg>
             `;
         }
-       // ✅ TAMBAHKAN: Tampilkan info box dengan jam submission
+        
         const infoBox = document.getElementById('dailySubmissionInfo');
-        if (infoBox) 
-            // Ambil jam dari submission_time atau extract dari created_at
+        if (infoBox) {
             const submissionTime = lastSubmission.submission_time || 
-                new Date(lastSubmission.created_at).toLocaleTimeString('id-ID', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
+                new Date(lastSubmission.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
             
             infoBox.innerHTML = `
                 <div class="flex items-center gap-3">
@@ -319,23 +311,10 @@ function initChecklistLogic() {
                     </div>
                 </div>
             `;
-           infoBox.classList.remove('hidden');
-    }
-
-    function enableSubmitButton() {
-        if (submitChecklistBtn) {
-            submitChecklistBtn.disabled = false;
-            submitChecklistBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            submitChecklistBtn.innerHTML = `
-                <span>Kirim Laporan</span>
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-            `;
+            infoBox.classList.remove('hidden');
         }
     }
 
-    // Jalankan pengecekan saat halaman load
     checkDailySubmission();
 
     searchInput?.addEventListener('input', (e) => {
@@ -372,7 +351,6 @@ function initChecklistLogic() {
 
     async function saveToSupabase(data) {
         try {
-            // Double check sebelum insert
             const today = new Date().toISOString().split('T')[0];
             const todayStart = today + 'T00:00:00';
             const todayEnd = today + 'T23:59:59';
@@ -392,14 +370,14 @@ function initChecklistLogic() {
                 disableSubmitButton(existing[0]);
                 return null;
             }
-         
-            // ✅ TAMBAHAN: Ambil jam saat ini
+
             const now = new Date();
             const submissionTime = now.toLocaleTimeString('id-ID', { 
                 hour: '2-digit', 
                 minute: '2-digit',
                 second: '2-digit'
             });
+
             const { data: submission, error } = await supabase
                 .from('checklist_submissions')
                 .insert({
@@ -412,8 +390,8 @@ function initChecklistLogic() {
                     total_items: data.total,
                     completed_items: data.completed,
                     progress_percentage: data.progress,
-                    status: data.progress === 100 ? 'completed' : 'in_progress'
-                    submission_time: submissionTime // ✅ TAMBAHKAN INI
+                    status: data.progress === 100 ? 'completed' : 'in_progress',
+                    submission_time: submissionTime
                 })
                 .select()
                 .single();
@@ -568,7 +546,7 @@ async function loadReports() {
     const pdfBtn = document.getElementById('downloadPdfBtn');
     const excelBtn = document.getElementById('downloadExcelBtn');
 
-    tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>`;
     pdfBtn.disabled = true; excelBtn.disabled = true;
 
     try {
@@ -585,7 +563,7 @@ async function loadReports() {
         pdfBtn.disabled = filteredReports.length === 0;
         excelBtn.disabled = filteredReports.length === 0;
     } catch (error) {
-        tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-red-400 py-8">Gagal memuat: ${error.message}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-red-400 py-8">Gagal memuat: ${error.message}</td></tr>`;
     }
 }
 
@@ -602,7 +580,7 @@ function renderReports(reports) {
         const progressColor = r.progress_percentage === 100 ? 'text-green-400' : r.progress_percentage >= 50 ? 'text-amber-400' : 'text-red-400';
         return `<tr>
             <td class="px-4 py-3 text-sm">${date}</td>
-            <td class="px-4 py-3 text-sm font-mono">${time}</td>
+            <td class="px-4 py-3 text-sm font-mono text-white/70">${time}</td>
             <td class="px-4 py-3 text-sm">${r.user_name || '-'}</td>
             <td class="px-4 py-3 text-sm text-center">${r.total_items || 0}</td>
             <td class="px-4 py-3 text-sm text-center">${r.completed_items || 0}</td>
@@ -633,8 +611,16 @@ function downloadPDF() {
     doc.setFontSize(10); doc.text(`Periode: ${from} s/d ${to}`, 14, 28);
     doc.autoTable({
         startY: 35,
-        head: [['Tanggal', 'User', 'Total', 'Selesai', 'Progress', 'Status']],
-        body: filteredReports.map(r => [new Date(r.created_at).toLocaleDateString('id-ID'), r.user_name, r.total_items, r.completed_items, r.progress_percentage + '%', r.status === 'completed' ? 'Selesai' : 'Proses']),
+        head: [['Tanggal', 'Jam', 'User', 'Total', 'Selesai', 'Progress', 'Status']],
+        body: filteredReports.map(r => [
+            new Date(r.created_at).toLocaleDateString('id-ID'), 
+            r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+            r.user_name, 
+            r.total_items, 
+            r.completed_items, 
+            r.progress_percentage + '%', 
+            r.status === 'completed' ? 'Selesai' : 'Proses'
+        ]),
         theme: 'grid',
         headStyles: { fillColor: [102, 126, 234] }
     });
@@ -648,6 +634,7 @@ function downloadExcel() {
     const to = document.getElementById('filterTo').value;
     const data = filteredReports.map(r => ({
         'Tanggal': new Date(r.created_at).toLocaleDateString('id-ID'),
+        'Jam': r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         'User': r.user_name,
         'Total': r.total_items,
         'Selesai': r.completed_items,
@@ -790,7 +777,7 @@ if (!document.getElementById('notif-styles')) {
 }
 
 /* ============================================
-   AI ASSISTANT (Dengan Rekap H-1)
+   AI ASSISTANT
    ============================================ */
 function initAiAssistant() {
     const modal = document.getElementById('aiChatModal');
@@ -933,7 +920,6 @@ function initAiAssistant() {
             const { count: todayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', todayStr + 'T00:00:00');
             const { count: totalCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
             
-            // Data H-1 (Kemarin)
             const { count: yesterdayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', yesterdayStart).lte('created_at', yesterdayEnd);
             const { data: yesterdayDetails } = await supabase.from('checklist_submissions').select('user_name, progress_percentage, status, created_at').gte('created_at', yesterdayStart).lte('created_at', yesterdayEnd);
             
@@ -959,13 +945,10 @@ function initAiAssistant() {
                 average_progress: avgProgress + '%',
                 completed_submissions: completedCount || 0,
                 recent_activity: recent || [],
-                
-                // Data H-1
                 yesterday_date_str: yesterday.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
                 yesterday_submissions_count: yesterdayCount || 0,
                 yesterday_avg_progress: yesterdayAvg + '%',
                 yesterday_details: yesterdayDetails || [],
-                
                 current_user: window.currentUser?.name || 'User',
                 current_date: today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
             }, null, 2);
@@ -983,8 +966,8 @@ function initAiAssistant() {
 Jawab dalam bahasa Indonesia yang ramah, profesional, dan gunakan emoji. Maksimal 150 kata.
 
 ATURAN KHUSUS:
-- Jika user meminta "rekap H-1", "rekap kemarin", atau "laporan kemarin", WAJIB gunakan data dari variabel "yesterday_date_str", "yesterday_submissions_count", dan "yesterday_avg_progress" untuk membuat ringkasan yang detail.
-- Sebutkan tanggal kemarinya secara eksplisit (contoh: "Berikut rekap untuk hari Minggu, 31 Oktober 2026:").
+- Jika user meminta "rekap H-1", "rekap kemarin", atau "laporan kemarin", WAJIB gunakan data dari variabel "yesterday_date_str", "yesterday_submissions_count", dan "yesterday_avg_progress".
+- Sebutkan tanggal kemarinya secara eksplisit.
 
 DATA DATABASE TERKINI:
 ${context}`;
@@ -1025,7 +1008,6 @@ ${context}`;
             const data = JSON.parse(context);
             const q = question.toLowerCase();
 
-            // Rekap H-1 (Fallback)
             if (q.includes('h-1') || q.includes('kemarin') || q.includes('rekap kemarin')) {
                 return `📅 **Rekap Laporan H-1 (${data.yesterday_date_str})**\n\n` +
                        `• Total laporan masuk: **${data.yesterday_submissions_count}**\n` +
