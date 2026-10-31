@@ -9,7 +9,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // 2. Konfigurasi Groq AI (WAJIB DI LUAR FUNGSI!)
 const GROQ_API_KEY = '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'; 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'llama-3.1-8b-instant';
 
 /* ============================================
    FUNGSI INISIALISASI
