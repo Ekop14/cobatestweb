@@ -296,8 +296,30 @@ function initChecklistLogic() {
                 </svg>
             `;
         }
+       // ✅ TAMBAHKAN: Tampilkan info box dengan jam submission
         const infoBox = document.getElementById('dailySubmissionInfo');
-        if (infoBox) infoBox.classList.remove('hidden');
+        if (infoBox) 
+            // Ambil jam dari submission_time atau extract dari created_at
+            const submissionTime = lastSubmission.submission_time || 
+                new Date(lastSubmission.created_at).toLocaleTimeString('id-ID', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            
+            infoBox.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-green-300 font-medium text-sm">✅ Checklist hari ini sudah disubmit</p>
+                        <p class="text-green-200/60 text-xs">Disubmit pada pukul <span class="font-semibold text-green-300">${submissionTime}</span> • Anda bisa submit lagi besok</p>
+                    </div>
+                </div>
+            `;
+           infoBox.classList.remove('hidden');
     }
 
     function enableSubmitButton() {
@@ -370,7 +392,14 @@ function initChecklistLogic() {
                 disableSubmitButton(existing[0]);
                 return null;
             }
-
+         
+            // ✅ TAMBAHAN: Ambil jam saat ini
+            const now = new Date();
+            const submissionTime = now.toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
             const { data: submission, error } = await supabase
                 .from('checklist_submissions')
                 .insert({
@@ -384,6 +413,7 @@ function initChecklistLogic() {
                     completed_items: data.completed,
                     progress_percentage: data.progress,
                     status: data.progress === 100 ? 'completed' : 'in_progress'
+                    submission_time: submissionTime // ✅ TAMBAHKAN INI
                 })
                 .select()
                 .single();
