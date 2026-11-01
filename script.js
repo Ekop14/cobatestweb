@@ -1,81 +1,157 @@
 // ==========================================
-// SCRIPT UTAMA HALAMAN LAPORAN (SUPABASE CONNECTED)
+// SCRIPT UTAMA (SUPABASE CONNECTED) - FIXED
 // ==========================================
 
-let filteredReports = []; // Variabel global untuk menyimpan data yang difilter
+let filteredReports = []; 
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 Script laporan berhasil dimuat");
+    console.log("🚀 Script berhasil dimuat");
     
-    // Jika Anda menggunakan script.js terpusat, panggil initLaporanPage()
-    // Jika file ini terpisah, jalankan logika di bawah:
-    initLaporanPage();
-});
-
-function initLaporanPage() {
+    // 1. DETEKSI HALAMAN SAAT INI (PENTING: Mencegah Infinite Loop)
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    
     const supabase = window.supabaseClient;
     if (!supabase) {
         console.error("Supabase client tidak ditemukan. Pastikan config.js dimuat.");
         return;
     }
 
+    // 2. CEK SESI LOGIN DENGAN AMAN
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (!session) { 
-            window.location.replace('index.html'); 
-            return; 
-        }
-
-        // 1. Setup User Info
-        let userName = session.user.user_metadata?.full_name || session.user.email || 'User';
-        window.currentUser = { name: userName, email: session.user.email };
         
-        const userDisplay = document.getElementById('currentUserDisplay');
-        if (userDisplay) userDisplay.textContent = userName;
+        // Jika TIDAK login dan BUKAN di halaman login/register, paksa ke login
+        if (!session && currentPage !== 'index.html' && currentPage !== 'register.html') {
+            console.log("🔒 Tidak ada sesi, redirect ke index.html");
+            window.location.replace('index.html');
+            return;
+        }
         
-        const userPicInput = document.getElementById('inputPIC');
-        if (userPicInput) userPicInput.value = userName;
-
-        // 2. Setup Default Date Filter (30 hari terakhir)
-        const today = new Date();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30);
-        
-        const filterFrom = document.getElementById('filterFrom');
-        const filterTo = document.getElementById('filterTo');
-        if (filterFrom) filterFrom.value = thirtyDaysAgo.toISOString().split('T')[0];
-        if (filterTo) filterTo.value = today.toISOString().split('T')[0];
-
-        // 3. Load Data
-        await loadReports();
-
-        // 4. Setup Event Listeners
-        const applyFilterBtn = document.getElementById('applyFilterBtn');
-        if (applyFilterBtn) {
-            applyFilterBtn.addEventListener('click', loadReports);
+        // Jika SUDAH login dan BERADA di halaman login/register, paksa ke dashboard
+        if (session && (currentPage === 'index.html' || currentPage === 'register.html')) {
+            console.log("✅ Sudah login, redirect ke dashboard.html");
+            window.location.replace('dashboard.html');
+            return;
         }
 
-        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-        if (downloadPdfBtn) {
-            downloadPdfBtn.addEventListener('click', downloadPDF);
-        }
-
-        const downloadExcelBtn = document.getElementById('downloadExcelBtn');
-        if (downloadExcelBtn) {
-            downloadExcelBtn.addEventListener('click', downloadExcel);
-        }
-
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                if (!confirm('Yakin ingin keluar dari akun?')) return;
-                await supabase.auth.signOut();
-                window.location.replace('index.html');
-            });
+        // 3. JALANKAN LOGIKA KHUSUS HALAMAN (Hanya jika aman)
+        if (currentPage === 'laporan.html') {
+            initLaporanPage(session);
+        } else if (currentPage === 'index.html') {
+            initLoginPage(session);
+        } else if (currentPage === 'register.html') {
+            initRegisterPage(session);
+        } else if (currentPage === 'dashboard.html') {
+            console.log("📊 Memuat Dashboard...");
+            // Tambahkan initDashboardPage(session) jika ada
+        } else if (currentPage === 'checklist.html') {
+            console.log("📋 Memuat Checklist...");
+            // Tambahkan initChecklistPage(session) jika ada
         }
     });
+});
+
+// ==========================================
+// FUNGSI INIT HALAMAN LAPORAN
+// ==========================================
+function initLaporanPage(session) {
+    console.log("📊 Memuat halaman Laporan...");
+    
+    // 1. Setup User Info
+    let userName = session.user.user_metadata?.full_name || session.user.email || 'User';
+    window.currentUser = { name: userName, email: session.user.email };
+    
+    const userDisplay = document.getElementById('currentUserDisplay');
+    if (userDisplay) userDisplay.textContent = userName;
+    
+    const userPicInput = document.getElementById('inputPIC');
+    if (userPicInput) userPicInput.value = userName;
+
+    // 2. Setup Default Date Filter (30 hari terakhir)
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    const filterFrom = document.getElementById('filterFrom');
+    const filterTo = document.getElementById('filterTo');
+    if (filterFrom) filterFrom.value = thirtyDaysAgo.toISOString().split('T')[0];
+    if (filterTo) filterTo.value = today.toISOString().split('T')[0];
+
+    // 3. Load Data
+    loadReports();
+
+    // 4. Setup Event Listeners
+    const applyFilterBtn = document.getElementById('applyFilterBtn');
+    if (applyFilterBtn) applyFilterBtn.addEventListener('click', loadReports);
+
+    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    if (downloadPdfBtn) downloadPdfBtn.addEventListener('click', downloadPDF);
+
+    const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+    if (downloadExcelBtn) downloadExcelBtn.addEventListener('click', downloadExcel);
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!confirm('Yakin ingin keluar dari akun?')) return;
+            await window.supabaseClient.auth.signOut();
+            window.location.replace('index.html');
+        });
+    }
 }
 
+// ==========================================
+// FUNGSI INIT HALAMAN LOGIN
+// ==========================================
+function initLoginPage(session) {
+    console.log("🔑 Memuat halaman Login...");
+    
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            
+            submitBtn.disabled = true;
+            btnText.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;"></div> Memproses...';
+            
+            const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+            
+            if (error) {
+                alert("Login gagal: " + error.message);
+                submitBtn.disabled = false;
+                btnText.textContent = 'Masuk';
+            } else {
+                window.location.replace('dashboard.html');
+            }
+        });
+    }
+    
+    // Toggle Password Visibility
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+        });
+    }
+}
+
+// ==========================================
+// FUNGSI INIT HALAMAN REGISTER
+// ==========================================
+function initRegisterPage(session) {
+    console.log("📝 Memuat halaman Register...");
+    // Tambahkan logika form register di sini jika diperlukan
+}
+
+// ==========================================
+// FUNGSI LOAD REPORTS
+// ==========================================
 async function loadReports() {
     const supabase = window.supabaseClient;
     const filterFrom = document.getElementById('filterFrom');
@@ -89,7 +165,6 @@ async function loadReports() {
     const excelBtn = document.getElementById('downloadExcelBtn');
     const countText = document.getElementById('reportCountText');
 
-    // Tampilkan loading state
     if (tableBody) {
         tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data dari database...</p></td></tr>`;
     }
@@ -168,13 +243,10 @@ function updateReportStats(reports) {
 
 function downloadPDF() {
     if (filteredReports.length === 0) return;
-    
-    // Cek apakah library jsPDF sudah dimuat
     if (typeof window.jspdf === 'undefined') {
         alert('Library PDF belum dimuat. Pastikan script jsPDF ada di HTML.');
         return;
     }
-    
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const filterFrom = document.getElementById('filterFrom');
@@ -182,12 +254,9 @@ function downloadPDF() {
     const from = filterFrom ? filterFrom.value : 'Awal';
     const to = filterTo ? filterTo.value : 'Akhir';
     
-    doc.setFontSize(18); 
-    doc.text('Laporan Kebersihan Gudang', 14, 20);
-    doc.setFontSize(10); 
-    doc.text(`Periode: ${from} s/d ${to}`, 14, 28);
+    doc.setFontSize(18); doc.text('Laporan Kebersihan Gudang', 14, 20);
+    doc.setFontSize(10); doc.text(`Periode: ${from} s/d ${to}`, 14, 28);
     
-    // Pastikan plugin autoTable tersedia
     if (typeof doc.autoTable !== 'function') {
         alert('Plugin jsPDF-AutoTable belum dimuat.');
         return;
@@ -199,29 +268,22 @@ function downloadPDF() {
         body: filteredReports.map(r => [
             new Date(r.created_at).toLocaleDateString('id-ID'), 
             r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-            r.user_name || '-', 
-            r.total_items || 0, 
-            r.completed_items || 0, 
-            (r.progress_percentage || 0) + '%', 
-            r.status === 'completed' ? 'Selesai' : 'Proses'
+            r.user_name || '-', r.total_items || 0, r.completed_items || 0, 
+            (r.progress_percentage || 0) + '%', r.status === 'completed' ? 'Selesai' : 'Proses'
         ]),
         theme: 'grid',
         headStyles: { fillColor: [102, 126, 234] }
     });
-    
     doc.save(`Laporan-Kebersihan-${from}-to-${to}.pdf`);
     showNotification('PDF berhasil diunduh! ✅', 'success');
 }
 
 function downloadExcel() {
     if (filteredReports.length === 0) return;
-    
-    // Cek apakah library XLSX sudah dimuat
     if (typeof window.XLSX === 'undefined') {
         alert('Library Excel belum dimuat. Pastikan script SheetJS ada di HTML.');
         return;
     }
-    
     const filterFrom = document.getElementById('filterFrom');
     const filterTo = document.getElementById('filterTo');
     const from = filterFrom ? filterFrom.value : 'Awal';
@@ -230,10 +292,8 @@ function downloadExcel() {
     const data = filteredReports.map(r => ({
         'Tanggal': new Date(r.created_at).toLocaleDateString('id-ID'),
         'Jam': r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-        'User': r.user_name || '-',
-        'Total Item': r.total_items || 0,
-        'Selesai': r.completed_items || 0,
-        'Progress': (r.progress_percentage || 0) + '%',
+        'User': r.user_name || '-', 'Total Item': r.total_items || 0,
+        'Selesai': r.completed_items || 0, 'Progress': (r.progress_percentage || 0) + '%',
         'Status': r.status === 'completed' ? 'Selesai' : 'Proses'
     }));
     
@@ -244,9 +304,6 @@ function downloadExcel() {
     showNotification('Excel berhasil diunduh! ✅', 'success');
 }
 
-// Fallback untuk showNotification jika fungsi ini belum ada di file ini
-if (typeof showNotification !== 'function') {
-    function showNotification(message, type = 'info') {
-        alert(message); // Fallback sederhana jika notifikasi custom belum tersedia
-    }
+function showNotification(message, type = 'info') {
+    alert(message); // Fallback sederhana
 }
