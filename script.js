@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT UTAMA (SUPABASE CONNECTED) - FIXED
+// SCRIPT UTAMA (SUPABASE CONNECTED) - LENGKAP
 // ==========================================
 
 let filteredReports = []; 
@@ -7,16 +7,16 @@ let filteredReports = [];
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 Script berhasil dimuat");
     
-    // 1. DETEKSI HALAMAN SAAT INI (PENTING: Mencegah Infinite Loop)
+    // 1. DETEKSI HALAMAN SAAT INI
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     
     const supabase = window.supabaseClient;
     if (!supabase) {
-        console.error("Supabase client tidak ditemukan. Pastikan config.js dimuat.");
+        console.error("❌ Supabase client tidak ditemukan. Pastikan config.js dimuat sebelum script.js");
         return;
     }
 
-    // 2. CEK SESI LOGIN DENGAN AMAN
+    // 2. CEK SESI LOGIN DENGAN AMAN (Mencegah Infinite Loop)
     supabase.auth.getSession().then(async ({ data: { session } }) => {
         
         // Jika TIDAK login dan BUKAN di halaman login/register, paksa ke login
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 3. JALANKAN LOGIKA KHUSUS HALAMAN (Hanya jika aman)
+        // 3. JALANKAN LOGIKA KHUSUS HALAMAN
         if (currentPage === 'laporan.html') {
             initLaporanPage(session);
         } else if (currentPage === 'index.html') {
@@ -41,32 +41,224 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (currentPage === 'register.html') {
             initRegisterPage(session);
         } else if (currentPage === 'dashboard.html') {
-            console.log("📊 Memuat Dashboard...");
-            // Tambahkan initDashboardPage(session) jika ada
+            initDashboardPage(session);
         } else if (currentPage === 'checklist.html') {
-            console.log("📋 Memuat Checklist...");
-            // Tambahkan initChecklistPage(session) jika ada
+            initChecklistPage(session);
         }
     });
 });
+
+// ==========================================
+// FUNGSI INIT HALAMAN CHECKLIST (BARU)
+// ==========================================
+function initChecklistPage(session) {
+    console.log("📋 Memuat halaman Checklist...");
+    
+    // 1. PERBAIKI: Ganti "Memuat tanggal..." dengan tanggal hari ini
+    const dateDisplay = document.getElementById('currentDateDisplay');
+    if (dateDisplay) {
+        const today = new Date().toLocaleDateString('id-ID', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+        });
+        dateDisplay.textContent = today;
+    }
+
+    // 2. Update Info User di Sidebar
+    updateSidebarUser(session.user);
+
+    // 3. Logika Checkbox & Progress Bar
+    // Pastikan semua checkbox checklist memiliki class "checklist-checkbox"
+    const checkboxes = document.querySelectorAll('.checklist-checkbox');
+    const totalItems = checkboxes.length;
+    
+    const totalCountEl = document.getElementById('totalCount');
+    const completedCountEl = document.getElementById('completedCount');
+    const progressTextEl = document.getElementById('overallProgressText');
+    const progressBarEl = document.getElementById('overallProgressBar');
+
+    if (totalCountEl) totalCountEl.textContent = totalItems;
+
+    function updateProgress() {
+        const completed = document.querySelectorAll('.checklist-checkbox:checked').length;
+        const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
+        
+        if (completedCountEl) completedCountEl.textContent = completed;
+        if (progressTextEl) progressTextEl.textContent = percentage + '%';
+        if (progressBarEl) progressBarEl.style.width = percentage + '%';
+    }
+
+    // Pasang event listener ke setiap checkbox
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateProgress);
+    });
+    
+    // Jalankan sekali di awal
+    updateProgress();
+
+    // 4. Logika Tombol "Kirim Laporan"
+    const submitBtn = document.getElementById('submitChecklistBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            const completed = document.querySelectorAll('.checklist-checkbox:checked').length;
+            const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
+            const status = percentage === 100 ? 'completed' : 'partial';
+
+            if (!confirm(`Anda yakin ingin mengirim laporan?\nProgress saat ini: ${percentage}%`)) {
+                return;
+            }
+
+            // Ubah tombol jadi loading
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Mengirim...';
+
+            // Siapkan data untuk dikirim ke Supabase
+            const submissionData = {
+                user_id: session.user.id,
+                user_name: session.user.user_metadata?.full_name || session.user.email,
+                user_email: session.user.email,
+                submission_date: new Date().toISOString().split('T')[0],
+                submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                total_items: totalItems,
+                completed_items: completed,
+                progress_percentage: percentage,
+                status: status,
+                created_at: new Date().toISOString()
+            };
+
+            try {
+                const { error } = await window.supabaseClient
+                    .from('checklist_submissions')
+                    .insert([submissionData]);
+
+                if (error) throw error;
+
+                alert('✅ Laporan berhasil dikirim ke database!');
+                window.location.href = 'dashboard.html'; // Redirect ke dashboard setelah sukses
+                
+            } catch (error) {
+                console.error("❌ Gagal mengirim laporan:", error);
+                alert('❌ Gagal mengirim laporan: ' + error.message);
+                // Kembalikan tombol ke keadaan semula
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+        });
+    }
+}
+
+// ==========================================
+// FUNGSI INIT HALAMAN DASHBOARD (BARU)
+// ==========================================
+async function initDashboardPage(session) {
+    console.log("📊 Memuat halaman Dashboard...");
+    updateSidebarUser(session.user);
+
+    // Update sapaan
+    const welcomeEl = document.getElementById('welcomeUser');
+    if (welcomeEl) {
+        const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+        welcomeEl.textContent = `Selamat Datang, ${name}! 👋`;
+    }
+
+    // Load 5 aktivitas terbaru dari Supabase
+    const { data, error } = await window.supabaseClient
+        .from('checklist_submissions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+    if (!error && data) {
+        const tbody = document.querySelector('#recentActivityTable tbody');
+        if (tbody) {
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-white/50">Belum ada aktivitas checklist</td></tr>';
+            } else {
+                tbody.innerHTML = data.map(row => `
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition">
+                        <td class="px-4 py-3 text-sm">${row.user_name || 'User'}</td>
+                        <td class="px-4 py-3 text-sm text-white/60">${row.submission_date} ${row.submission_time}</td>
+                        <td class="px-4 py-3 text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 rounded-full text-xs ${row.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}">
+                                ${row.status === 'completed' ? 'Selesai' : 'Proses'}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+    }
+}
+
+// ==========================================
+// HELPER: UPDATE SIDEBAR USER
+// ==========================================
+function updateSidebarUser(user) {
+    const nameEl = document.getElementById('sidebarUserName');
+    const emailEl = document.getElementById('sidebarUserEmail');
+    const avatarEl = document.getElementById('userAvatar');
+    
+    const displayName = user.user_metadata?.full_name || user.email;
+    
+    if (nameEl) nameEl.textContent = displayName;
+    if (emailEl) emailEl.textContent = user.email;
+    if (avatarEl) avatarEl.textContent = displayName.charAt(0).toUpperCase();
+}
+
+// ==========================================
+// FUNGSI INIT HALAMAN LOGIN
+// ==========================================
+function initLoginPage(session) {
+    console.log("🔑 Memuat halaman Login...");
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            
+            submitBtn.disabled = true;
+            btnText.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Memproses...';
+            
+            const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+            
+            if (error) {
+                alert("Login gagal: " + error.message);
+                submitBtn.disabled = false;
+                btnText.textContent = 'Masuk';
+            } else {
+                window.location.replace('dashboard.html');
+            }
+        });
+    }
+    
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+        });
+    }
+}
+
+function initRegisterPage(session) {
+    console.log("📝 Memuat halaman Register...");
+    // Tambahkan logika form register di sini jika diperlukan
+}
 
 // ==========================================
 // FUNGSI INIT HALAMAN LAPORAN
 // ==========================================
 function initLaporanPage(session) {
     console.log("📊 Memuat halaman Laporan...");
+    updateSidebarUser(session.user);
     
-    // 1. Setup User Info
-    let userName = session.user.user_metadata?.full_name || session.user.email || 'User';
-    window.currentUser = { name: userName, email: session.user.email };
-    
-    const userDisplay = document.getElementById('currentUserDisplay');
-    if (userDisplay) userDisplay.textContent = userName;
-    
-    const userPicInput = document.getElementById('inputPIC');
-    if (userPicInput) userPicInput.value = userName;
-
-    // 2. Setup Default Date Filter (30 hari terakhir)
     const today = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(today.getDate() - 30);
@@ -76,10 +268,8 @@ function initLaporanPage(session) {
     if (filterFrom) filterFrom.value = thirtyDaysAgo.toISOString().split('T')[0];
     if (filterTo) filterTo.value = today.toISOString().split('T')[0];
 
-    // 3. Load Data
     loadReports();
 
-    // 4. Setup Event Listeners
     const applyFilterBtn = document.getElementById('applyFilterBtn');
     if (applyFilterBtn) applyFilterBtn.addEventListener('click', loadReports);
 
@@ -100,58 +290,6 @@ function initLaporanPage(session) {
     }
 }
 
-// ==========================================
-// FUNGSI INIT HALAMAN LOGIN
-// ==========================================
-function initLoginPage(session) {
-    console.log("🔑 Memuat halaman Login...");
-    
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const submitBtn = document.getElementById('submitBtn');
-            const btnText = document.getElementById('btnText');
-            
-            submitBtn.disabled = true;
-            btnText.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;"></div> Memproses...';
-            
-            const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
-            
-            if (error) {
-                alert("Login gagal: " + error.message);
-                submitBtn.disabled = false;
-                btnText.textContent = 'Masuk';
-            } else {
-                window.location.replace('dashboard.html');
-            }
-        });
-    }
-    
-    // Toggle Password Visibility
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('password');
-    if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', () => {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-        });
-    }
-}
-
-// ==========================================
-// FUNGSI INIT HALAMAN REGISTER
-// ==========================================
-function initRegisterPage(session) {
-    console.log("📝 Memuat halaman Register...");
-    // Tambahkan logika form register di sini jika diperlukan
-}
-
-// ==========================================
-// FUNGSI LOAD REPORTS
-// ==========================================
 async function loadReports() {
     const supabase = window.supabaseClient;
     const filterFrom = document.getElementById('filterFrom');
@@ -244,7 +382,7 @@ function updateReportStats(reports) {
 function downloadPDF() {
     if (filteredReports.length === 0) return;
     if (typeof window.jspdf === 'undefined') {
-        alert('Library PDF belum dimuat. Pastikan script jsPDF ada di HTML.');
+        alert('Library PDF belum dimuat.');
         return;
     }
     const { jsPDF } = window.jspdf;
@@ -275,13 +413,12 @@ function downloadPDF() {
         headStyles: { fillColor: [102, 126, 234] }
     });
     doc.save(`Laporan-Kebersihan-${from}-to-${to}.pdf`);
-    showNotification('PDF berhasil diunduh! ✅', 'success');
 }
 
 function downloadExcel() {
     if (filteredReports.length === 0) return;
     if (typeof window.XLSX === 'undefined') {
-        alert('Library Excel belum dimuat. Pastikan script SheetJS ada di HTML.');
+        alert('Library Excel belum dimuat.');
         return;
     }
     const filterFrom = document.getElementById('filterFrom');
@@ -301,9 +438,4 @@ function downloadExcel() {
     const ws = window.XLSX.utils.json_to_sheet(data);
     window.XLSX.utils.book_append_sheet(wb, ws, 'Laporan');
     window.XLSX.writeFile(wb, `Laporan-Kebersihan-${from}-to-${to}.xlsx`);
-    showNotification('Excel berhasil diunduh! ✅', 'success');
-}
-
-function showNotification(message, type = 'info') {
-    alert(message); // Fallback sederhana
 }
