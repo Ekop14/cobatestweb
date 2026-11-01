@@ -1036,3 +1036,258 @@ ${context}`;
         }
     }
 }
+/* --- Logic untuk Form Monitoring RH & Temperature --- */
+
+// Konfigurasi LocalStorage
+const STORAGE_KEY = 'monitoring_data_v1';
+const LOCATIONS_KEY = 'monitoring_locations_v1';
+const defaultLocations = ['WH-FG', 'WH-RM', 'WH-PM'];
+
+// Inisialisasi saat DOM siap
+document.addEventListener('DOMContentLoaded', () => {
+    loadLocations();
+    setAutoDateTime();
+    renderTable();
+    
+    // Auto-detect waktu setiap menit
+    setInterval(setAutoDateTime, 60000);
+});
+
+// ============ LOCATION MANAGEMENT ============
+function loadLocations() {
+    const saved = localStorage.getItem(LOCATIONS_KEY);
+    const locations = saved ? JSON.parse(saved) : defaultLocations;
+    
+    const select = document.getElementById('location');
+    if (!select) return;
+
+    // Hapus semua opsi kecuali "Tambah Baru"
+    while (select.options.length > 1) {
+        select.remove(0);
+    }
+    
+    locations.forEach(loc => {
+        const option = document.createElement('option');
+        option.value = loc;
+        option.textContent = loc;
+        select.insertBefore(option, select.lastElementChild);
+    });
+    
+    select.value = locations[0] || 'WH-FG';
+}
+
+function addLocation() {
+    const input = document.getElementById('newLocation');
+    const newLoc = input.value.trim().toUpperCase();
+    
+    if (!newLoc) {
+        alert('Nama lokasi tidak boleh kosong!');
+        return;
+    }
+    
+    const saved = localStorage.getItem(LOCATIONS_KEY);
+    const locations = saved ? JSON.parse(saved) : defaultLocations;
+    
+    if (locations.includes(newLoc)) {
+        alert('Lokasi sudah ada!');
+        return;
+    }
+    
+    locations.push(newLoc);
+    localStorage.setItem(LOCATIONS_KEY, JSON.stringify(locations));
+    
+    loadLocations();
+    document.getElementById('location').value = newLoc;
+    cancelAddLocation();
+}
+
+function cancelAddLocation() {
+    document.getElementById('addLocationModal').classList.add('hidden');
+    document.getElementById('newLocation').value = '';
+}
+
+document.getElementById('location').addEventListener('change', (e) => {
+    if (e.target.value === '__add_new__') {
+        document.getElementById('addLocationModal').classList.remove('hidden');
+        document.getElementById('newLocation').focus();
+    }
+});
+
+// ============ AUTO DATE & TIME ============
+function setAutoDateTime() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    
+    const dateInput = document.getElementById('inputDate');
+    if (dateInput) dateInput.value = `${year}-${month}-${day}`;
+    
+    const hour = now.getHours();
+    const timeSelect = document.getElementById('inputTime');
+    if (timeSelect) {
+        timeSelect.value = hour < 12 ? '8:00 AM' : '1:00 PM';
+    }
+}
+
+// ============ FORM SUBMIT ============
+const inputForm = document.getElementById('inputForm');
+if (inputForm) {
+    inputForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveData();
+    });
+}
+
+function saveData() {
+    const location = document.getElementById('location').value;
+    const section = document.getElementById('section').value;
+    const year = document.getElementById('year').value;
+    const date = document.getElementById('inputDate').value;
+    const time = document.getElementById('inputTime').value;
+    const temp = parseFloat(document.getElementById('inputTemp').value);
+    const rh = parseFloat(document.getElementById('inputRH').value);
+    const pic = document.getElementById('inputPIC').value.trim();
+    const remark = document.getElementById('inputRemark').value.trim();
+
+    if (!date || isNaN(temp) || isNaN(rh) || !pic) {
+        alert('Mohon lengkapi semua field yang wajib diisi!');
+        return;
+    }
+
+    const entry = {
+        id: Date.now(),
+        location, section, year, date, time, temp, rh, pic, remark,
+        createdAt: new Date().toISOString()
+    };
+
+    const allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    allData.push(entry);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+
+    alert('✅ Data berhasil disimpan!');
+    resetForm();
+    renderTable();
+}
+
+function resetForm() {
+    document.getElementById('inputTemp').value = '';
+    document.getElementById('inputRH').value = '';
+    document.getElementById('inputPIC').value = '';
+    document.getElementById('inputRemark').value = '';
+    setAutoDateTime();
+    document.getElementById('inputTemp').focus();
+}
+
+// ============ RENDER TABLE ============
+function renderTable() {
+    const location = document.getElementById('location').value;
+    const year = document.getElementById('year').value;
+    const allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const filteredData = allData.filter(d => d.location === location && d.year === year);
+    
+    const grouped = {};
+    filteredData.forEach(d => {
+        if (!grouped[d.date]) grouped[d.date] = { date: d.date, entries: {} };
+        grouped[d.date].entries[d.time] = d;
+    });
+
+    const tbody = document.getElementById('dataTable');
+    const countSpan = document.getElementById('dataCount');
+    if (countSpan) countSpan.textContent = `${filteredData.length} data`;
+
+    if (Object.keys(grouped).length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="border border-gray-400 text-center py-8 text-gray-500">Belum ada data untuk ${location} tahun ${year}.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    let no = 1;
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    Object.keys(grouped).sort().forEach(date => {
+        const group = grouped[date];
+        const morning = group.entries['8:00 AM'];
+        const afternoon = group.entries['1:00 PM'];
+        const dateObj = new Date(date);
+        const dateStr = `${String(dateObj.getDate()).padStart(2, '0')}-${monthNames[dateObj.getMonth()]}`;
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-blue-50';
+        tr.innerHTML = `
+            <td class="border border-gray-400 text-center py-2 font-medium">${no}</td>
+            <td class="border border-gray-400 text-center py-2">${dateStr}</td>
+            <td class="border border-gray-400 text-center py-2">${morning ? morning.temp : '-'}</td>
+            <td class="border border-gray-400 text-center py-2">${morning ? morning.rh : '-'}</td>
+            <td class="border border-gray-400 text-center py-2">${afternoon ? afternoon.temp : '-'}</td>
+            <td class="border border-gray-400 text-center py-2">${afternoon ? afternoon.rh : '-'}</td>
+            <td class="border border-gray-400 text-center py-2 text-xs">${morning?.pic || afternoon?.pic || '-'}</td>
+            <td class="border border-gray-400 text-center py-2 text-xs">${morning?.remark || afternoon?.remark || '-'}</td>
+            <td class="border border-gray-400 text-center py-2">
+                <button onclick="deleteDate('${date}')" class="text-red-600 hover:text-red-800 text-xs font-medium">🗑️ Hapus</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        no++;
+    });
+}
+
+function deleteDate(date) {
+    if (!confirm(`Hapus semua data tanggal ${date}?`)) return;
+    const location = document.getElementById('location').value;
+    const year = document.getElementById('year').value;
+    let allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    allData = allData.filter(d => !(d.location === location && d.year === year && d.date === date));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+    renderTable();
+}
+
+// ============ EXPORT CSV ============
+function exportToCSV() {
+    const location = document.getElementById('location').value;
+    const year = document.getElementById('year').value;
+    const section = document.getElementById('section').value;
+    const allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const filteredData = allData.filter(d => d.location === location && d.year === year);
+
+    if (filteredData.length === 0) {
+        alert('Tidak ada data untuk diexport!');
+        return;
+    }
+
+    let csv = `CONTROL SHEET MONITORING RH & TEMPERATURES\nLocation:,${location}\nSection:,${section}\nYear:,${year}\n\n`;
+    csv += `No,Date,8:00 AM Temp(°C),8:00 AM RH(%),1:00 PM Temp(°C),1:00 PM RH(%),PIC Sign,Remark\n`;
+
+    const grouped = {};
+    filteredData.forEach(d => {
+        if (!grouped[d.date]) grouped[d.date] = { entries: {} };
+        grouped[d.date].entries[d.time] = d;
+    });
+
+    let no = 1;
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    
+    Object.keys(grouped).sort().forEach(date => {
+        const group = grouped[date];
+        const m = group.entries['8:00 AM'];
+        const a = group.entries['1:00 PM'];
+        const dateObj = new Date(date);
+        const dateStr = `${String(dateObj.getDate()).padStart(2, '0')}-${monthNames[dateObj.getMonth()]}`;
+        csv += `${no},${dateStr},${m?.temp||''},${m?.rh||''},${a?.temp||''},${a?.rh||''},${m?.pic||a?.pic||''},${m?.remark||a?.remark||''}\n`;
+        no++;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `monitoring_${location}_${year}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// Re-render saat location/year berubah
+document.getElementById('location').addEventListener('change', renderTable);
+document.getElementById('year').addEventListener('change', renderTable);
