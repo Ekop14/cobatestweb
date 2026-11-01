@@ -686,3 +686,33 @@ body {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
 }
+/* --- Custom Styles untuk Form Monitoring --- */
+
+/* Hilangkan spinner pada input number */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Styling untuk baris weekend/pemisah (jika dipakai) */
+.weekend-row {
+    background-color: #1f2937;
+    height: 6px;
+}
+
+/* Focus state untuk input cell */
+.input-cell:focus {
+    background-color: #fef3c7;
+    outline: none;
+}
+
+/* Utility untuk menyembunyikan elemen saat print (opsional) */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+}
