@@ -1,28 +1,30 @@
 // ==========================================
-// script.js - VERSI FINAL (SUDAH DIPERBAIKI)
+// script.js - VERSI FINAL (Sesuai Skema DB)
 // ==========================================
 
-let filteredReports = []; 
+let filteredReports = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 Script berhasil dimuat");
-    
+
     // 1. DETEKSI HALAMAN SAAT INI
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-    
+
     const supabase = window.supabaseClient;
     if (!supabase) {
         console.error("❌ Supabase client tidak ditemukan. Pastikan config.js dimuat sebelum script.js");
         return;
     }
 
-    // 2. CEK SESI LOGIN DENGAN AMAN (Mencegah Infinite Loop)
+    // 2. CEK SESI LOGIN (Mencegah Infinite Loop)
     supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (!session && currentPage !== 'index.html' && currentPage !== 'register.html') {
+            console.log("🔒 Tidak ada sesi, redirect ke index.html");
             window.location.replace('index.html');
             return;
         }
         if (session && (currentPage === 'index.html' || currentPage === 'register.html')) {
+            console.log("✅ Sudah login, redirect ke dashboard.html");
             window.location.replace('dashboard.html');
             return;
         }
@@ -41,12 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 function initChecklistPage(session) {
     console.log("📋 Memuat halaman Checklist...");
-    
+
     // 1. PERBAIKI: Ganti "Memuat tanggal..." dengan tanggal hari ini
     const dateDisplay = document.getElementById('currentDateDisplay');
     if (dateDisplay) {
-        const today = new Date().toLocaleDateString('id-ID', { 
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+        const today = new Date().toLocaleDateString('id-ID', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         });
         dateDisplay.textContent = today;
     }
@@ -56,7 +58,7 @@ function initChecklistPage(session) {
     // 2. Logika Checkbox & Progress Bar
     const checkboxes = document.querySelectorAll('.checklist-checkbox');
     const totalItems = checkboxes.length;
-    
+
     const totalCountEl = document.getElementById('totalCount');
     const completedCountEl = document.getElementById('completedCount');
     const progressTextEl = document.getElementById('overallProgressText');
@@ -67,7 +69,7 @@ function initChecklistPage(session) {
     function updateProgress() {
         const completed = document.querySelectorAll('.checklist-checkbox:checked').length;
         const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
-        
+
         if (completedCountEl) completedCountEl.textContent = completed;
         if (progressTextEl) progressTextEl.textContent = percentage + '%';
         if (progressBarEl) progressBarEl.style.width = percentage + '%';
@@ -76,32 +78,45 @@ function initChecklistPage(session) {
     checkboxes.forEach(cb => cb.addEventListener('change', updateProgress));
     updateProgress();
 
-    // 3. Logika Tombol "Kirim Laporan" (SUDAH DIPERBAIKI: Tanpa submission_date)
+    // 3. Logika Tombol "Kirim Laporan" (SESUAI SKEMA DB)
     const submitBtn = document.getElementById('submitChecklistBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', async (e) => {
             e.preventDefault();
-            
+
             const completed = document.querySelectorAll('.checklist-checkbox:checked').length;
             const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
             const status = percentage === 100 ? 'completed' : 'partial';
 
-            if (!confirm(`Anda yakin ingin mengirim laporan?\nProgress saat ini: ${percentage}%`)) return;
+            if (!confirm(`Anda yakin ingin mengirim laporan?\nProgress saat ini: ${percentage}%`)) {
+                return;
+            }
 
             const originalBtnText = submitBtn.innerHTML;
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Mengirim...';
 
-            // ✅ PERBAIKAN UTAMA: Hapus submission_date & submission_time
-            // Biarkan Supabase mengisi 'created_at' secara otomatis
+            // ✅ Kumpulkan data per zona (opsional, untuk JSONB)
+            const floorItems = collectZoneItems('floor');
+            const rackItems = collectZoneItems('rack');
+            const dockItems = collectZoneItems('dock');
+            const facilityItems = collectZoneItems('facility');
+
+            // ✅ DATA SESUAI SKEMA 'checklist_submissions'
             const submissionData = {
-                user_id: session.user.id,
                 user_name: session.user.user_metadata?.full_name || session.user.email,
                 user_email: session.user.email,
                 total_items: totalItems,
                 completed_items: completed,
                 progress_percentage: percentage,
-                status: status
+                status: status,
+                submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                // Opsional: detail per zona (JSONB)
+                floor_items: floorItems,
+                rack_items: rackItems,
+                dock_items: dockItems,
+                facility_items: facilityItems
+                // Catatan: 'id' dan 'created_at' otomatis diisi Supabase
             };
 
             try {
@@ -112,8 +127,8 @@ function initChecklistPage(session) {
                 if (error) throw error;
 
                 alert('✅ Laporan berhasil dikirim ke database!');
-                window.location.href = 'dashboard.html'; 
-                
+                window.location.href = 'dashboard.html';
+
             } catch (error) {
                 console.error("❌ Gagal mengirim laporan:", error);
                 alert('❌ Gagal mengirim laporan: ' + error.message);
@@ -122,6 +137,22 @@ function initChecklistPage(session) {
             }
         });
     }
+}
+
+// ==========================================
+// HELPER: Kumpulkan item checklist per zona
+// ==========================================
+function collectZoneItems(zone) {
+    const zoneCheckboxes = document.querySelectorAll(`.checklist-checkbox[data-zone="${zone}"]`);
+    const items = [];
+    zoneCheckboxes.forEach(cb => {
+        const label = cb.closest('.checklist-item')?.querySelector('.checklist-text')?.textContent || 'Item';
+        items.push({
+            label: label,
+            checked: cb.checked
+        });
+    });
+    return items;
 }
 
 // ==========================================
@@ -137,6 +168,7 @@ async function initDashboardPage(session) {
         welcomeEl.textContent = `Selamat Datang, ${name}! 👋`;
     }
 
+    // Load 5 aktivitas terbaru
     const { data, error } = await window.supabaseClient
         .from('checklist_submissions')
         .select('*')
@@ -150,10 +182,9 @@ async function initDashboardPage(session) {
                 tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-white/50">Belum ada aktivitas checklist</td></tr>';
             } else {
                 tbody.innerHTML = data.map(row => {
-                    // Fallback cerdas: jika submission_time tidak ada, ambil dari created_at
                     const timeStr = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                     const dateStr = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-                    
+
                     return `
                     <tr class="border-b border-white/5 hover:bg-white/5 transition">
                         <td class="px-4 py-3 text-sm">${row.user_name || 'User'}</td>
@@ -178,8 +209,9 @@ function updateSidebarUser(user) {
     const nameEl = document.getElementById('sidebarUserName');
     const emailEl = document.getElementById('sidebarUserEmail');
     const avatarEl = document.getElementById('userAvatar');
+
     const displayName = user.user_metadata?.full_name || user.email;
-    
+
     if (nameEl) nameEl.textContent = displayName;
     if (emailEl) emailEl.textContent = user.email;
     if (avatarEl) avatarEl.textContent = displayName.charAt(0).toUpperCase();
@@ -197,10 +229,10 @@ function initLoginPage(session) {
             const password = document.getElementById('password').value;
             const submitBtn = document.getElementById('submitBtn');
             const btnText = document.getElementById('btnText');
-            
+
             submitBtn.disabled = true;
             btnText.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Memproses...';
-            
+
             const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
             if (error) {
                 alert("Login gagal: " + error.message);
@@ -211,7 +243,7 @@ function initLoginPage(session) {
             }
         });
     }
-    
+
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
     if (togglePassword && passwordInput) {
@@ -224,6 +256,7 @@ function initLoginPage(session) {
 
 function initRegisterPage(session) {
     console.log("📝 Memuat halaman Register...");
+    // Tambahkan logika form register di sini jika diperlukan
 }
 
 // ==========================================
@@ -234,7 +267,7 @@ function initLaporanPage(session) {
     const today = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(today.getDate() - 30);
-    
+
     const filterFrom = document.getElementById('filterFrom');
     const filterTo = document.getElementById('filterTo');
     if (filterFrom) filterFrom.value = thirtyDaysAgo.toISOString().split('T')[0];
@@ -262,7 +295,7 @@ async function loadReports() {
     const filterTo = document.getElementById('filterTo');
     const from = filterFrom ? filterFrom.value : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const to = filterTo ? filterTo.value : new Date().toISOString().split('T')[0];
-    
+
     const tableBody = document.getElementById('reportsTableBody');
     if (tableBody) {
         tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
@@ -275,13 +308,13 @@ async function loadReports() {
             .gte('created_at', from + 'T00:00:00')
             .lte('created_at', to + 'T23:59:59')
             .order('created_at', { ascending: false });
-            
+
         if (error) throw error;
-        
+
         filteredReports = data || [];
         renderReports(filteredReports);
         updateReportStats(filteredReports);
-        
+
     } catch (error) {
         console.error("Error loading reports:", error);
         if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-red-400 py-8">Gagal memuat data: ${error.message}</td></tr>`;
@@ -295,13 +328,13 @@ function renderReports(reports) {
         tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-white/50 py-8">Tidak ada laporan pada periode ini</td></tr>`;
         return;
     }
-    
+
     tableBody.innerHTML = reports.map(r => {
         const date = new Date(r.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
         const time = r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
         const statusColor = r.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400';
         const progressColor = r.progress_percentage === 100 ? 'text-green-400' : (r.progress_percentage >= 50 ? 'text-amber-400' : 'text-red-400');
-        
+
         return `<tr>
             <td class="px-4 py-3 text-sm">${date}</td>
             <td class="px-4 py-3 text-sm font-mono text-white/70">${time}</td>
@@ -319,7 +352,7 @@ function updateReportStats(reports) {
     const completed = reports.filter(r => r.status === 'completed').length;
     const avg = total > 0 ? Math.round(reports.reduce((s, r) => s + (r.progress_percentage || 0), 0) / total) : 0;
     const users = new Set(reports.map(r => r.user_email)).size;
-    
+
     const statTotal = document.getElementById('statTotalReports');
     const statCompleted = document.getElementById('statCompletedReports');
     const statAvg = document.getElementById('statAvgProgress');
