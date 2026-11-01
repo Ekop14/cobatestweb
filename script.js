@@ -1037,81 +1037,65 @@ ${context}`;
     }
 }
 /* ============================================
-MONITORING FORM LOGIC
+MONITORING FORM LOGIC - AUTO DATE & USER
 ============================================ */
 
-const STORAGE_KEY = 'monitoring_data_v2';
-const LOCATIONS_KEY = 'monitoring_locations_v2';
+const STORAGE_KEY = 'monitoring_data_v3';
+const LOCATIONS_KEY = 'monitoring_locations_v3';
+const USER_SESSION_KEY = 'user_session'; // Key untuk session user
 const defaultLocations = ['WH-FG', 'WH-RM', 'WH-PM'];
 
 // Inisialisasi
 document.addEventListener('DOMContentLoaded', () => {
+    checkUserSession();
     loadLocations();
     setAutoDateTime();
     renderTable();
     setInterval(setAutoDateTime, 60000); // Update waktu setiap menit
 });
 
-// --- Location Management ---
-function loadLocations() {
-    const saved = localStorage.getItem(LOCATIONS_KEY);
-    const locations = saved ? JSON.parse(saved) : defaultLocations;
-    const select = document.getElementById('location');
-    if (!select) return;
-
-    while (select.options.length > 1) select.remove(0);
+// --- Check User Session ---
+function checkUserSession() {
+    // Coba ambil dari localStorage (untuk demo)
+    let user = localStorage.getItem(USER_SESSION_KEY);
     
-    locations.forEach(loc => {
-        const option = document.createElement('option');
-        option.value = loc;
-        option.textContent = loc;
-        select.insertBefore(option, select.lastElementChild);
-    });
-    select.value = locations[0] || 'WH-FG';
-}
-
-function addLocation() {
-    const input = document.getElementById('newLocation');
-    const newLoc = input.value.trim().toUpperCase();
-    if (!newLoc) return alert('Nama lokasi tidak boleh kosong!');
+    // Jika ada sistem login Supabase, gunakan ini:
+    // const { data: { session } } = await supabaseClient.auth.getSession();
+    // if (session) user = session.user;
     
-    const saved = localStorage.getItem(LOCATIONS_KEY);
-    const locations = saved ? JSON.parse(saved) : defaultLocations;
-    if (locations.includes(newLoc)) return alert('Lokasi sudah ada!');
-    
-    locations.push(newLoc);
-    localStorage.setItem(LOCATIONS_KEY, JSON.stringify(locations));
-    loadLocations();
-    document.getElementById('location').value = newLoc;
-    cancelAddLocation();
-}
-
-function cancelAddLocation() {
-    document.getElementById('addLocationModal').classList.add('hidden');
-    document.getElementById('newLocation').value = '';
-}
-
-document.getElementById('location').addEventListener('change', (e) => {
-    if (e.target.value === '__add_new__') {
-        document.getElementById('addLocationModal').classList.remove('hidden');
-        document.getElementById('newLocation').focus();
+    if (user) {
+        user = JSON.parse(user);
+        document.getElementById('currentUserDisplay').textContent = user.name || user.email || 'Unknown User';
+        document.getElementById('inputPIC').value = user.name || user.email;
     } else {
-        renderTable(); // Refresh tabel saat lokasi berubah
+        // Fallback: minta user login atau tampilkan prompt
+        document.getElementById('currentUserDisplay').textContent = 'Guest (Silakan login)';
+        document.getElementById('inputPIC').value = 'Guest';
+        
+        // Opsional: redirect ke halaman login
+        // window.location.href = 'login.html';
     }
-});
+}
 
 // --- Auto Date & Time ---
 function setAutoDateTime() {
     const now = new Date();
     const dateInput = document.getElementById('inputDate');
+    const dateDisplay = document.getElementById('currentDateDisplay');
+    
     if (dateInput) {
-        dateInput.value = now.toISOString().split('T')[0];
+        const dateStr = now.toISOString().split('T')[0];
+        dateInput.value = dateStr;
+        
+        // Format tanggal untuk display
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        dateDisplay.textContent = now.toLocaleDateString('id-ID', options);
     }
     
     const hour = now.getHours();
     const timeSelect = document.getElementById('inputTime');
     if (timeSelect) {
-        timeSelect.value = hour <12 ? '8:00 AM' : '1:00 PM';
+        timeSelect.value = hour < 12 ? '8:00 AM' : '1:00 PM';
     }
 }
 
@@ -1122,6 +1106,8 @@ document.getElementById('inputForm').addEventListener('submit', (e) => {
 });
 
 function saveData() {
+    const user = JSON.parse(localStorage.getItem(USER_SESSION_KEY) || '{"name":"Guest"}');
+    
     const entry = {
         id: Date.now(),
         location: document.getElementById('location').value,
@@ -1131,13 +1117,14 @@ function saveData() {
         time: document.getElementById('inputTime').value,
         temp: parseFloat(document.getElementById('inputTemp').value),
         rh: parseFloat(document.getElementById('inputRH').value),
-        pic: document.getElementById('inputPIC').value.trim(),
+        pic: user.name || user.email || 'Guest', // Auto dari user login
         remark: document.getElementById('inputRemark').value.trim(),
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        userId: user.id || 'guest'
     };
 
-    if (!entry.date || isNaN(entry.temp) || isNaN(entry.rh) || !entry.pic) {
-        return alert('Mohon lengkapi semua field yang wajib diisi!');
+    if (isNaN(entry.temp) || isNaN(entry.rh)) {
+        return alert('Mohon isi Temperature dan RH!');
     }
 
     const allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -1152,9 +1139,8 @@ function saveData() {
 function resetForm() {
     document.getElementById('inputTemp').value = '';
     document.getElementById('inputRH').value = '';
-    document.getElementById('inputPIC').value = '';
     document.getElementById('inputRemark').value = '';
-    setAutoDateTime();
+    setAutoDateTime(); // Reset tanggal ke hari ini
     document.getElementById('inputTemp').focus();
 }
 
@@ -1264,5 +1250,53 @@ function exportToCSV() {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 }
+
+// --- Location Management ---
+function loadLocations() {
+    const saved = localStorage.getItem(LOCATIONS_KEY);
+    const locations = saved ? JSON.parse(saved) : defaultLocations;
+    const select = document.getElementById('location');
+    if (!select) return;
+
+    while (select.options.length > 1) select.remove(0);
+    
+    locations.forEach(loc => {
+        const option = document.createElement('option');
+        option.value = loc;
+        option.textContent = loc;
+        select.insertBefore(option, select.lastElementChild);
+    });
+    select.value = locations[0] || 'WH-FG';
+}
+
+function addLocation() {
+    const input = document.getElementById('newLocation');
+    const newLoc = input.value.trim().toUpperCase();
+    if (!newLoc) return alert('Nama lokasi tidak boleh kosong!');
+    
+    const saved = localStorage.getItem(LOCATIONS_KEY);
+    const locations = saved ? JSON.parse(saved) : defaultLocations;
+    if (locations.includes(newLoc)) return alert('Lokasi sudah ada!');
+    
+    locations.push(newLoc);
+    localStorage.setItem(LOCATIONS_KEY, JSON.stringify(locations));
+    loadLocations();
+    document.getElementById('location').value = newLoc;
+    cancelAddLocation();
+}
+
+function cancelAddLocation() {
+    document.getElementById('addLocationModal').classList.add('hidden');
+    document.getElementById('newLocation').value = '';
+}
+
+document.getElementById('location').addEventListener('change', (e) => {
+    if (e.target.value === '__add_new__') {
+        document.getElementById('addLocationModal').classList.remove('hidden');
+        document.getElementById('newLocation').focus();
+    } else {
+        renderTable();
+    }
+});
 
 document.getElementById('year').addEventListener('change', renderTable);
