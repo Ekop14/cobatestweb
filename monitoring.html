@@ -3,29 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Form Input - Control Sheet Monitoring RH & Temperature</title>
+    <title>Monitoring RH & Temperature</title>
     
-    <!-- Tailwind CSS (Bisa dihapus jika project kamu sudah pakai Tailwind) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Link ke file CSS kamu -->
+    <!-- Pastikan path ini sesuai dengan file CSS utamamu -->
     <link rel="stylesheet" href="css/monitoring.css">
 </head>
-<body class="bg-gray-100 min-h-screen p-4">
+<body>
 
-    <div class="max-w-7xl mx-auto">
+    <!-- Background Elements (Sama seperti index/dashboard) -->
+    <div class="background-mesh">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+    <div class="noise-overlay"></div>
+
+    <!-- Main Content -->
+    <main class="monitoring-container">
         
-        <!-- Header Card -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h1 class="text-xl font-bold text-center text-gray-800 mb-6 uppercase tracking-wide">
+        <!-- Card 1: Header & Global Settings -->
+        <div class="glass-card">
+            <h1 class="text-2xl font-bold text-center mb-6 gradient-text">
                 Control Sheet Monitoring RH & Temperature
             </h1>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Location Dropdown -->
+            <div class="form-grid-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Location</label>
-                    <select id="location" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <label class="form-label">Location</label>
+                    <select id="location" class="glass-input glass-select">
                         <option value="WH-FG">WH-FG</option>
                         <option value="WH-RM">WH-RM</option>
                         <option value="WH-PM">WH-PM</option>
@@ -33,123 +38,129 @@
                     </select>
                 </div>
                 
-                <!-- Section -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Section</label>
-                    <input type="text" id="section" value="STORAGE 1 (AREA POSM)" 
-                           class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <label class="form-label">Section</label>
+                    <input type="text" id="section" value="STORAGE 1 (AREA POSM)" class="glass-input">
                 </div>
                 
-                <!-- Year -->
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Year</label>
-                    <input type="number" id="year" value="2026" min="2020" max="2030"
-                           class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <label class="form-label">Year</label>
+                    <input type="number" id="year" value="2026" min="2020" max="2030" class="glass-input">
+                </div>
+
+                <div style="display: flex; align-items: flex-end;">
+                    <div id="dataCountBadge" class="card-badge" style="width: 100%; text-align: center; padding: 0.75rem;">
+                        Total Data: <span id="dataCount" style="color: white; font-weight: bold;">0</span>
+                    </div>
                 </div>
             </div>
 
             <!-- Modal Tambah Lokasi -->
-            <div id="addLocationModal" class="hidden mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div class="flex gap-2 items-end">
-                    <div class="flex-1">
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lokasi Baru</label>
-                        <input type="text" id="newLocation" placeholder="Contoh: WH-NEW"
-                               class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <div id="addLocationModal" class="location-modal hidden">
+                <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label class="form-label">Nama Lokasi Baru</label>
+                        <input type="text" id="newLocation" placeholder="Contoh: WH-NEW" class="glass-input">
                     </div>
-                    <button onclick="addLocation()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium">✓ Tambah</button>
-                    <button onclick="cancelAddLocation()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded font-medium">✕ Batal</button>
+                    <button onclick="addLocation()" class="glass-button" style="padding: 0.75rem 1.5rem; white-space: nowrap;">✓ Tambah</button>
+                    <button onclick="cancelAddLocation()" class="glass-button-outline" style="padding: 0.75rem 1.5rem; white-space: nowrap;">✕ Batal</button>
                 </div>
             </div>
         </div>
 
-        <!-- Form Input Card -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <span class="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">📝</span>
-                Input Data Monitoring
+        <!-- Card 2: Input Form -->
+        <div class="glass-card">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-3" style="color: rgba(255,255,255,0.9);">
+                <span class="glass-icon" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">📝</span>
+                Input Data Harian
             </h2>
 
-            <form id="inputForm" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <form id="inputForm" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div class="form-grid-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal</label>
-                        <input type="date" id="inputDate" required class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="form-label">Tanggal</label>
+                        <input type="date" id="inputDate" required class="glass-input">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Waktu Cek</label>
-                        <select id="inputTime" required class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="form-label">Waktu Cek</label>
+                        <select id="inputTime" required class="glass-input glass-select">
                             <option value="8:00 AM">8:00 AM (Pagi)</option>
                             <option value="1:00 PM">1:00 PM (Siang)</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Temperature (°C)</label>
-                        <input type="number" id="inputTemp" step="0.1" min="-10" max="60" required placeholder="Contoh: 28.5" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="form-label">Temperature (°C)</label>
+                        <input type="number" id="inputTemp" step="0.1" min="-10" max="60" required placeholder="0.0" class="glass-input">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">RH (%)</label>
-                        <input type="number" id="inputRH" step="0.1" min="0" max="100" required placeholder="Contoh: 65.2" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="form-label">RH (%)</label>
+                        <input type="number" id="inputRH" step="0.1" min="0" max="100" required placeholder="0.0" class="glass-input">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-grid-2">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">PIC Sign (Nama)</label>
-                        <input type="text" id="inputPIC" required placeholder="Nama penanggung jawab" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="form-label">PIC Sign (Nama)</label>
+                        <input type="text" id="inputPIC" required placeholder="Nama penanggung jawab" class="glass-input">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Remark</label>
-                        <input type="text" id="inputRemark" placeholder="Catatan (opsional)" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="form-label">Remark</label>
+                        <input type="text" id="inputRemark" placeholder="Catatan kondisi (opsional)" class="glass-input">
                     </div>
                 </div>
 
-                <div class="flex gap-3 pt-2">
-                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">💾 Simpan Data</button>
-                    <button type="button" onclick="resetForm()" class="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded-lg font-medium transition-colors">🔄 Reset</button>
-                    <button type="button" onclick="exportToCSV()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">📊 Export CSV</button>
+                <!-- Action Buttons -->
+                <div class="no-print" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                    <button type="submit" class="glass-button">
+                        <span>💾</span> Simpan Data
+                    </button>
+                    <button type="button" onclick="resetForm()" class="glass-button-outline">
+                        <span>🔄</span> Reset Form
+                    </button>
+                    <button type="button" onclick="exportToCSV()" class="glass-button-outline" style="border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd;">
+                        <span>📊</span> Export CSV
+                    </button>
                 </div>
             </form>
         </div>
 
-        <!-- Tabel Data Tersimpan -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <span class="bg-purple-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">📋</span>
-                    Data Monitoring Tersimpan
-                </h2>
-                <span id="dataCount" class="text-sm text-gray-500">0 data</span>
-            </div>
+        <!-- Card 3: Data Table -->
+        <div class="glass-card">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-3" style="color: rgba(255,255,255,0.9);">
+                <span class="glass-icon" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">📋</span>
+                Riwayat Monitoring
+            </h2>
 
-            <div class="overflow-x-auto">
-                <table class="w-full border-collapse border border-gray-400 text-sm">
+            <div class="glass-table-container">
+                <table class="glass-table">
                     <thead>
-                        <tr class="bg-gray-100">
-                            <th rowspan="2" class="border border-gray-400 px-2 py-2 w-10">No</th>
-                            <th rowspan="2" class="border border-gray-400 px-2 py-2 w-24">Date</th>
-                            <th colspan="4" class="border border-gray-400 px-2 py-2 text-center">Time of Checking</th>
-                            <th rowspan="2" class="border border-gray-400 px-2 py-2 w-24">PIC Sign</th>
-                            <th rowspan="2" class="border border-gray-400 px-2 py-2 w-32">Remark</th>
-                            <th rowspan="2" class="border border-gray-400 px-2 py-2 w-16">Aksi</th>
+                        <tr>
+                            <th rowspan="2" style="width: 40px;">No</th>
+                            <th rowspan="2">Date</th>
+                            <th colspan="4">Time of Checking</th>
+                            <th rowspan="2">PIC Sign</th>
+                            <th rowspan="2">Remark</th>
+                            <th rowspan="2" class="no-print" style="width: 80px;">Aksi</th>
                         </tr>
-                        <tr class="bg-gray-100">
-                            <th class="border border-gray-400 px-2 py-1 w-20">8:00 AM<br><span class="font-normal text-xs">Temp(°C)</span></th>
-                            <th class="border border-gray-400 px-2 py-1 w-20">RH(%)</th>
-                            <th class="border border-gray-400 px-2 py-1 w-20">1:00 PM<br><span class="font-normal text-xs">Temp(°C)</span></th>
-                            <th class="border border-gray-400 px-2 py-1 w-20">RH(%)</th>
+                        <tr>
+                            <th>8:00 AM<br><span style="font-weight: 400; font-size: 0.7rem; opacity: 0.7;">Temp(°C)</span></th>
+                            <th>RH(%)</th>
+                            <th>1:00 PM<br><span style="font-weight: 400; font-size: 0.7rem; opacity: 0.7;">Temp(°C)</span></th>
+                            <th>RH(%)</th>
                         </tr>
                     </thead>
                     <tbody id="dataTable">
                         <tr>
-                            <td colspan="9" class="border border-gray-400 text-center py-8 text-gray-500">Belum ada data. Silakan isi form di atas.</td>
+                            <td colspan="9" class="empty-state">Belum ada data. Silakan isi form di atas.</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
 
-    <!-- Link ke file JS kamu -->
+    </main>
+
+    <!-- Pastikan path ini sesuai dengan file JS utamamu -->
     <script src="js/monitoring.js"></script>
 </body>
 </html>
