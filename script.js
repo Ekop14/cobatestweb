@@ -614,32 +614,70 @@ function downloadExcel() {
     showNotification('Excel diunduh! ✅', 'success');
 }
 
-// ==========================================
-// 4. HALAMAN DASHBOARD
-// ==========================================
 async function initDashboardPage(session) {
-    window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
+    console.log("📊 Memuat halaman Dashboard...");
+    
+    // Set user info
+    window.currentUser = { 
+        name: session.user.user_metadata?.full_name || session.user.email || 'User', 
+        email: session.user.email 
+    };
+    
+    // Update welcome text
     const welcomeEl = document.getElementById('welcomeUser');
-    if (welcomeEl) welcomeEl.textContent = `Selamat Datang, ${session.user.user_metadata?.full_name || session.user.email.split('@')[0]}! 👋`;
+    if (welcomeEl) {
+        const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+        welcomeEl.textContent = `Selamat Datang, ${name}! 👋`;
+    }
+    
+    // Load sidebar
     loadSidebar();
-    const { data, error } = await window.supabaseClient.from('checklist_submissions').select('*').order('created_at', { ascending: false }).limit(5);
-    if (!error && data) {
-        const tbody = document.querySelector('#recentActivityTable tbody');
-        if (tbody) {
-            if (data.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-white/50">Belum ada aktivitas</td></tr>';
-            else {
-                tbody.innerHTML = data.map(row => {
-                    const timeStr = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-                    const dateStr = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-                    return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
-                        <td class="px-4 py-3 text-sm">${row.user_name || 'User'}</td>
-                        <td class="px-4 py-3 text-sm text-white/60">${dateStr} ${timeStr}</td>
-                        <td class="px-4 py-3 text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td>
-                        <td class="px-4 py-3 text-sm"><span class="px-2 py-1 rounded-full text-xs ${row.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}">${row.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
-                    </tr>`;
-                }).join('');
-            }
+    
+    // Cek apakah tabel ada di HTML
+    const tbody = document.querySelector('#recentActivityTable tbody');
+    if (!tbody) {
+        console.error("❌ Tabel #recentActivityTable tidak ditemukan di dashboard.html!");
+        return;
+    }
+    
+    // Tampilkan loading
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-white/50"><div class="spinner mx-auto"></div><p class="mt-2">Memuat data...</p></td></tr>';
+    
+    try {
+        console.log("🔄 Mengambil data dari Supabase...");
+        const { data, error } = await window.supabaseClient
+            .from('checklist_submissions')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(10); // Ambil 10 data terbaru
+        
+        if (error) {
+            console.error("❌ Error Supabase:", error);
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-red-400">Gagal memuat: ${error.message}</td></tr>`;
+            return;
         }
+        
+        console.log("✅ Data diterima:", data?.length || 0, "baris");
+        
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-white/50">Belum ada aktivitas checklist</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = data.map(row => {
+            const timeStr = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            const dateStr = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                <td class="px-4 py-3 text-sm">${row.user_name || 'User'}</td>
+                <td class="px-4 py-3 text-sm text-white/60">${dateStr} ${timeStr}</td>
+                <td class="px-4 py-3 text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td>
+                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 rounded-full text-xs ${row.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}">${row.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
+            </tr>`;
+        }).join('');
+        
+    } catch (error) {
+        console.error("❌ Error tidak terduga:", error);
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-red-400">Error: ${error.message}</td></tr>`;
     }
 }
 
