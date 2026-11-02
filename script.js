@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - VERSI FINAL ALL-IN-ONE (DENGAN LINGKUNGAN)
+// SCRIPT.JS - VERSI FINAL ALL-IN-ONE (DENGAN LINGKUNGAN & DASHBOARD UPDATE)
 // ==========================================
 
 let filteredReports = [];
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'register.html') initRegisterPage();
         else if (currentPage === 'dashboard.html') initDashboardPage(session);
         else if (currentPage === 'checklist.html') initChecklistPage(session);
-        else if (currentPage === 'lingkungan.html') initEnvironmentPage(session); // ✅ TAMBAHAN BARU
+        else if (currentPage === 'lingkungan.html') initEnvironmentPage(session);
     });
 
     // Inisialisasi AI Assistant (tunggu sidebar/HTML siap)
@@ -635,6 +635,7 @@ async function initDashboardPage(session) {
     
     loadSidebar();
     updateDashboardStats();
+    loadDashboardEnvironmentHistory(); // ✅ TAMBAHAN BARU: Muat data lingkungan
     
     const tbody = document.getElementById('recentActivityBody');
     if (!tbody) {
@@ -711,8 +712,47 @@ async function updateDashboardStats() {
     }
 }
 
+// ✅ FUNGSI BARU: Muat 4 Data Lingkungan Terakhir untuk Dashboard
+async function loadDashboardEnvironmentHistory() {
+    const tbody = document.getElementById('dashboardEnvironmentBody');
+    if (!tbody) return;
+
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('environment_readings')
+            .select('temperature, humidity, submission_time, created_at')
+            .order('created_at', { ascending: false })
+            .limit(4);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-white/50 text-sm">Belum ada data</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map(row => {
+            const timeStr = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            const dateStr = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+            
+            const tempStatus = (row.temperature >= 20 && row.temperature <= 27) ? 'text-green-400' : 'text-amber-400';
+            const humStatus = (row.humidity >= 50 && row.humidity <= 70) ? 'text-green-400' : 'text-amber-400';
+            
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                <td class="px-4 py-3 text-sm text-white/60">${dateStr}<br><span class="text-xs">${timeStr}</span></td>
+                <td class="px-4 py-3 text-sm text-center font-semibold ${tempStatus}">${row.temperature}°C</td>
+                <td class="px-4 py-3 text-sm text-center font-semibold ${humStatus}">${row.humidity}%</td>
+            </tr>`;
+        }).join('');
+
+    } catch (error) {
+        console.error("❌ Error memuat data lingkungan dashboard:", error);
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-red-400 text-sm">Gagal memuat</td></tr>`;
+    }
+}
+
 // ==========================================
-// 5. HALAMAN LINGKUNGAN (BARU DITAMBAHKAN)
+// 5. HALAMAN LINGKUNGAN
 // ==========================================
 function initEnvironmentPage(session) {
     console.log("🌡️ Memuat halaman Lingkungan...");
