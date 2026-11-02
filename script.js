@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - VERSI FINAL (Sesuai Skema DB & HTML)
+// SCRIPT.JS - VERSI FINAL (ALL-IN-ONE)
 // ==========================================
 
 let filteredReports = [];
@@ -11,48 +11,51 @@ document.addEventListener('DOMContentLoaded', () => {
     const supabase = window.supabaseClient;
 
     if (!supabase) {
-        console.error("❌ Supabase client tidak ditemukan. Pastikan config.js dimuat sebelum script.js");
+        console.error("❌ Supabase client tidak ditemukan. Pastikan config.js dimuat.");
         return;
     }
 
+    // Cek Sesi & Routing Halaman
     supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (!session && currentPage !== 'index.html' && currentPage !== 'register.html') {
-            console.log("🔒 Tidak ada sesi, redirect ke index.html");
             window.location.replace('index.html');
             return;
         }
         if (session && (currentPage === 'index.html' || currentPage === 'register.html')) {
-            console.log("✅ Sudah login, redirect ke dashboard.html");
-            window.location.replace('dashboard.html');
+            window.location.replace('checklist.html'); // Atau dashboard.html sesuai preferensi
             return;
         }
 
         if (currentPage === 'laporan.html') initLaporanPage(session);
-        else if (currentPage === 'index.html') initLoginPage(session);
-        else if (currentPage === 'register.html') initRegisterPage(session);
+        else if (currentPage === 'index.html') initLoginPage();
+        else if (currentPage === 'register.html') initRegisterPage();
         else if (currentPage === 'dashboard.html') initDashboardPage(session);
         else if (currentPage === 'checklist.html') initChecklistPage(session);
     });
+
+    // Inisialisasi AI Assistant (Tunggu sebentar agar sidebar/HTML siap)
+    setTimeout(() => {
+        if (document.getElementById('aiAssistantBtn')) {
+            initAiAssistant();
+        }
+    }, 1000);
 });
 
 // ==========================================
-// FUNGSI INIT HALAMAN CHECKLIST (DENGAN BATASAN 1X/HARI)
+// 1. HALAMAN CHECKLIST
 // ==========================================
 function initChecklistPage(session) {
     console.log("📋 Memuat halaman Checklist...");
 
-    // 1. Update Tanggal
+    // Update Tanggal
     const dateDisplay = document.getElementById('currentDate');
     if (dateDisplay) {
-        const today = new Date().toLocaleDateString('id-ID', {
+        dateDisplay.textContent = new Date().toLocaleDateString('id-ID', {
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         });
-        dateDisplay.textContent = today;
     }
 
-    if (typeof updateSidebarUser === 'function') updateSidebarUser(session.user);
-
-    // 2. Logika Checkbox & Progress Bar
+    // Logika Checkbox
     const checkboxes = document.querySelectorAll('.glass-checkbox');
     const totalItems = checkboxes.length;
     const totalCountEl = document.getElementById('totalCount') || document.getElementById('statTotal');
@@ -83,21 +86,18 @@ function initChecklistPage(session) {
     
     updateProgress();
 
-    // 3. CEK SUBMISSION HARIAN (FITUR BARU)
+    // Cek Batasan Harian (1 User = 1 Submit/Hari)
     checkDailySubmission(session.user.email);
 
-    // 4. Logika Tombol "Kirim Laporan"
+    // Logika Tombol Kirim
     const submitBtn = document.getElementById('submitChecklistBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', async (e) => {
             e.preventDefault();
-
-            // Guard clause: Jika tombol sudah disabled, hentikan
             if (submitBtn.disabled) return;
 
             const completed = document.querySelectorAll('.glass-checkbox:checked').length;
             const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
-            const status = percentage === 100 ? 'completed' : 'in_progress';
 
             if (completed < totalItems) {
                 showNotification(`Selesaikan semua tugas dulu ya! (${completed}/${totalItems})`, 'warning');
@@ -108,20 +108,18 @@ function initChecklistPage(session) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Mengirim...';
 
-            const floorItems = collectZoneItems('floor');
-            const rackItems = collectZoneItems('rack');
-            const dockItems = collectZoneItems('dock');
-            const facilityItems = collectZoneItems('facility');
-
             const submissionData = {
                 user_name: session.user.user_metadata?.full_name || session.user.email,
                 user_email: session.user.email,
                 total_items: totalItems,
                 completed_items: completed,
                 progress_percentage: percentage,
-                status: status,
+                status: percentage === 100 ? 'completed' : 'in_progress',
                 submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                floor_items: floorItems, rack_items: rackItems, dock_items: dockItems, facility_items: facilityItems
+                floor_items: collectZoneItems('floor'),
+                rack_items: collectZoneItems('rack'),
+                dock_items: collectZoneItems('dock'),
+                facility_items: collectZoneItems('facility')
             };
 
             try {
@@ -129,8 +127,6 @@ function initChecklistPage(session) {
                 if (error) throw error;
 
                 showNotification('✅ Laporan berhasil dikirim!', 'success');
-                
-                // Tampilkan info box dan disable tombol permanen untuk hari ini
                 disableSubmitButtonUI(submissionData);
 
                 setTimeout(() => {
@@ -153,12 +149,8 @@ function initChecklistPage(session) {
     }
 }
 
-// ==========================================
-// FUNGSI BARU: Cek Apakah User Sudah Submit Hari Ini
-// ==========================================
 async function checkDailySubmission(userEmail) {
     const today = new Date().toISOString().split('T')[0];
-    
     try {
         const { data, error } = await window.supabaseClient
             .from('checklist_submissions')
@@ -169,47 +161,28 @@ async function checkDailySubmission(userEmail) {
             .limit(1);
 
         if (error) throw error;
-
-        // Jika ada data, berarti user sudah submit hari ini
-        if (data && data.length > 0) {
-            console.log("⚠️ User sudah submit hari ini. Menonaktifkan tombol...");
-            disableSubmitButtonUI(data[0]);
-        }
+        if (data && data.length > 0) disableSubmitButtonUI(data[0]);
     } catch (error) {
-        console.error("Gagal mengecek submission harian:", error);
+        console.error("Gagal cek submission harian:", error);
     }
 }
 
-// ==========================================
-// FUNGSI BARU: Menonaktifkan Tombol & Menampilkan Keterangan
-// ==========================================
 function disableSubmitButtonUI(submission) {
     const btn = document.getElementById('submitChecklistBtn');
     const infoBox = document.getElementById('dailySubmissionInfo');
     const timeDisplay = document.getElementById('submissionTimeDisplay');
 
-    // 1. Disable Tombol Kirim
     if (btn) {
         btn.disabled = true;
         btn.classList.add('opacity-50', 'cursor-not-allowed');
         btn.innerHTML = '<span>✅ Sudah Submit Hari Ini</span>';
     }
-
-    // 2. Tampilkan Info Box Keterangan
-    if (infoBox) {
-        infoBox.classList.remove('hidden');
-    }
-
-    // 3. Update Jam Submission di Info Box
+    if (infoBox) infoBox.classList.remove('hidden');
     if (timeDisplay) {
-        const time = submission.submission_time || new Date(submission.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-        timeDisplay.textContent = time;
+        timeDisplay.textContent = submission.submission_time || new Date(submission.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
     }
 }
 
-// ==========================================
-// HELPER: Kumpulkan item checklist per zona
-// ==========================================
 function collectZoneItems(zone) {
     const zoneCheckboxes = document.querySelectorAll(`.glass-checkbox[data-card="${zone}"]`);
     const items = [];
@@ -219,162 +192,177 @@ function collectZoneItems(zone) {
     });
     return items;
 }
+
 // ==========================================
-// HELPER: Kumpulkan item checklist per zona
+// 2. AI ASSISTANT (FULL DATABASE ACCESS)
 // ==========================================
-function collectZoneItems(zone) {
-    // PERBAIKI: Gunakan class '.glass-checkbox' dan attribute 'data-card' sesuai HTML Anda
-    const zoneCheckboxes = document.querySelectorAll(`.glass-checkbox[data-card="${zone}"]`);
-    const items = [];
-    zoneCheckboxes.forEach(cb => {
-        const label = cb.closest('.checklist-item')?.querySelector('.checklist-text')?.textContent || 'Item';
-        items.push({
-            task: label,
-            checked: cb.checked
+function initAiAssistant() {
+    const modal = document.getElementById('aiChatModal');
+    const panel = document.getElementById('aiChatPanel');
+    const overlay = document.getElementById('aiChatOverlay');
+    const closeBtn = document.getElementById('closeAiChat');
+    const input = document.getElementById('aiChatInput');
+    const sendBtn = document.getElementById('aiChatSend');
+    const messagesContainer = document.getElementById('aiChatMessages');
+    const aiBtn = document.getElementById('aiAssistantBtn');
+
+    if (!modal || !aiBtn) return;
+
+    aiBtn.addEventListener('click', () => {
+        modal.classList.remove('hidden');
+        setTimeout(() => panel.classList.remove('translate-x-full'), 10);
+        input.focus();
+    });
+
+    function closeModal() {
+        panel.classList.add('translate-x-full');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+    closeBtn?.addEventListener('click', closeModal);
+    overlay?.addEventListener('click', closeModal);
+
+    document.querySelectorAll('.quick-action').forEach(btn => {
+        btn.addEventListener('click', () => {
+            input.value = btn.textContent.replace(/^[^\s]+\s/, '').trim();
+            handleAiSend();
         });
     });
-    return items;
-}
 
-// ==========================================
-// FUNGSI INIT HALAMAN DASHBOARD
-// ==========================================
-async function initDashboardPage(session) {
-    console.log("📊 Memuat halaman Dashboard...");
-    if (typeof updateSidebarUser === 'function') updateSidebarUser(session.user);
+    input?.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleAiSend(); });
+    sendBtn?.addEventListener('click', handleAiSend);
 
-    const welcomeEl = document.getElementById('welcomeUser');
-    if (welcomeEl) {
-        const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
-        welcomeEl.textContent = `Selamat Datang, ${name}! 👋`;
-    }
+    async function handleAiSend() {
+        const question = input.value.trim();
+        if (!question) return;
 
-    const { data, error } = await window.supabaseClient
-        .from('checklist_submissions')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
+        addMessage(question, 'user');
+        input.value = '';
+        sendBtn.disabled = true;
+        const typingId = addTypingIndicator();
 
-    if (!error && data) {
-        const tbody = document.querySelector('#recentActivityTable tbody');
-        if (tbody) {
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-white/50">Belum ada aktivitas checklist</td></tr>';
-            } else {
-                tbody.innerHTML = data.map(row => {
-                    const timeStr = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-                    const dateStr = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-
-                    return `
-                    <tr class="border-b border-white/5 hover:bg-white/5 transition">
-                        <td class="px-4 py-3 text-sm">${row.user_name || 'User'}</td>
-                        <td class="px-4 py-3 text-sm text-white/60">${dateStr} ${timeStr}</td>
-                        <td class="px-4 py-3 text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td>
-                        <td class="px-4 py-3 text-sm">
-                            <span class="px-2 py-1 rounded-full text-xs ${row.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}">
-                                ${row.status === 'completed' ? 'Selesai' : 'Proses'}
-                            </span>
-                        </td>
-                    </tr>`;
-                }).join('');
-            }
+        try {
+            const context = await getFullSupabaseContext();
+            const answer = await getGroqResponse(question, context);
+            removeTypingIndicator(typingId);
+            addMessage(answer, 'ai');
+        } catch (error) {
+            removeTypingIndicator(typingId);
+            addMessage('Maaf, terjadi kesalahan: ' + error.message, 'ai', true);
+        } finally {
+            sendBtn.disabled = false;
         }
     }
-}
 
-// ==========================================
-// HELPER: UPDATE SIDEBAR USER
-// ==========================================
-function updateSidebarUser(user) {
-    const nameEl = document.getElementById('sidebarUserName');
-    const emailEl = document.getElementById('sidebarUserEmail');
-    const avatarEl = document.getElementById('userAvatar');
+    function addMessage(text, sender, isError = false) {
+        const div = document.createElement('div');
+        div.className = 'flex gap-3 ' + (sender === 'user' ? 'flex-row-reverse' : '');
+        const avatar = sender === 'user' 
+            ? `<div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>`
+            : `<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg></div>`;
+        const bubbleClass = sender === 'user' ? 'bg-blue-500/20 border border-blue-500/30 rounded-2xl rounded-tr-none' : (isError ? 'bg-red-500/20 border border-red-500/30 rounded-2xl rounded-tl-none' : 'bg-white/5 border border-white/10 rounded-2xl rounded-tl-none');
+        div.innerHTML = `${avatar}<div class="flex-1 ${bubbleClass} p-4"><p class="text-white text-sm whitespace-pre-wrap">${text}</p></div>`;
+        messagesContainer.appendChild(div);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
 
-    const displayName = user.user_metadata?.full_name || user.email;
+    function addTypingIndicator() {
+        const id = 'typing-' + Date.now();
+        const div = document.createElement('div');
+        div.id = id;
+        div.className = 'flex gap-3';
+        div.innerHTML = `<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg></div><div class="flex-1 bg-white/5 border border-white/10 rounded-2xl rounded-tl-none p-4"><div class="flex gap-1"><div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 0ms"></div><div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 150ms"></div><div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 300ms"></div></div></div>`;
+        messagesContainer.appendChild(div);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return id;
+    }
 
-    if (nameEl) nameEl.textContent = displayName;
-    if (emailEl) emailEl.textContent = user.email;
-    if (avatarEl) avatarEl.textContent = displayName.charAt(0).toUpperCase();
-}
+    function removeTypingIndicator(id) { const el = document.getElementById(id); if (el) el.remove(); }
 
-// ==========================================
-// FUNGSI INIT HALAMAN LOGIN
-// ==========================================
-function initLoginPage(session) {
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const submitBtn = document.getElementById('submitBtn');
-            const btnText = document.getElementById('btnText');
+    async function getFullSupabaseContext() {
+        const supabase = window.supabaseClient;
+        if (!supabase) return "Tidak ada koneksi database.";
+        try {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const todayStr = today.toISOString().split('T')[0];
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-            submitBtn.disabled = true;
-            btnText.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Memproses...';
-
-            const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) {
-                showNotification("Login gagal: " + error.message, 'error');
-                submitBtn.disabled = false;
-                btnText.textContent = 'Masuk';
-            } else {
-                showNotification('Login berhasil!', 'success');
-                setTimeout(() => window.location.replace('dashboard.html'), 1000);
+            const { count: todayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', todayStr + 'T00:00:00');
+            const { count: totalCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
+            const { count: yesterdayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', yesterdayStr + 'T00:00:00').lte('created_at', yesterdayStr + 'T23:59:59');
+            const { data: yesterdayDetails } = await supabase.from('checklist_submissions').select('user_name, progress_percentage, status, created_at').gte('created_at', yesterdayStr + 'T00:00:00').lte('created_at', yesterdayStr + 'T23:59:59');
+            
+            let yesterdayAvg = 0;
+            if (yesterdayDetails && yesterdayDetails.length > 0) {
+                const sum = yesterdayDetails.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0);
+                yesterdayAvg = Math.round(sum / yesterdayDetails.length);
             }
-        });
+
+            const { data: allSubmissions } = await supabase.from('checklist_submissions').select('progress_percentage');
+            let avgProgress = 0;
+            if (allSubmissions && allSubmissions.length > 0) {
+                const sum = allSubmissions.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0);
+                avgProgress = Math.round(sum / allSubmissions.length);
+            }
+            const { count: completedCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).eq('status', 'completed');
+            const { data: recent } = await supabase.from('checklist_submissions').select('user_name, progress_percentage, status, created_at').order('created_at', { ascending: false }).limit(5);
+
+            return JSON.stringify({
+                today_submissions: todayCount || 0,
+                total_submissions: totalCount || 0,
+                average_progress: avgProgress + '%',
+                completed_submissions: completedCount || 0,
+                recent_activity: recent || [],
+                yesterday_date_str: yesterday.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                yesterday_submissions_count: yesterdayCount || 0,
+                yesterday_avg_progress: yesterdayAvg + '%',
+                yesterday_details: yesterdayDetails || [],
+                current_user: window.currentUser?.name || 'User',
+                current_date: today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+            }, null, 2);
+        } catch (error) {
+            return 'Error mengambil data: ' + error.message;
+        }
     }
 
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('password');
-    if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', () => {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-        });
-    }
-}
+    async function getGroqResponse(question, context) {
+        if (!GROQ_API_KEY || GROQ_API_KEY === 'gsk_API_KEY_ANDA_DISINI') {
+            return "⚠️ API Key Groq belum diatur di config.js.";
+        }
+        const systemPrompt = `Anda adalah AI Assistant cerdas untuk sistem "Gudang Clean". Jawab dalam bahasa Indonesia yang ramah, profesional, dan gunakan emoji. Maksimal 150 kata.\n\nATURAN:\n1. Gunakan DATA KONTEKS di bawah ini untuk menjawab. Jangan mengarang angka.\n2. Jika ditanya "kemarin" atau "H-1", gunakan data "yesterday_date_str", "yesterday_submissions_count", dan "yesterday_avg_progress".\n3. Jika ditanya "user terbaik", analisis "recent_activity" atau "yesterday_details" untuk mencari progress_percentage tertinggi.\n\nDATA KONTEKS DATABASE (JSON):\n${context}`;
 
-function initRegisterPage(session) {
-    console.log("📝 Memuat halaman Register...");
-    // Tambahkan logika form register di sini jika diperlukan
+        const response = await fetch(GROQ_API_URL, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: question }], temperature: 0.7, max_tokens: 400 })
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(`HTTP ${response.status}: ${err.error?.message || response.statusText}`);
+        }
+        const data = await response.json();
+        return data.choices[0].message.content;
+    }
 }
 
 // ==========================================
-// FUNGSI INIT HALAMAN LAPORAN
+// 3. HALAMAN LAPORAN
 // ==========================================
 function initLaporanPage(session) {
-    if (typeof updateSidebarUser === 'function') updateSidebarUser(session.user);
-    
     const today = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(today.getDate() - 30);
-
     const filterFrom = document.getElementById('filterFrom');
     const filterTo = document.getElementById('filterTo');
     if (filterFrom) filterFrom.value = thirtyDaysAgo.toISOString().split('T')[0];
     if (filterTo) filterTo.value = today.toISOString().split('T')[0];
 
     loadReports();
-
-    const applyFilterBtn = document.getElementById('applyFilterBtn');
-    if (applyFilterBtn) applyFilterBtn.addEventListener('click', loadReports);
-
-    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-    if (downloadPdfBtn) downloadPdfBtn.addEventListener('click', downloadPDF);
-
-    const downloadExcelBtn = document.getElementById('downloadExcelBtn');
-    if (downloadExcelBtn) downloadExcelBtn.addEventListener('click', downloadExcel);
-
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            if (!confirm('Yakin ingin keluar dari akun?')) return;
-            await window.supabaseClient.auth.signOut();
-            window.location.replace('index.html');
-        });
-    }
+    document.getElementById('applyFilterBtn')?.addEventListener('click', loadReports);
+    document.getElementById('downloadPdfBtn')?.addEventListener('click', downloadPDF);
+    document.getElementById('downloadExcelBtn')?.addEventListener('click', downloadExcel);
 }
 
 async function loadReports() {
@@ -383,26 +371,16 @@ async function loadReports() {
     const filterTo = document.getElementById('filterTo');
     const from = filterFrom ? filterFrom.value : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const to = filterTo ? filterTo.value : new Date().toISOString().split('T')[0];
-
     const tableBody = document.getElementById('reportsTableBody');
-    if (tableBody) {
-        tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
-    }
+
+    if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
 
     try {
-        const { data, error } = await supabase
-            .from('checklist_submissions')
-            .select('*')
-            .gte('created_at', from + 'T00:00:00')
-            .lte('created_at', to + 'T23:59:59')
-            .order('created_at', { ascending: false });
-
+        const { data, error } = await supabase.from('checklist_submissions').select('*').gte('created_at', from + 'T00:00:00').lte('created_at', to + 'T23:59:59').order('created_at', { ascending: false });
         if (error) throw error;
-
         filteredReports = data || [];
         renderReports(filteredReports);
         updateReportStats(filteredReports);
-
     } catch (error) {
         console.error("Error loading reports:", error);
         if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-red-400 py-8">Gagal memuat data: ${error.message}</td></tr>`;
@@ -416,13 +394,11 @@ function renderReports(reports) {
         tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-white/50 py-8">Tidak ada laporan pada periode ini</td></tr>`;
         return;
     }
-
     tableBody.innerHTML = reports.map(r => {
         const date = new Date(r.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
         const time = r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
         const statusColor = r.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400';
         const progressColor = r.progress_percentage === 100 ? 'text-green-400' : (r.progress_percentage >= 50 ? 'text-amber-400' : 'text-red-400');
-
         return `<tr>
             <td class="px-4 py-3 text-sm">${date}</td>
             <td class="px-4 py-3 text-sm font-mono text-white/70">${time}</td>
@@ -440,44 +416,28 @@ function updateReportStats(reports) {
     const completed = reports.filter(r => r.status === 'completed').length;
     const avg = total > 0 ? Math.round(reports.reduce((s, r) => s + (r.progress_percentage || 0), 0) / total) : 0;
     const users = new Set(reports.map(r => r.user_email)).size;
-
-    const statTotal = document.getElementById('statTotalReports');
-    const statCompleted = document.getElementById('statCompletedReports');
-    const statAvg = document.getElementById('statAvgProgress');
-    const statUsers = document.getElementById('statActiveUsers');
-
-    if (statTotal) statTotal.textContent = total;
-    if (statCompleted) statCompleted.textContent = completed;
-    if (statAvg) statAvg.textContent = avg + '%';
-    if (statUsers) statUsers.textContent = users;
+    const elTotal = document.getElementById('statTotalReports');
+    const elCompleted = document.getElementById('statCompletedReports');
+    const elAvg = document.getElementById('statAvgProgress');
+    const elUsers = document.getElementById('statActiveUsers');
+    if (elTotal) elTotal.textContent = total;
+    if (elCompleted) elCompleted.textContent = completed;
+    if (elAvg) elAvg.textContent = avg + '%';
+    if (elUsers) elUsers.textContent = users;
 }
 
 function downloadPDF() {
-    if (filteredReports.length === 0) return;
-    if (typeof window.jspdf === 'undefined') {
-        showNotification('Library PDF belum dimuat.', 'error');
-        return;
-    }
+    if (filteredReports.length === 0 || typeof window.jspdf === 'undefined') return;
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const filterFrom = document.getElementById('filterFrom');
-    const filterTo = document.getElementById('filterTo');
-    const from = filterFrom ? filterFrom.value : 'Awal';
-    const to = filterTo ? filterTo.value : 'Akhir';
-    
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
     doc.setFontSize(18); doc.text('Laporan Kebersihan Gudang', 14, 20);
     doc.setFontSize(10); doc.text(`Periode: ${from} s/d ${to}`, 14, 28);
-    
     if (typeof doc.autoTable === 'function') {
         doc.autoTable({
-            startY: 35,
-            head: [['Tanggal', 'Jam', 'User', 'Total', 'Selesai', 'Progress', 'Status']],
-            body: filteredReports.map(r => [
-                new Date(r.created_at).toLocaleDateString('id-ID'), 
-                r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-                r.user_name || '-', r.total_items || 0, r.completed_items || 0, 
-                (r.progress_percentage || 0) + '%', r.status === 'completed' ? 'Selesai' : 'Proses'
-            ]),
+            startY: 35, head: [['Tanggal', 'Jam', 'User', 'Total', 'Selesai', 'Progress', 'Status']],
+            body: filteredReports.map(r => [new Date(r.created_at).toLocaleDateString('id-ID'), r.submission_time || '-', r.user_name || '-', r.total_items || 0, r.completed_items || 0, (r.progress_percentage || 0) + '%', r.status === 'completed' ? 'Selesai' : 'Proses']),
             theme: 'grid', headStyles: { fillColor: [102, 126, 234] }
         });
         doc.save(`Laporan-Kebersihan-${from}-to-${to}.pdf`);
@@ -486,26 +446,13 @@ function downloadPDF() {
 }
 
 function downloadExcel() {
-    if (filteredReports.length === 0) return;
-    if (typeof window.XLSX === 'undefined') {
-        showNotification('Library Excel belum dimuat.', 'error');
-        return;
-    }
-    const filterFrom = document.getElementById('filterFrom');
-    const filterTo = document.getElementById('filterTo');
-    const from = filterFrom ? filterFrom.value : 'Awal';
-    const to = filterTo ? filterTo.value : 'Akhir';
-    
+    if (filteredReports.length === 0 || typeof window.XLSX === 'undefined') return;
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
     const data = filteredReports.map(r => ({
-        'Tanggal': new Date(r.created_at).toLocaleDateString('id-ID'),
-        'Jam': r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-        'User': r.user_name || '-',
-        'Total Item': r.total_items || 0,
-        'Selesai': r.completed_items || 0,
-        'Progress': (r.progress_percentage || 0) + '%',
-        'Status': r.status === 'completed' ? 'Selesai' : 'Proses'
+        'Tanggal': new Date(r.created_at).toLocaleDateString('id-ID'), 'Jam': r.submission_time || '-', 'User': r.user_name || '-',
+        'Total Item': r.total_items || 0, 'Selesai': r.completed_items || 0, 'Progress': (r.progress_percentage || 0) + '%', 'Status': r.status === 'completed' ? 'Selesai' : 'Proses'
     }));
-    
     const wb = window.XLSX.utils.book_new();
     const ws = window.XLSX.utils.json_to_sheet(data);
     window.XLSX.utils.book_append_sheet(wb, ws, 'Laporan');
@@ -514,8 +461,116 @@ function downloadExcel() {
 }
 
 // ==========================================
-// UTILS: NOTIFIKASI HALUS (TOAST)
+// 4. HALAMAN DASHBOARD
 // ==========================================
+async function initDashboardPage(session) {
+    const welcomeEl = document.getElementById('welcomeUser');
+    if (welcomeEl) {
+        const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+        welcomeEl.textContent = `Selamat Datang, ${name}! 👋`;
+    }
+    const { data, error } = await window.supabaseClient.from('checklist_submissions').select('*').order('created_at', { ascending: false }).limit(5);
+    if (!error && data) {
+        const tbody = document.querySelector('#recentActivityTable tbody');
+        if (tbody) {
+            if (data.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-white/50">Belum ada aktivitas checklist</td></tr>';
+            else {
+                tbody.innerHTML = data.map(row => {
+                    const timeStr = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    const dateStr = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                    return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                        <td class="px-4 py-3 text-sm">${row.user_name || 'User'}</td>
+                        <td class="px-4 py-3 text-sm text-white/60">${dateStr} ${timeStr}</td>
+                        <td class="px-4 py-3 text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td>
+                        <td class="px-4 py-3 text-sm"><span class="px-2 py-1 rounded-full text-xs ${row.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}">${row.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+    }
+}
+
+// ==========================================
+// 5. LOGIN & REGISTER
+// ==========================================
+function initLoginPage() {
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            submitBtn.disabled = true;
+            btnText.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Memproses...';
+            const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                showNotification("Login gagal: " + error.message, 'error');
+                submitBtn.disabled = false;
+                btnText.textContent = 'Masuk';
+            } else {
+                showNotification('Login berhasil!', 'success');
+                setTimeout(() => window.location.replace('checklist.html'), 1000);
+            }
+        });
+    }
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+        });
+    }
+}
+
+function initRegisterPage() {
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fullName = document.getElementById('fullName').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            submitBtn.disabled = true;
+            btnText.textContent = 'Mendaftar...';
+            const { error } = await window.supabaseClient.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
+            if (error) {
+                showNotification("Registrasi gagal: " + error.message, 'error');
+                submitBtn.disabled = false;
+                btnText.textContent = 'Daftar';
+            } else {
+                showNotification('Registrasi berhasil! Silakan login.', 'success');
+                setTimeout(() => window.location.replace('index.html'), 2000);
+            }
+        });
+    }
+}
+
+// ==========================================
+// 6. UTILS & GLOBAL LOGOUT
+// ==========================================
+document.addEventListener('click', async function(event) {
+    const logoutBtn = event.target.closest('#logoutBtn');
+    if (logoutBtn) {
+        event.preventDefault();
+        if (!confirm('Yakin ingin keluar dari akun?')) return;
+        const supabase = window.supabaseClient;
+        if (supabase) {
+            try {
+                await supabase.auth.signOut();
+                localStorage.removeItem('gudang_clean_state');
+                window.location.replace('index.html');
+            } catch (error) {
+                console.error("Error logout:", error);
+            }
+        }
+    }
+});
+
 function showNotification(message, type = 'info') {
     const colors = {
         success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' },
@@ -527,12 +582,7 @@ function showNotification(message, type = 'info') {
     const el = document.createElement('div');
     el.className = 'fixed top-6 right-6 z-[100] px-6 py-4 rounded-xl text-white font-medium';
     el.style.cssText = `background: ${c.bg}; backdrop-filter: blur(20px); border: 1px solid ${c.border}; box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: slideIn 0.4s ease;`;
-    el.innerHTML = `<div class="flex items-center gap-3">
-        <svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" />
-        </svg>
-        <span>${message}</span>
-    </div>`;
+    el.innerHTML = `<div class="flex items-center gap-3"><svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" /></svg><span>${message}</span></div>`;
     document.body.appendChild(el);
     setTimeout(() => {
         el.style.animation = 'slideOut 0.4s ease forwards';
@@ -540,221 +590,9 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Tambahkan style animasi notifikasi jika belum ada
 if (!document.getElementById('notif-styles')) {
     const s = document.createElement('style');
     s.id = 'notif-styles';
     s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
     document.head.appendChild(s);
 }
-// ==========================================
-// AI ASSISTANT LOGIC (TERHUBUNG KE GROQ)
-// ==========================================
-function initAiAssistant() {
-    const modal = document.getElementById('aiChatModal');
-    const panel = document.getElementById('aiChatPanel');
-    const overlay = document.getElementById('aiChatOverlay');
-    const closeBtn = document.getElementById('closeAiChat');
-    const input = document.getElementById('aiChatInput');
-    const sendBtn = document.getElementById('aiChatSend');
-    const messagesContainer = document.getElementById('aiChatMessages');
-    const aiBtn = document.getElementById('aiAssistantBtn');
-
-    if (!modal || !aiBtn) {
-        console.warn("⚠️ Elemen AI Chat tidak ditemukan di HTML.");
-        return;
-    }
-
-    // Buka Modal
-    aiBtn.addEventListener('click', () => {
-        modal.classList.remove('hidden');
-        setTimeout(() => { panel.classList.remove('translate-x-full'); }, 10);
-        input.focus();
-    });
-
-    // Tutup Modal
-    function closeModal() {
-        panel.classList.add('translate-x-full');
-        setTimeout(() => { modal.classList.add('hidden'); }, 300);
-    }
-    closeBtn?.addEventListener('click', closeModal);
-    overlay?.addEventListener('click', closeModal);
-
-    // Quick Actions
-    document.querySelectorAll('.quick-action').forEach(btn => {
-        btn.addEventListener('click', () => {
-            input.value = btn.textContent.trim();
-            handleAiSend();
-        });
-    });
-
-    // Kirim dengan Enter
-    input?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleAiSend();
-    });
-
-    // Kirim dengan Tombol
-    sendBtn?.addEventListener('click', handleAiSend);
-
-    async function handleAiSend() {
-        const question = input.value.trim();
-        if (!question) return;
-
-        // 1. Tampilkan pesan user
-        addMessage(question, 'user');
-        input.value = '';
-        sendBtn.disabled = true;
-
-        // 2. Tampilkan indikator mengetik
-        const typingId = addTypingIndicator();
-
-        try {
-            // 3. Ambil konteks data dari Supabase (opsional, agar AI pintar)
-            const context = await getSimpleSupabaseContext();
-            
-            // 4. Minta jawaban ke Groq AI
-            const answer = await getGroqResponse(question, context);
-            
-            // 5. Tampilkan jawaban AI
-            removeTypingIndicator(typingId);
-            addMessage(answer, 'ai');
-        } catch (error) {
-            removeTypingIndicator(typingId);
-            addMessage('Maaf, terjadi kesalahan: ' + error.message, 'ai', true);
-        } finally {
-            sendBtn.disabled = false;
-        }
-    }
-
-    function addMessage(text, sender, isError = false) {
-        const div = document.createElement('div');
-        div.className = 'flex gap-3 ' + (sender === 'user' ? 'flex-row-reverse' : '');
-        
-        const avatar = sender === 'user' 
-            ? `<div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>`
-            : `<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg></div>`;
-
-        const bubbleClass = sender === 'user'
-            ? 'bg-blue-500/20 border border-blue-500/30 rounded-2xl rounded-tr-none'
-            : (isError ? 'bg-red-500/20 border border-red-500/30 rounded-2xl rounded-tl-none' : 'bg-white/5 border border-white/10 rounded-2xl rounded-tl-none');
-
-        div.innerHTML = `${avatar}<div class="flex-1 ${bubbleClass} p-4"><p class="text-white text-sm whitespace-pre-wrap">${text}</p></div>`;
-        messagesContainer.appendChild(div);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    function addTypingIndicator() {
-        const id = 'typing-' + Date.now();
-        const div = document.createElement('div');
-        div.id = id;
-        div.className = 'flex gap-3';
-        div.innerHTML = `
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
-            </div>
-            <div class="flex-1 bg-white/5 border border-white/10 rounded-2xl rounded-tl-none p-4">
-                <div class="flex gap-1">
-                    <div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
-                    <div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
-                    <div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
-                </div>
-            </div>`;
-        messagesContainer.appendChild(div);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        return id;
-    }
-
-    function removeTypingIndicator(id) {
-        const el = document.getElementById(id);
-        if (el) el.remove();
-    }
-
-    async function getSimpleSupabaseContext() {
-        const supabase = window.supabaseClient;
-        if (!supabase) return "Tidak ada koneksi database.";
-        try {
-            const { count: total } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
-            return `Total laporan di database saat ini: ${total || 0}.`;
-        } catch (e) {
-            return "Gagal mengambil data statistik.";
-        }
-    }
-
-    async function getGroqResponse(question, context) {
-        if (!GROQ_API_KEY || GROQ_API_KEY === 'gsk_API_KEY_ANDA_DISINI') {
-            return "⚠️ API Key Groq belum diatur di config.js. Silakan atur terlebih dahulu.";
-        }
-
-        const systemPrompt = `Anda adalah AI Assistant untuk sistem "Gudang Clean". Jawab dalam bahasa Indonesia yang ramah, profesional, dan gunakan emoji. Maksimal 100 kata. \n\nKONTEKS DATABASE: ${context}`;
-
-        const response = await fetch(GROQ_API_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${GROQ_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: GROQ_MODEL,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: question }
-                ],
-                temperature: 0.7,
-                max_tokens: 300
-            })
-        });
-
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            throw new Error(`HTTP ${response.status}: ${err.error?.message || response.statusText}`);
-        }
-
-        const data = await response.json();
-        return data.choices[0].message.content;
-    }
-}
-
-// Panggil fungsi ini setelah DOM siap
-document.addEventListener('DOMContentLoaded', () => {
-    // Pastikan dipanggil setelah sidebar atau elemen HTML lainnya dimuat
-    setTimeout(() => {
-        initAiAssistant();
-    }, 500);
-});
-// ==========================================
-// FIX: GLOBAL LOGOUT HANDLER (ANTI-GAGAL)
-// ==========================================
-document.addEventListener('click', async function(event) {
-    // Mencari elemen dengan ID 'logoutBtn' (termasuk jika yang diklik adalah icon/svg di dalamnya)
-    const logoutBtn = event.target.closest('#logoutBtn');
-    
-    if (logoutBtn) {
-        event.preventDefault(); // Mencegah link default
-        console.log("🔒 Tombol Logout terdeteksi diklik!");
-        
-        // Konfirmasi sebelum logout
-        if (!confirm('Yakin ingin keluar dari akun?')) return;
-
-        const supabase = window.supabaseClient;
-        if (supabase) {
-            try {
-                // Proses logout di Supabase
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                
-                // Bersihkan data lokal (opsional)
-                localStorage.removeItem('gudang_clean_state');
-                
-                // Redirect ke halaman login
-                console.log("✅ Logout berhasil, kembali ke index.html");
-                window.location.replace('index.html');
-                
-            } catch (error) {
-                console.error("❌ Error saat logout:", error);
-                alert('Gagal melakukan logout: ' + error.message);
-            }
-        } else {
-            console.error("⚠️ Supabase client tidak ditemukan!");
-        }
-    }
-});
