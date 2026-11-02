@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - VERSI FINAL (BEBAS ERROR SYNTAX)
+// SCRIPT.JS - VERSI FINAL (ALL-IN-ONE + AI FUNCTION CALLING)
 // ==========================================
 
 let filteredReports = [];
@@ -47,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function initChecklistPage(session) {
     console.log("📋 Memuat halaman Checklist...");
 
-    // Update Tanggal
     const dateDisplay = document.getElementById('currentDate');
     if (dateDisplay) {
         dateDisplay.textContent = new Date().toLocaleDateString('id-ID', {
@@ -55,7 +54,6 @@ function initChecklistPage(session) {
         });
     }
 
-    // Logika Checkbox
     const checkboxes = document.querySelectorAll('.glass-checkbox');
     const totalItems = checkboxes.length;
     const totalCountEl = document.getElementById('totalCount');
@@ -85,11 +83,8 @@ function initChecklistPage(session) {
     }));
     
     updateProgress();
-
-    // Cek Batasan Harian
     checkDailySubmission(session.user.email);
 
-    // Logika Tombol Kirim
     const submitBtn = document.getElementById('submitChecklistBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', async (e) => {
@@ -181,7 +176,7 @@ function disableSubmitButtonUI(submission) {
 }
 
 // ==========================================
-// 2. AI ASSISTANT (DENGAN PERBAIKAN KONTEKS USER)
+// 2. AI ASSISTANT (DENGAN FUNCTION CALLING)
 // ==========================================
 function initAiAssistant() {
     const modal = document.getElementById('aiChatModal');
@@ -268,6 +263,30 @@ function initAiAssistant() {
         if (el) el.remove(); 
     }
 
+    // --- FUNGSI EKSEKUSI DATABASE (DIPANGGIL OLEH AI) ---
+    async function executeDeleteSubmission(submissionId, reason) {
+        const supabase = window.supabaseClient;
+        try {
+            // KONFIRMASI MANUSIA (WAJIB)
+            const isConfirmed = confirm(`⚠️ KONFIRMASI KEAMANAN\n\nAI meminta izin untuk MENGHAPUS data submission.\nID: ${submissionId}\nAlasan: ${reason}\n\nApakah Anda yakin ingin melanjutkan?`);
+            
+            if (!isConfirmed) {
+                return "Penghapusan dibatalkan oleh pengguna.";
+            }
+
+            const { data, error } = await supabase
+                .from('checklist_submissions')
+                .delete()
+                .eq('id', submissionId)
+                .select();
+
+            if (error) throw error;
+            return `Berhasil! Data dengan ID ${submissionId} telah dihapus dari database.`;
+        } catch (error) {
+            return `Gagal menghapus data: ${error.message}`;
+        }
+    }
+
     async function getFullSupabaseContext() {
         const supabase = window.supabaseClient;
         if (!supabase) return "Tidak ada koneksi database.";
@@ -285,7 +304,9 @@ function initAiAssistant() {
             const { count: completedCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).eq('status', 'completed');
             
             const { count: yesterdayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', yesterdayStr + 'T00:00:00').lte('created_at', yesterdayStr + 'T23:59:59');
-            const { data: yesterdayDetails } = await supabase.from('checklist_submissions').select('user_name, progress_percentage, status, created_at').gte('created_at', yesterdayStr + 'T00:00:00').lte('created_at', yesterdayStr + 'T23:59:59');
+            
+            // TAMBAHKAN 'id' AGAR AI BISA MENGHAPUS DATA JIKA DIMINTA
+            const { data: yesterdayDetails } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, created_at, submission_time').gte('created_at', yesterdayStr + 'T00:00:00').lte('created_at', yesterdayStr + 'T23:59:59');
             
             let yesterdayAvg = 0;
             if (yesterdayDetails && yesterdayDetails.length > 0) {
@@ -300,9 +321,9 @@ function initAiAssistant() {
                 avgProgress = Math.round(sum / allSubmissions.length);
             }
 
-            const { data: recent } = await supabase.from('checklist_submissions').select('user_name, progress_percentage, status, created_at, submission_time').order('created_at', { ascending: false }).limit(5);
+            // TAMBAHKAN 'id' AGAR AI BISA MENGHAPUS DATA JIKA DIMINTA
+            const { data: recent } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, created_at, submission_time').order('created_at', { ascending: false }).limit(5);
 
-            // Cek submission user yang sedang login HARI INI
             const currentUserEmail = window.currentUser?.email || '';
             const { data: myTodaySubmission, error: myError } = await supabase
                 .from('checklist_submissions')
@@ -319,13 +340,12 @@ function initAiAssistant() {
             if (!myError && myTodaySubmission && myTodaySubmission.length > 0) {
                 hasSubmittedToday = true;
                 const sub = myTodaySubmission[0];
-                mySubmissionInfo = `✅ User ${sub.user_name || currentUserEmail} SUDAH submit checklist hari ini (${todayStr}) pada pukul ${sub.submission_time || new Date(sub.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})} dengan progress ${sub.progress_percentage}% dan status "${sub.status}".`;
+                mySubmissionInfo = `✅ User ${sub.user_name || currentUserEmail} SUDAH submit checklist hari ini (${todayStr}) pada pukul ${sub.submission_time || new Date(sub.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})} dengan progress ${sub.progress_percentage}% dan status "${sub.status}". ID Submission: ${sub.id}`;
             }
 
-            // Cek submission user H-1
             const { data: myYesterdaySubmission } = await supabase
                 .from('checklist_submissions')
-                .select('user_name, progress_percentage, status, submission_time, created_at')
+                .select('id, user_name, progress_percentage, status, submission_time, created_at')
                 .eq('user_email', currentUserEmail)
                 .gte('created_at', yesterdayStr + 'T00:00:00')
                 .lte('created_at', yesterdayStr + 'T23:59:59')
@@ -335,7 +355,7 @@ function initAiAssistant() {
             let myYesterdayInfo = "User tidak ada submission kemarin.";
             if (myYesterdaySubmission && myYesterdaySubmission.length > 0) {
                 const sub = myYesterdaySubmission[0];
-                myYesterdayInfo = `Submission user kemarin (${yesterdayStr}): progress ${sub.progress_percentage}%, status "${sub.status}", jam ${sub.submission_time || '-'}.`;
+                myYesterdayInfo = `Submission user kemarin (${yesterdayStr}): ID ${sub.id}, progress ${sub.progress_percentage}%, status "${sub.status}", jam ${sub.submission_time || '-'}.`;
             }
 
             return JSON.stringify({
@@ -369,33 +389,96 @@ function initAiAssistant() {
 
 ATURAN PENTING:
 1. Gunakan DATA KONTEKS di bawah ini untuk menjawab. JANGAN mengarang angka.
-2. Untuk pertanyaan "sudah submit hari ini?" atau "apakah hari ini sudah isi checklist?", WAJIB cek field "has_submitted_today" dan "my_today_submission" di konteks. Jika has_submitted_today = true, jawab YA dan sebutkan jamnya.
-3. Jika ditanya "kemarin" atau "H-1", gunakan "yesterday_date_str", "yesterday_submissions_count", "yesterday_avg_progress", dan "my_yesterday_submission".
-4. Jika ditanya "user terbaik", analisis "recent_activity" atau "yesterday_details" untuk mencari progress_percentage tertinggi.
+2. Jika pengguna meminta untuk menghapus data, gunakan tool 'delete_submission'. JANGAN langsung mengklaim sudah menghapus tanpa menggunakan tool.
+3. Untuk pertanyaan "sudah submit hari ini?", cek field "has_submitted_today" dan "my_today_submission".
+4. Jika ditanya "kemarin" atau "H-1", gunakan data "yesterday_..." dan "my_yesterday_submission".
 
 DATA KONTEKS DATABASE (JSON):
 ${context}`;
 
-        const response = await fetch(GROQ_API_URL, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                model: GROQ_MODEL, 
-                messages: [
-                    { role: 'system', content: systemPrompt }, 
-                    { role: 'user', content: question }
-                ], 
-                temperature: 0.7, 
-                max_tokens: 400 
-            })
-        });
+        // DEFINISIKAN TOOL YANG BOLEH DIGUNAKAN AI
+        const tools = [
+            {
+                type: "function",
+                function: {
+                    name: "delete_submission",
+                    description: "Menghapus entri submission dari database berdasarkan ID. Gunakan HANYA jika pengguna secara eksplisit meminta penghapusan dan ID submission diketahui dari konteks.",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            submission_id: { type: "string", description: "UUID atau ID dari data submission yang akan dihapus" },
+                            reason: { type: "string", description: "Alasan penghapusan yang diberikan pengguna" }
+                        },
+                        required: ["submission_id", "reason"]
+                    }
+                }
+            }
+        ];
 
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            throw new Error(`HTTP ${response.status}: ${err.error?.message || response.statusText}`);
+        try {
+            // REQUEST PERTAMA: Minta AI berpikir dan memutuskan apakah perlu menggunakan tool
+            const response = await fetch(GROQ_API_URL, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    model: GROQ_MODEL, 
+                    messages: [
+                        { role: 'system', content: systemPrompt }, 
+                        { role: 'user', content: question }
+                    ], 
+                    tools: tools,
+                    tool_choice: "auto"
+                })
+            });
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(`HTTP ${response.status}: ${err.error?.message || response.statusText}`);
+            }
+            
+            const data = await response.json();
+            const message = data.choices[0].message;
+
+            // CEK: Apakah AI meminta untuk menggunakan tool?
+            if (message.tool_calls && message.tool_calls.length > 0) {
+                const toolCall = message.tool_calls[0];
+                
+                if (toolCall.function.name === "delete_submission") {
+                    const args = JSON.parse(toolCall.function.arguments);
+                    
+                    // Eksekusi fungsi JavaScript (akan memunculkan confirm box)
+                    const executionResult = await executeDeleteSubmission(args.submission_id, args.reason);
+                    
+                    // REQUEST KEDUA: Kirim hasil eksekusi kembali ke AI agar dia bisa merangkum jawaban
+                    const finalResponse = await fetch(GROQ_API_URL, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: GROQ_MODEL,
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                { role: 'user', content: question },
+                                message, 
+                                { 
+                                    role: "tool", 
+                                    tool_call_id: toolCall.id,
+                                    content: executionResult 
+                                }
+                            ]
+                        })
+                    });
+                    
+                    const finalData = await finalResponse.json();
+                    return finalData.choices[0].message.content;
+                }
+            }
+
+            // Jika AI tidak menggunakan tool, kembalikan jawaban normal
+            return message.content;
+
+        } catch (error) {
+            throw new Error('Gagal menghubungi AI: ' + error.message);
         }
-        const data = await response.json();
-        return data.choices[0].message.content;
     }
 }
 
