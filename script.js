@@ -1,5 +1,6 @@
 // ==========================================
-// SCRIPT.JS - VERSI FINAL (ALL-IN-ONE + AI FUNCTION CALLING)
+// SCRIPT.JS - VERSI FINAL ALL-IN-ONE
+// (AI + Memori + Function Calling + Batasan Harian + Export)
 // ==========================================
 
 let filteredReports = [];
@@ -33,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'checklist.html') initChecklistPage(session);
     });
 
-    // Inisialisasi AI Assistant
+    // Inisialisasi AI Assistant (tunggu sidebar/HTML siap)
     setTimeout(() => {
         if (document.getElementById('aiAssistantBtn')) {
             initAiAssistant();
@@ -176,7 +177,7 @@ function disableSubmitButtonUI(submission) {
 }
 
 // ==========================================
-// 2. AI ASSISTANT (DENGAN FUNCTION CALLING)
+// 2. AI ASSISTANT (DENGAN MEMORI & FUNCTION CALLING)
 // ==========================================
 function initAiAssistant() {
     const modal = document.getElementById('aiChatModal');
@@ -190,6 +191,9 @@ function initAiAssistant() {
 
     if (!modal || !aiBtn) return;
 
+    // VARIABEL MEMORI (Menyimpan riwayat chat)
+    let chatHistory = []; 
+
     aiBtn.addEventListener('click', () => {
         modal.classList.remove('hidden');
         setTimeout(() => panel.classList.remove('translate-x-full'), 10);
@@ -198,7 +202,10 @@ function initAiAssistant() {
 
     function closeModal() {
         panel.classList.add('translate-x-full');
-        setTimeout(() => modal.classList.add('hidden'), 300);
+        setTimeout(() => { 
+            modal.classList.add('hidden');
+            chatHistory = []; // Reset memori saat modal ditutup
+        }, 300);
     }
     closeBtn?.addEventListener('click', closeModal);
     overlay?.addEventListener('click', closeModal);
@@ -224,9 +231,19 @@ function initAiAssistant() {
 
         try {
             const context = await getFullSupabaseContext();
-            const answer = await getGroqResponse(question, context);
+            
+            // Simpan pertanyaan user ke memori
+            chatHistory.push({ role: 'user', content: question });
+
+            // Kirim seluruh riwayat ke AI
+            const answer = await getGroqResponse(chatHistory, context);
+            
             removeTypingIndicator(typingId);
             addMessage(answer, 'ai');
+
+            // Simpan jawaban AI ke memori
+            chatHistory.push({ role: 'assistant', content: answer });
+
         } catch (error) {
             removeTypingIndicator(typingId);
             addMessage('Maaf, terjadi kesalahan: ' + error.message, 'ai', true);
@@ -263,23 +280,14 @@ function initAiAssistant() {
         if (el) el.remove(); 
     }
 
-    // --- FUNGSI EKSEKUSI DATABASE (DIPANGGIL OLEH AI) ---
+    // FUNGSI EKSEKUSI HAPUS DATA (DIPANGGIL OLEH AI)
     async function executeDeleteSubmission(submissionId, reason) {
         const supabase = window.supabaseClient;
         try {
-            // KONFIRMASI MANUSIA (WAJIB)
             const isConfirmed = confirm(`⚠️ KONFIRMASI KEAMANAN\n\nAI meminta izin untuk MENGHAPUS data submission.\nID: ${submissionId}\nAlasan: ${reason}\n\nApakah Anda yakin ingin melanjutkan?`);
-            
-            if (!isConfirmed) {
-                return "Penghapusan dibatalkan oleh pengguna.";
-            }
+            if (!isConfirmed) return "Penghapusan dibatalkan oleh pengguna.";
 
-            const { data, error } = await supabase
-                .from('checklist_submissions')
-                .delete()
-                .eq('id', submissionId)
-                .select();
-
+            const { data, error } = await supabase.from('checklist_submissions').delete().eq('id', submissionId).select();
             if (error) throw error;
             return `Berhasil! Data dengan ID ${submissionId} telah dihapus dari database.`;
         } catch (error) {
@@ -287,6 +295,7 @@ function initAiAssistant() {
         }
     }
 
+    // FUNGSI AMBIL KONTEKS DATABASE LENGKAP
     async function getFullSupabaseContext() {
         const supabase = window.supabaseClient;
         if (!supabase) return "Tidak ada koneksi database.";
@@ -295,17 +304,13 @@ function initAiAssistant() {
             const today = new Date();
             const yesterday = new Date(today);
             yesterday.setDate(today.getDate() - 1);
-            
             const todayStr = today.toISOString().split('T')[0];
             const yesterdayStr = yesterday.toISOString().split('T')[0];
 
             const { count: todayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', todayStr + 'T00:00:00');
             const { count: totalCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
             const { count: completedCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).eq('status', 'completed');
-            
             const { count: yesterdayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', yesterdayStr + 'T00:00:00').lte('created_at', yesterdayStr + 'T23:59:59');
-            
-            // TAMBAHKAN 'id' AGAR AI BISA MENGHAPUS DATA JIKA DIMINTA
             const { data: yesterdayDetails } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, created_at, submission_time').gte('created_at', yesterdayStr + 'T00:00:00').lte('created_at', yesterdayStr + 'T23:59:59');
             
             let yesterdayAvg = 0;
@@ -313,45 +318,26 @@ function initAiAssistant() {
                 const sum = yesterdayDetails.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0);
                 yesterdayAvg = Math.round(sum / yesterdayDetails.length);
             }
-
             const { data: allSubmissions } = await supabase.from('checklist_submissions').select('progress_percentage');
             let avgProgress = 0;
             if (allSubmissions && allSubmissions.length > 0) {
                 const sum = allSubmissions.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0);
                 avgProgress = Math.round(sum / allSubmissions.length);
             }
-
-            // TAMBAHKAN 'id' AGAR AI BISA MENGHAPUS DATA JIKA DIMINTA
             const { data: recent } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, created_at, submission_time').order('created_at', { ascending: false }).limit(5);
 
             const currentUserEmail = window.currentUser?.email || '';
-            const { data: myTodaySubmission, error: myError } = await supabase
-                .from('checklist_submissions')
-                .select('id, user_name, progress_percentage, status, submission_time, created_at')
-                .eq('user_email', currentUserEmail)
-                .gte('created_at', todayStr + 'T00:00:00')
-                .lte('created_at', todayStr + 'T23:59:59')
-                .order('created_at', { ascending: false })
-                .limit(1);
+            const { data: myTodaySubmission, error: myError } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, submission_time, created_at').eq('user_email', currentUserEmail).gte('created_at', todayStr + 'T00:00:00').lte('created_at', todayStr + 'T23:59:59').order('created_at', { ascending: false }).limit(1);
 
             let hasSubmittedToday = false;
             let mySubmissionInfo = "User belum submit checklist hari ini.";
-            
             if (!myError && myTodaySubmission && myTodaySubmission.length > 0) {
                 hasSubmittedToday = true;
                 const sub = myTodaySubmission[0];
                 mySubmissionInfo = `✅ User ${sub.user_name || currentUserEmail} SUDAH submit checklist hari ini (${todayStr}) pada pukul ${sub.submission_time || new Date(sub.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})} dengan progress ${sub.progress_percentage}% dan status "${sub.status}". ID Submission: ${sub.id}`;
             }
 
-            const { data: myYesterdaySubmission } = await supabase
-                .from('checklist_submissions')
-                .select('id, user_name, progress_percentage, status, submission_time, created_at')
-                .eq('user_email', currentUserEmail)
-                .gte('created_at', yesterdayStr + 'T00:00:00')
-                .lte('created_at', yesterdayStr + 'T23:59:59')
-                .order('created_at', { ascending: false })
-                .limit(1);
-
+            const { data: myYesterdaySubmission } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, submission_time, created_at').eq('user_email', currentUserEmail).gte('created_at', yesterdayStr + 'T00:00:00').lte('created_at', yesterdayStr + 'T23:59:59').order('created_at', { ascending: false }).limit(1);
             let myYesterdayInfo = "User tidak ada submission kemarin.";
             if (myYesterdaySubmission && myYesterdaySubmission.length > 0) {
                 const sub = myYesterdaySubmission[0];
@@ -359,44 +345,33 @@ function initAiAssistant() {
             }
 
             return JSON.stringify({
-                today_submissions: todayCount || 0,
-                total_submissions: totalCount || 0,
-                average_progress: avgProgress + '%',
-                completed_submissions: completedCount || 0,
-                recent_activity: recent || [],
-                yesterday_date_str: yesterday.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-                yesterday_submissions_count: yesterdayCount || 0,
-                yesterday_avg_progress: yesterdayAvg + '%',
-                yesterday_details: yesterdayDetails || [],
-                current_user: window.currentUser?.name || 'User',
-                current_user_email: currentUserEmail,
-                current_date: today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-                has_submitted_today: hasSubmittedToday,
-                my_today_submission: mySubmissionInfo,
-                my_yesterday_submission: myYesterdayInfo
+                today_submissions: todayCount || 0, total_submissions: totalCount || 0, average_progress: avgProgress + '%', completed_submissions: completedCount || 0, recent_activity: recent || [],
+                yesterday_date_str: yesterday.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }), yesterday_submissions_count: yesterdayCount || 0, yesterday_avg_progress: yesterdayAvg + '%', yesterday_details: yesterdayDetails || [],
+                current_user: window.currentUser?.name || 'User', current_user_email: currentUserEmail, current_date: today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                has_submitted_today: hasSubmittedToday, my_today_submission: mySubmissionInfo, my_yesterday_submission: myYesterdayInfo
             }, null, 2);
         } catch (error) {
             return 'Error mengambil data: ' + error.message;
         }
     }
 
-    async function getGroqResponse(question, context) {
+    // FUNGSI PANGGIL GROQ DENGAN MEMORI
+    async function getGroqResponse(history, context) {
         if (!GROQ_API_KEY || GROQ_API_KEY === 'gsk_API_KEY_ANDA_DISINI') {
             return "⚠️ API Key Groq belum diatur di config.js.";
         }
         
         const systemPrompt = `Anda adalah AI Assistant cerdas untuk sistem "Gudang Clean". Jawab dalam bahasa Indonesia yang ramah, profesional, dan gunakan emoji. Maksimal 150 kata.
-
 ATURAN PENTING:
 1. Gunakan DATA KONTEKS di bawah ini untuk menjawab. JANGAN mengarang angka.
-2. Jika pengguna meminta untuk menghapus data, gunakan tool 'delete_submission'. JANGAN langsung mengklaim sudah menghapus tanpa menggunakan tool.
-3. Untuk pertanyaan "sudah submit hari ini?", cek field "has_submitted_today" dan "my_today_submission".
-4. Jika ditanya "kemarin" atau "H-1", gunakan data "yesterday_..." dan "my_yesterday_submission".
+2. Ingat percakapan sebelumnya dengan user. Jika user bertanya "kenapa?" atau "maksudnya?", lihat pesan user sebelumnya di riwayat chat.
+3. Jika pengguna meminta untuk menghapus data, gunakan tool 'delete_submission'.
+4. Untuk pertanyaan "sudah submit hari ini?", cek field "has_submitted_today" dan "my_today_submission".
+5. Jika ditanya "kemarin" atau "H-1", gunakan data "yesterday_..." dan "my_yesterday_submission".
 
 DATA KONTEKS DATABASE (JSON):
 ${context}`;
 
-        // DEFINISIKAN TOOL YANG BOLEH DIGUNAKAN AI
         const tools = [
             {
                 type: "function",
@@ -416,16 +391,18 @@ ${context}`;
         ];
 
         try {
-            // REQUEST PERTAMA: Minta AI berpikir dan memutuskan apakah perlu menggunakan tool
+            // Gabungkan system prompt + seluruh riwayat chat
+            const messagesPayload = [
+                { role: 'system', content: systemPrompt },
+                ...history
+            ];
+
             const response = await fetch(GROQ_API_URL, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     model: GROQ_MODEL, 
-                    messages: [
-                        { role: 'system', content: systemPrompt }, 
-                        { role: 'user', content: question }
-                    ], 
+                    messages: messagesPayload, 
                     tools: tools,
                     tool_choice: "auto"
                 })
@@ -439,17 +416,25 @@ ${context}`;
             const data = await response.json();
             const message = data.choices[0].message;
 
-            // CEK: Apakah AI meminta untuk menggunakan tool?
+            // Handle Tool Calls (Hapus Data)
             if (message.tool_calls && message.tool_calls.length > 0) {
                 const toolCall = message.tool_calls[0];
                 
+                // Tambahkan permintaan tool ke history
+                history.push(message); 
+
                 if (toolCall.function.name === "delete_submission") {
                     const args = JSON.parse(toolCall.function.arguments);
-                    
-                    // Eksekusi fungsi JavaScript (akan memunculkan confirm box)
                     const executionResult = await executeDeleteSubmission(args.submission_id, args.reason);
                     
-                    // REQUEST KEDUA: Kirim hasil eksekusi kembali ke AI agar dia bisa merangkum jawaban
+                    // Tambahkan hasil tool ke history
+                    history.push({ 
+                        role: "tool", 
+                        tool_call_id: toolCall.id,
+                        content: executionResult 
+                    });
+
+                    // Minta AI merangkum hasil
                     const finalResponse = await fetch(GROQ_API_URL, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
@@ -457,13 +442,7 @@ ${context}`;
                             model: GROQ_MODEL,
                             messages: [
                                 { role: 'system', content: systemPrompt },
-                                { role: 'user', content: question },
-                                message, 
-                                { 
-                                    role: "tool", 
-                                    tool_call_id: toolCall.id,
-                                    content: executionResult 
-                                }
+                                ...history
                             ]
                         })
                     });
@@ -473,7 +452,6 @@ ${context}`;
                 }
             }
 
-            // Jika AI tidak menggunakan tool, kembalikan jawaban normal
             return message.content;
 
         } catch (error) {
