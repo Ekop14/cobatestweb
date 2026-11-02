@@ -1,5 +1,5 @@
 // ==========================================
-// script.js - VERSI FINAL (Sesuai Skema DB)
+// SCRIPT.JS - VERSI FINAL (Sesuai Skema DB & HTML)
 // ==========================================
 
 let filteredReports = [];
@@ -7,16 +7,14 @@ let filteredReports = [];
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 Script berhasil dimuat");
 
-    // 1. DETEKSI HALAMAN SAAT INI
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-
     const supabase = window.supabaseClient;
+
     if (!supabase) {
         console.error("❌ Supabase client tidak ditemukan. Pastikan config.js dimuat sebelum script.js");
         return;
     }
 
-    // 2. CEK SESI LOGIN (Mencegah Infinite Loop)
     supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (!session && currentPage !== 'index.html' && currentPage !== 'register.html') {
             console.log("🔒 Tidak ada sesi, redirect ke index.html");
@@ -29,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 3. JALANKAN LOGIKA KHUSUS HALAMAN
         if (currentPage === 'laporan.html') initLaporanPage(session);
         else if (currentPage === 'index.html') initLoginPage(session);
         else if (currentPage === 'register.html') initRegisterPage(session);
@@ -39,13 +36,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// FUNGSI INIT HALAMAN CHECKLIST
+// FUNGSI INIT HALAMAN CHECKLIST (DIPERBAIKI)
 // ==========================================
 function initChecklistPage(session) {
     console.log("📋 Memuat halaman Checklist...");
 
-    // 1. PERBAIKI: Ganti "Memuat tanggal..." dengan tanggal hari ini
-    const dateDisplay = document.getElementById('currentDateDisplay');
+    // 1. Update Tanggal (Sesuai ID di HTML Anda)
+    const dateDisplay = document.getElementById('currentDate');
     if (dateDisplay) {
         const today = new Date().toLocaleDateString('id-ID', {
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -53,42 +50,56 @@ function initChecklistPage(session) {
         dateDisplay.textContent = today;
     }
 
-    updateSidebarUser(session.user);
+    if (typeof updateSidebarUser === 'function') {
+        updateSidebarUser(session.user);
+    }
 
-    // 2. Logika Checkbox & Progress Bar
-    const checkboxes = document.querySelectorAll('.checklist-checkbox');
+    // 2. Logika Checkbox & Progress Bar (SESUAI HTML: class="glass-checkbox")
+    const checkboxes = document.querySelectorAll('.glass-checkbox');
     const totalItems = checkboxes.length;
 
-    const totalCountEl = document.getElementById('totalCount');
-    const completedCountEl = document.getElementById('completedCount');
-    const progressTextEl = document.getElementById('overallProgressText');
+    const totalCountEl = document.getElementById('totalCount') || document.getElementById('statTotal');
+    const completedCountEl = document.getElementById('completedCount') || document.getElementById('statCompleted');
+    const progressTextEl = document.getElementById('overallProgressText') || document.getElementById('statProgress');
     const progressBarEl = document.getElementById('overallProgressBar');
+    const statPendingEl = document.getElementById('statPending');
 
     if (totalCountEl) totalCountEl.textContent = totalItems;
 
     function updateProgress() {
-        const completed = document.querySelectorAll('.checklist-checkbox:checked').length;
+        const completed = document.querySelectorAll('.glass-checkbox:checked').length;
         const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
 
         if (completedCountEl) completedCountEl.textContent = completed;
         if (progressTextEl) progressTextEl.textContent = percentage + '%';
         if (progressBarEl) progressBarEl.style.width = percentage + '%';
+        if (statPendingEl) statPendingEl.textContent = totalItems - completed;
     }
 
-    checkboxes.forEach(cb => cb.addEventListener('change', updateProgress));
-    updateProgress();
+    checkboxes.forEach(cb => cb.addEventListener('change', () => {
+        const listItem = cb.closest('.checklist-item');
+        if (listItem) {
+            if (cb.checked) listItem.classList.add('completed');
+            else listItem.classList.remove('completed');
+        }
+        updateProgress();
+    }));
+    
+    updateProgress(); // Jalankan sekali di awal
 
-    // 3. Logika Tombol "Kirim Laporan" (SESUAI SKEMA DB)
+    // 3. Logika Tombol "Kirim Laporan" (TANPA confirm, pakai notifikasi)
     const submitBtn = document.getElementById('submitChecklistBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', async (e) => {
             e.preventDefault();
 
-            const completed = document.querySelectorAll('.checklist-checkbox:checked').length;
+            const completed = document.querySelectorAll('.glass-checkbox:checked').length;
             const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
-            const status = percentage === 100 ? 'completed' : 'partial';
+            const status = percentage === 100 ? 'completed' : 'in_progress';
 
-            if (!confirm(`Anda yakin ingin mengirim laporan?\nProgress saat ini: ${percentage}%`)) {
+            // CEK: Jika belum 100%, beri peringatan (TANPA dialog browser)
+            if (completed < totalItems) {
+                showNotification(`Selesaikan semua tugas dulu ya! (${completed}/${totalItems})`, 'warning');
                 return;
             }
 
@@ -96,7 +107,7 @@ function initChecklistPage(session) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Mengirim...';
 
-            // ✅ Kumpulkan data per zona (opsional, untuk JSONB)
+            // ✅ Kumpulkan data per zona (SESUAI HTML: data-card="...")
             const floorItems = collectZoneItems('floor');
             const rackItems = collectZoneItems('rack');
             const dockItems = collectZoneItems('dock');
@@ -110,14 +121,14 @@ function initChecklistPage(session) {
                 completed_items: completed,
                 progress_percentage: percentage,
                 status: status,
-                submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-                // Opsional: detail per zona (JSONB)
+                submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                 floor_items: floorItems,
                 rack_items: rackItems,
                 dock_items: dockItems,
                 facility_items: facilityItems
-                // Catatan: 'id' dan 'created_at' otomatis diisi Supabase
             };
+
+            console.log("📦 Data yang akan dikirim:", submissionData);
 
             try {
                 const { error } = await window.supabaseClient
@@ -126,12 +137,34 @@ function initChecklistPage(session) {
 
                 if (error) throw error;
 
-                alert('✅ Laporan berhasil dikirim ke database!');
-                window.location.href = 'dashboard.html';
+                showNotification('✅ Laporan berhasil dikirim ke database!', 'success');
+
+                // Tampilkan info box sudah submit
+                const infoBox = document.getElementById('dailySubmissionInfo');
+                if (infoBox) {
+                    infoBox.classList.remove('hidden');
+                    const timeDisplay = document.getElementById('submissionTimeDisplay');
+                    if (timeDisplay) timeDisplay.textContent = submissionData.submission_time;
+                }
+                
+                submitBtn.innerHTML = '<span>✅ Sudah Submit Hari Ini</span>';
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                // Reset form setelah 1.5 detik
+                setTimeout(() => {
+                    checkboxes.forEach(cb => { 
+                        cb.checked = false; 
+                        const listItem = cb.closest('.checklist-item');
+                        if (listItem) listItem.classList.remove('completed');
+                    });
+                    updateProgress();
+                    localStorage.removeItem('gudang_clean_state');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 1500);
 
             } catch (error) {
                 console.error("❌ Gagal mengirim laporan:", error);
-                alert('❌ Gagal mengirim laporan: ' + error.message);
+                showNotification('❌ Gagal mengirim: ' + error.message, 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalBtnText;
             }
@@ -143,12 +176,13 @@ function initChecklistPage(session) {
 // HELPER: Kumpulkan item checklist per zona
 // ==========================================
 function collectZoneItems(zone) {
-    const zoneCheckboxes = document.querySelectorAll(`.checklist-checkbox[data-zone="${zone}"]`);
+    // PERBAIKI: Gunakan class '.glass-checkbox' dan attribute 'data-card' sesuai HTML Anda
+    const zoneCheckboxes = document.querySelectorAll(`.glass-checkbox[data-card="${zone}"]`);
     const items = [];
     zoneCheckboxes.forEach(cb => {
         const label = cb.closest('.checklist-item')?.querySelector('.checklist-text')?.textContent || 'Item';
         items.push({
-            label: label,
+            task: label,
             checked: cb.checked
         });
     });
@@ -160,7 +194,7 @@ function collectZoneItems(zone) {
 // ==========================================
 async function initDashboardPage(session) {
     console.log("📊 Memuat halaman Dashboard...");
-    updateSidebarUser(session.user);
+    if (typeof updateSidebarUser === 'function') updateSidebarUser(session.user);
 
     const welcomeEl = document.getElementById('welcomeUser');
     if (welcomeEl) {
@@ -168,7 +202,6 @@ async function initDashboardPage(session) {
         welcomeEl.textContent = `Selamat Datang, ${name}! 👋`;
     }
 
-    // Load 5 aktivitas terbaru
     const { data, error } = await window.supabaseClient
         .from('checklist_submissions')
         .select('*')
@@ -235,11 +268,12 @@ function initLoginPage(session) {
 
             const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
             if (error) {
-                alert("Login gagal: " + error.message);
+                showNotification("Login gagal: " + error.message, 'error');
                 submitBtn.disabled = false;
                 btnText.textContent = 'Masuk';
             } else {
-                window.location.replace('dashboard.html');
+                showNotification('Login berhasil!', 'success');
+                setTimeout(() => window.location.replace('dashboard.html'), 1000);
             }
         });
     }
@@ -263,7 +297,8 @@ function initRegisterPage(session) {
 // FUNGSI INIT HALAMAN LAPORAN
 // ==========================================
 function initLaporanPage(session) {
-    updateSidebarUser(session.user);
+    if (typeof updateSidebarUser === 'function') updateSidebarUser(session.user);
+    
     const today = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(today.getDate() - 30);
@@ -277,6 +312,12 @@ function initLaporanPage(session) {
 
     const applyFilterBtn = document.getElementById('applyFilterBtn');
     if (applyFilterBtn) applyFilterBtn.addEventListener('click', loadReports);
+
+    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    if (downloadPdfBtn) downloadPdfBtn.addEventListener('click', downloadPDF);
+
+    const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+    if (downloadExcelBtn) downloadExcelBtn.addEventListener('click', downloadExcel);
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -362,4 +403,100 @@ function updateReportStats(reports) {
     if (statCompleted) statCompleted.textContent = completed;
     if (statAvg) statAvg.textContent = avg + '%';
     if (statUsers) statUsers.textContent = users;
+}
+
+function downloadPDF() {
+    if (filteredReports.length === 0) return;
+    if (typeof window.jspdf === 'undefined') {
+        showNotification('Library PDF belum dimuat.', 'error');
+        return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const filterFrom = document.getElementById('filterFrom');
+    const filterTo = document.getElementById('filterTo');
+    const from = filterFrom ? filterFrom.value : 'Awal';
+    const to = filterTo ? filterTo.value : 'Akhir';
+    
+    doc.setFontSize(18); doc.text('Laporan Kebersihan Gudang', 14, 20);
+    doc.setFontSize(10); doc.text(`Periode: ${from} s/d ${to}`, 14, 28);
+    
+    if (typeof doc.autoTable === 'function') {
+        doc.autoTable({
+            startY: 35,
+            head: [['Tanggal', 'Jam', 'User', 'Total', 'Selesai', 'Progress', 'Status']],
+            body: filteredReports.map(r => [
+                new Date(r.created_at).toLocaleDateString('id-ID'), 
+                r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                r.user_name || '-', r.total_items || 0, r.completed_items || 0, 
+                (r.progress_percentage || 0) + '%', r.status === 'completed' ? 'Selesai' : 'Proses'
+            ]),
+            theme: 'grid', headStyles: { fillColor: [102, 126, 234] }
+        });
+        doc.save(`Laporan-Kebersihan-${from}-to-${to}.pdf`);
+        showNotification('PDF berhasil diunduh! ✅', 'success');
+    }
+}
+
+function downloadExcel() {
+    if (filteredReports.length === 0) return;
+    if (typeof window.XLSX === 'undefined') {
+        showNotification('Library Excel belum dimuat.', 'error');
+        return;
+    }
+    const filterFrom = document.getElementById('filterFrom');
+    const filterTo = document.getElementById('filterTo');
+    const from = filterFrom ? filterFrom.value : 'Awal';
+    const to = filterTo ? filterTo.value : 'Akhir';
+    
+    const data = filteredReports.map(r => ({
+        'Tanggal': new Date(r.created_at).toLocaleDateString('id-ID'),
+        'Jam': r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        'User': r.user_name || '-',
+        'Total Item': r.total_items || 0,
+        'Selesai': r.completed_items || 0,
+        'Progress': (r.progress_percentage || 0) + '%',
+        'Status': r.status === 'completed' ? 'Selesai' : 'Proses'
+    }));
+    
+    const wb = window.XLSX.utils.book_new();
+    const ws = window.XLSX.utils.json_to_sheet(data);
+    window.XLSX.utils.book_append_sheet(wb, ws, 'Laporan');
+    window.XLSX.writeFile(wb, `Laporan-Kebersihan-${from}-to-${to}.xlsx`);
+    showNotification('Excel berhasil diunduh! ✅', 'success');
+}
+
+// ==========================================
+// UTILS: NOTIFIKASI HALUS (TOAST)
+// ==========================================
+function showNotification(message, type = 'info') {
+    const colors = {
+        success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' },
+        warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' },
+        error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' },
+        info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' }
+    };
+    const c = colors[type] || colors.info;
+    const el = document.createElement('div');
+    el.className = 'fixed top-6 right-6 z-[100] px-6 py-4 rounded-xl text-white font-medium';
+    el.style.cssText = `background: ${c.bg}; backdrop-filter: blur(20px); border: 1px solid ${c.border}; box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: slideIn 0.4s ease;`;
+    el.innerHTML = `<div class="flex items-center gap-3">
+        <svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" />
+        </svg>
+        <span>${message}</span>
+    </div>`;
+    document.body.appendChild(el);
+    setTimeout(() => {
+        el.style.animation = 'slideOut 0.4s ease forwards';
+        setTimeout(() => el.remove(), 400);
+    }, 3000);
+}
+
+// Tambahkan style animasi notifikasi jika belum ada
+if (!document.getElementById('notif-styles')) {
+    const s = document.createElement('style');
+    s.id = 'notif-styles';
+    s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
+    document.head.appendChild(s);
 }
