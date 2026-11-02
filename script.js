@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - VERSI FINAL (BEBAS DUPLIKASI)
+// SCRIPT.JS - VERSI FINAL ALL-IN-ONE
 // ==========================================
 
 let filteredReports = [];
@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // Cek Sesi & Routing Halaman
     supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (!session && currentPage !== 'index.html' && currentPage !== 'register.html') {
             window.location.replace('index.html');
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'checklist.html') initChecklistPage(session);
     });
 
+    // Inisialisasi AI Assistant (tunggu sidebar/HTML siap)
     setTimeout(() => {
         if (document.getElementById('aiFloatingBtn') || document.getElementById('aiAssistantBtn')) {
             initAiAssistant();
@@ -83,6 +85,8 @@ async function loadSidebar() {
         setupSidebarToggle();
         setupSidebarNavigation();
         setupCategoryFilter();
+        
+        // Update user & progress SETELAH sidebar dimuat
         updateSidebarUserInfo();
         updateSidebarProgress();
     } catch (error) {
@@ -298,7 +302,7 @@ function disableSubmitButtonUI(submission) {
 }
 
 // ==========================================
-// 2. AI ASSISTANT (DEKLARASI AIBTN HANYA 1 KALI DI SINI)
+// 2. AI ASSISTANT (DENGAN MEMORI & FUNCTION CALLING)
 // ==========================================
 function initAiAssistant() {
     const modal = document.getElementById('aiChatModal');
@@ -614,50 +618,41 @@ function downloadExcel() {
     showNotification('Excel diunduh! ✅', 'success');
 }
 
+// ==========================================
+// 4. HALAMAN DASHBOARD
+// ==========================================
 async function initDashboardPage(session) {
     console.log("📊 Memuat halaman Dashboard...");
     
-    // Set user info
     window.currentUser = { 
         name: session.user.user_metadata?.full_name || session.user.email || 'User', 
         email: session.user.email 
     };
     
-    // Update welcome text
-    const welcomeEl = document.getElementById('welcomeUser');
-    if (welcomeEl) {
-        const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
-        welcomeEl.textContent = `Selamat Datang, ${name}! 👋`;
+    const nameEl = document.getElementById('dashboardUserName');
+    if (nameEl) {
+        nameEl.textContent = session.user.user_metadata?.full_name || session.user.email.split('@')[0] || 'User';
     }
     
-    // Load sidebar
     loadSidebar();
+    updateDashboardStats();
     
-    // Cek apakah tabel ada di HTML
-    const tbody = document.querySelector('#recentActivityTable tbody');
+    const tbody = document.getElementById('recentActivityBody');
     if (!tbody) {
-        console.error("❌ Tabel #recentActivityTable tidak ditemukan di dashboard.html!");
+        console.error("❌ Element #recentActivityBody tidak ditemukan di dashboard.html!");
         return;
     }
     
-    // Tampilkan loading
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-white/50"><div class="spinner mx-auto"></div><p class="mt-2">Memuat data...</p></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>';
     
     try {
-        console.log("🔄 Mengambil data dari Supabase...");
         const { data, error } = await window.supabaseClient
             .from('checklist_submissions')
             .select('*')
             .order('created_at', { ascending: false })
-            .limit(10); // Ambil 10 data terbaru
+            .limit(10);
         
-        if (error) {
-            console.error("❌ Error Supabase:", error);
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-red-400">Gagal memuat: ${error.message}</td></tr>`;
-            return;
-        }
-        
-        console.log("✅ Data diterima:", data?.length || 0, "baris");
+        if (error) throw error;
         
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-white/50">Belum ada aktivitas checklist</td></tr>';
@@ -667,17 +662,53 @@ async function initDashboardPage(session) {
         tbody.innerHTML = data.map(row => {
             const timeStr = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
             const dateStr = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            const statusColor = row.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400';
+            const progressColor = row.progress_percentage === 100 ? 'text-green-400' : (row.progress_percentage >= 50 ? 'text-amber-400' : 'text-red-400');
+            
             return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
                 <td class="px-4 py-3 text-sm">${row.user_name || 'User'}</td>
                 <td class="px-4 py-3 text-sm text-white/60">${dateStr} ${timeStr}</td>
-                <td class="px-4 py-3 text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td>
-                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 rounded-full text-xs ${row.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}">${row.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
+                <td class="px-4 py-3 text-sm font-semibold text-center ${progressColor}">${row.progress_percentage}%</td>
+                <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor}">${row.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
             </tr>`;
         }).join('');
         
     } catch (error) {
-        console.error("❌ Error tidak terduga:", error);
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-red-400">Error: ${error.message}</td></tr>`;
+        console.error("❌ Error memuat aktivitas dashboard:", error);
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-red-400">Gagal memuat: ${error.message}</td></tr>`;
+    }
+}
+
+async function updateDashboardStats() {
+    const supabase = window.supabaseClient;
+    try {
+        const { count: totalLaporan } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
+        
+        const { data: submissions } = await supabase.from('checklist_submissions').select('progress_percentage');
+        let avgProgress = 0;
+        if (submissions && submissions.length > 0) {
+            const sum = submissions.reduce((acc, curr) => acc + (curr.progress_percentage || 0), 0);
+            avgProgress = Math.round(sum / submissions.length);
+        }
+        
+        const today = new Date().toISOString().split('T')[0];
+        const { count: todayLaporan } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', today + 'T00:00:00');
+        
+        const { data: allSubs } = await supabase.from('checklist_submissions').select('user_email');
+        const activeUsers = allSubs ? new Set(allSubs.map(r => r.user_email)).size : 0;
+
+        const elTotal = document.getElementById('statTotalLaporan');
+        const elAvg = document.getElementById('statAvgProgress');
+        const elToday = document.getElementById('statTodayLaporan');
+        const elUsers = document.getElementById('statActiveUsers');
+        
+        if (elTotal) elTotal.textContent = totalLaporan || 0;
+        if (elAvg) elAvg.textContent = avgProgress + '%';
+        if (elToday) elToday.textContent = todayLaporan || 0;
+        if (elUsers) elUsers.textContent = activeUsers;
+        
+    } catch (error) {
+        console.error("❌ Error memuat statistik dashboard:", error);
     }
 }
 
