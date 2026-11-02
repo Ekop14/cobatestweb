@@ -363,7 +363,8 @@ function initAiAssistant() {
     const sendBtn = document.getElementById('aiChatSend');
     const messagesContainer = document.getElementById('aiChatMessages');
     const aiBtn = document.getElementById('aiAssistantBtn');
-
+// ✅ TAMBAHKAN INI: Cari floating button (prioritas) atau button lama di sidebar
+    const aiBtn = document.getElementById('aiFloatingBtn') || document.getElementById('aiAssistantBtn');
     if (!modal || !aiBtn) return;
 
     let chatHistory = []; 
