@@ -500,3 +500,177 @@ if (!document.getElementById('notif-styles')) {
     s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
     document.head.appendChild(s);
 }
+// ==========================================
+// AI ASSISTANT LOGIC (TERHUBUNG KE GROQ)
+// ==========================================
+function initAiAssistant() {
+    const modal = document.getElementById('aiChatModal');
+    const panel = document.getElementById('aiChatPanel');
+    const overlay = document.getElementById('aiChatOverlay');
+    const closeBtn = document.getElementById('closeAiChat');
+    const input = document.getElementById('aiChatInput');
+    const sendBtn = document.getElementById('aiChatSend');
+    const messagesContainer = document.getElementById('aiChatMessages');
+    const aiBtn = document.getElementById('aiAssistantBtn');
+
+    if (!modal || !aiBtn) {
+        console.warn("⚠️ Elemen AI Chat tidak ditemukan di HTML.");
+        return;
+    }
+
+    // Buka Modal
+    aiBtn.addEventListener('click', () => {
+        modal.classList.remove('hidden');
+        setTimeout(() => { panel.classList.remove('translate-x-full'); }, 10);
+        input.focus();
+    });
+
+    // Tutup Modal
+    function closeModal() {
+        panel.classList.add('translate-x-full');
+        setTimeout(() => { modal.classList.add('hidden'); }, 300);
+    }
+    closeBtn?.addEventListener('click', closeModal);
+    overlay?.addEventListener('click', closeModal);
+
+    // Quick Actions
+    document.querySelectorAll('.quick-action').forEach(btn => {
+        btn.addEventListener('click', () => {
+            input.value = btn.textContent.trim();
+            handleAiSend();
+        });
+    });
+
+    // Kirim dengan Enter
+    input?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleAiSend();
+    });
+
+    // Kirim dengan Tombol
+    sendBtn?.addEventListener('click', handleAiSend);
+
+    async function handleAiSend() {
+        const question = input.value.trim();
+        if (!question) return;
+
+        // 1. Tampilkan pesan user
+        addMessage(question, 'user');
+        input.value = '';
+        sendBtn.disabled = true;
+
+        // 2. Tampilkan indikator mengetik
+        const typingId = addTypingIndicator();
+
+        try {
+            // 3. Ambil konteks data dari Supabase (opsional, agar AI pintar)
+            const context = await getSimpleSupabaseContext();
+            
+            // 4. Minta jawaban ke Groq AI
+            const answer = await getGroqResponse(question, context);
+            
+            // 5. Tampilkan jawaban AI
+            removeTypingIndicator(typingId);
+            addMessage(answer, 'ai');
+        } catch (error) {
+            removeTypingIndicator(typingId);
+            addMessage('Maaf, terjadi kesalahan: ' + error.message, 'ai', true);
+        } finally {
+            sendBtn.disabled = false;
+        }
+    }
+
+    function addMessage(text, sender, isError = false) {
+        const div = document.createElement('div');
+        div.className = 'flex gap-3 ' + (sender === 'user' ? 'flex-row-reverse' : '');
+        
+        const avatar = sender === 'user' 
+            ? `<div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>`
+            : `<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg></div>`;
+
+        const bubbleClass = sender === 'user'
+            ? 'bg-blue-500/20 border border-blue-500/30 rounded-2xl rounded-tr-none'
+            : (isError ? 'bg-red-500/20 border border-red-500/30 rounded-2xl rounded-tl-none' : 'bg-white/5 border border-white/10 rounded-2xl rounded-tl-none');
+
+        div.innerHTML = `${avatar}<div class="flex-1 ${bubbleClass} p-4"><p class="text-white text-sm whitespace-pre-wrap">${text}</p></div>`;
+        messagesContainer.appendChild(div);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function addTypingIndicator() {
+        const id = 'typing-' + Date.now();
+        const div = document.createElement('div');
+        div.id = id;
+        div.className = 'flex gap-3';
+        div.innerHTML = `
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+            </div>
+            <div class="flex-1 bg-white/5 border border-white/10 rounded-2xl rounded-tl-none p-4">
+                <div class="flex gap-1">
+                    <div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                    <div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                    <div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                </div>
+            </div>`;
+        messagesContainer.appendChild(div);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return id;
+    }
+
+    function removeTypingIndicator(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+    }
+
+    async function getSimpleSupabaseContext() {
+        const supabase = window.supabaseClient;
+        if (!supabase) return "Tidak ada koneksi database.";
+        try {
+            const { count: total } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
+            return `Total laporan di database saat ini: ${total || 0}.`;
+        } catch (e) {
+            return "Gagal mengambil data statistik.";
+        }
+    }
+
+    async function getGroqResponse(question, context) {
+        if (!GROQ_API_KEY || GROQ_API_KEY === 'gsk_API_KEY_ANDA_DISINI') {
+            return "⚠️ API Key Groq belum diatur di config.js. Silakan atur terlebih dahulu.";
+        }
+
+        const systemPrompt = `Anda adalah AI Assistant untuk sistem "Gudang Clean". Jawab dalam bahasa Indonesia yang ramah, profesional, dan gunakan emoji. Maksimal 100 kata. \n\nKONTEKS DATABASE: ${context}`;
+
+        const response = await fetch(GROQ_API_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${GROQ_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: GROQ_MODEL,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: question }
+                ],
+                temperature: 0.7,
+                max_tokens: 300
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(`HTTP ${response.status}: ${err.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+    }
+}
+
+// Panggil fungsi ini setelah DOM siap
+document.addEventListener('DOMContentLoaded', () => {
+    // Pastikan dipanggil setelah sidebar atau elemen HTML lainnya dimuat
+    setTimeout(() => {
+        initAiAssistant();
+    }, 500);
+});
