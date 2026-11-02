@@ -36,12 +36,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// FUNGSI INIT HALAMAN CHECKLIST (DIPERBAIKI)
+// FUNGSI INIT HALAMAN CHECKLIST (DENGAN BATASAN 1X/HARI)
 // ==========================================
 function initChecklistPage(session) {
     console.log("📋 Memuat halaman Checklist...");
 
-    // 1. Update Tanggal (Sesuai ID di HTML Anda)
+    // 1. Update Tanggal
     const dateDisplay = document.getElementById('currentDate');
     if (dateDisplay) {
         const today = new Date().toLocaleDateString('id-ID', {
@@ -50,14 +50,11 @@ function initChecklistPage(session) {
         dateDisplay.textContent = today;
     }
 
-    if (typeof updateSidebarUser === 'function') {
-        updateSidebarUser(session.user);
-    }
+    if (typeof updateSidebarUser === 'function') updateSidebarUser(session.user);
 
-    // 2. Logika Checkbox & Progress Bar (SESUAI HTML: class="glass-checkbox")
+    // 2. Logika Checkbox & Progress Bar
     const checkboxes = document.querySelectorAll('.glass-checkbox');
     const totalItems = checkboxes.length;
-
     const totalCountEl = document.getElementById('totalCount') || document.getElementById('statTotal');
     const completedCountEl = document.getElementById('completedCount') || document.getElementById('statCompleted');
     const progressTextEl = document.getElementById('overallProgressText') || document.getElementById('statProgress');
@@ -69,7 +66,6 @@ function initChecklistPage(session) {
     function updateProgress() {
         const completed = document.querySelectorAll('.glass-checkbox:checked').length;
         const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
-
         if (completedCountEl) completedCountEl.textContent = completed;
         if (progressTextEl) progressTextEl.textContent = percentage + '%';
         if (progressBarEl) progressBarEl.style.width = percentage + '%';
@@ -85,19 +81,24 @@ function initChecklistPage(session) {
         updateProgress();
     }));
     
-    updateProgress(); // Jalankan sekali di awal
+    updateProgress();
 
-    // 3. Logika Tombol "Kirim Laporan" (TANPA confirm, pakai notifikasi)
+    // 3. CEK SUBMISSION HARIAN (FITUR BARU)
+    checkDailySubmission(session.user.email);
+
+    // 4. Logika Tombol "Kirim Laporan"
     const submitBtn = document.getElementById('submitChecklistBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', async (e) => {
             e.preventDefault();
 
+            // Guard clause: Jika tombol sudah disabled, hentikan
+            if (submitBtn.disabled) return;
+
             const completed = document.querySelectorAll('.glass-checkbox:checked').length;
             const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
             const status = percentage === 100 ? 'completed' : 'in_progress';
 
-            // CEK: Jika belum 100%, beri peringatan (TANPA dialog browser)
             if (completed < totalItems) {
                 showNotification(`Selesaikan semua tugas dulu ya! (${completed}/${totalItems})`, 'warning');
                 return;
@@ -107,13 +108,11 @@ function initChecklistPage(session) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Mengirim...';
 
-            // ✅ Kumpulkan data per zona (SESUAI HTML: data-card="...")
             const floorItems = collectZoneItems('floor');
             const rackItems = collectZoneItems('rack');
             const dockItems = collectZoneItems('dock');
             const facilityItems = collectZoneItems('facility');
 
-            // ✅ DATA SESUAI SKEMA 'checklist_submissions'
             const submissionData = {
                 user_name: session.user.user_metadata?.full_name || session.user.email,
                 user_email: session.user.email,
@@ -122,35 +121,18 @@ function initChecklistPage(session) {
                 progress_percentage: percentage,
                 status: status,
                 submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                floor_items: floorItems,
-                rack_items: rackItems,
-                dock_items: dockItems,
-                facility_items: facilityItems
+                floor_items: floorItems, rack_items: rackItems, dock_items: dockItems, facility_items: facilityItems
             };
 
-            console.log("📦 Data yang akan dikirim:", submissionData);
-
             try {
-                const { error } = await window.supabaseClient
-                    .from('checklist_submissions')
-                    .insert([submissionData]);
-
+                const { error } = await window.supabaseClient.from('checklist_submissions').insert([submissionData]);
                 if (error) throw error;
 
-                showNotification('✅ Laporan berhasil dikirim ke database!', 'success');
-
-                // Tampilkan info box sudah submit
-                const infoBox = document.getElementById('dailySubmissionInfo');
-                if (infoBox) {
-                    infoBox.classList.remove('hidden');
-                    const timeDisplay = document.getElementById('submissionTimeDisplay');
-                    if (timeDisplay) timeDisplay.textContent = submissionData.submission_time;
-                }
+                showNotification('✅ Laporan berhasil dikirim!', 'success');
                 
-                submitBtn.innerHTML = '<span>✅ Sudah Submit Hari Ini</span>';
-                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                // Tampilkan info box dan disable tombol permanen untuk hari ini
+                disableSubmitButtonUI(submissionData);
 
-                // Reset form setelah 1.5 detik
                 setTimeout(() => {
                     checkboxes.forEach(cb => { 
                         cb.checked = false; 
@@ -158,13 +140,12 @@ function initChecklistPage(session) {
                         if (listItem) listItem.classList.remove('completed');
                     });
                     updateProgress();
-                    localStorage.removeItem('gudang_clean_state');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }, 1500);
 
             } catch (error) {
-                console.error("❌ Gagal mengirim laporan:", error);
-                showNotification('❌ Gagal mengirim: ' + error.message, 'error');
+                console.error("❌ Gagal mengirim:", error);
+                showNotification('❌ Gagal: ' + error.message, 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalBtnText;
             }
@@ -172,6 +153,72 @@ function initChecklistPage(session) {
     }
 }
 
+// ==========================================
+// FUNGSI BARU: Cek Apakah User Sudah Submit Hari Ini
+// ==========================================
+async function checkDailySubmission(userEmail) {
+    const today = new Date().toISOString().split('T')[0];
+    
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('checklist_submissions')
+            .select('id, submission_time, created_at')
+            .eq('user_email', userEmail)
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`)
+            .limit(1);
+
+        if (error) throw error;
+
+        // Jika ada data, berarti user sudah submit hari ini
+        if (data && data.length > 0) {
+            console.log("⚠️ User sudah submit hari ini. Menonaktifkan tombol...");
+            disableSubmitButtonUI(data[0]);
+        }
+    } catch (error) {
+        console.error("Gagal mengecek submission harian:", error);
+    }
+}
+
+// ==========================================
+// FUNGSI BARU: Menonaktifkan Tombol & Menampilkan Keterangan
+// ==========================================
+function disableSubmitButtonUI(submission) {
+    const btn = document.getElementById('submitChecklistBtn');
+    const infoBox = document.getElementById('dailySubmissionInfo');
+    const timeDisplay = document.getElementById('submissionTimeDisplay');
+
+    // 1. Disable Tombol Kirim
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.innerHTML = '<span>✅ Sudah Submit Hari Ini</span>';
+    }
+
+    // 2. Tampilkan Info Box Keterangan
+    if (infoBox) {
+        infoBox.classList.remove('hidden');
+    }
+
+    // 3. Update Jam Submission di Info Box
+    if (timeDisplay) {
+        const time = submission.submission_time || new Date(submission.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        timeDisplay.textContent = time;
+    }
+}
+
+// ==========================================
+// HELPER: Kumpulkan item checklist per zona
+// ==========================================
+function collectZoneItems(zone) {
+    const zoneCheckboxes = document.querySelectorAll(`.glass-checkbox[data-card="${zone}"]`);
+    const items = [];
+    zoneCheckboxes.forEach(cb => {
+        const label = cb.closest('.checklist-item')?.querySelector('.checklist-text')?.textContent || 'Item';
+        items.push({ task: label, checked: cb.checked });
+    });
+    return items;
+}
 // ==========================================
 // HELPER: Kumpulkan item checklist per zona
 // ==========================================
