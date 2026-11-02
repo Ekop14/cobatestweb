@@ -674,3 +674,40 @@ document.addEventListener('DOMContentLoaded', () => {
         initAiAssistant();
     }, 500);
 });
+// ==========================================
+// FIX: GLOBAL LOGOUT HANDLER (ANTI-GAGAL)
+// ==========================================
+document.addEventListener('click', async function(event) {
+    // Mencari elemen dengan ID 'logoutBtn' (termasuk jika yang diklik adalah icon/svg di dalamnya)
+    const logoutBtn = event.target.closest('#logoutBtn');
+    
+    if (logoutBtn) {
+        event.preventDefault(); // Mencegah link default
+        console.log("🔒 Tombol Logout terdeteksi diklik!");
+        
+        // Konfirmasi sebelum logout
+        if (!confirm('Yakin ingin keluar dari akun?')) return;
+
+        const supabase = window.supabaseClient;
+        if (supabase) {
+            try {
+                // Proses logout di Supabase
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                
+                // Bersihkan data lokal (opsional)
+                localStorage.removeItem('gudang_clean_state');
+                
+                // Redirect ke halaman login
+                console.log("✅ Logout berhasil, kembali ke index.html");
+                window.location.replace('index.html');
+                
+            } catch (error) {
+                console.error("❌ Error saat logout:", error);
+                alert('Gagal melakukan logout: ' + error.message);
+            }
+        } else {
+            console.error("⚠️ Supabase client tidak ditemukan!");
+        }
+    }
+});
