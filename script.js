@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - VERSI FINAL ALL-IN-ONE (DENGAN LINGKUNGAN & DASHBOARD UPDATE)
+// SCRIPT.JS - VERSI FINAL (AI BACA SEMUA DATA: CHECKLIST + LINGKUNGAN)
 // ==========================================
 
 let filteredReports = [];
@@ -302,7 +302,7 @@ function disableSubmitButtonUI(submission) {
 }
 
 // ==========================================
-// 2. AI ASSISTANT (DENGAN MEMORI & FUNCTION CALLING)
+// 2. AI ASSISTANT (DENGAN AKSES FULL DATABASE: CHECKLIST + LINGKUNGAN)
 // ==========================================
 function initAiAssistant() {
     const modal = document.getElementById('aiChatModal');
@@ -408,6 +408,7 @@ function initAiAssistant() {
         }
     }
 
+    // ✅ FUNGSI INI SUDAH DIUPDATE UNTUK MENGAMBIL DATA LINGKUNGAN
     async function getFullSupabaseContext() {
         const supabase = window.supabaseClient;
         if (!supabase) return "Tidak ada koneksi database.";
@@ -418,6 +419,7 @@ function initAiAssistant() {
             const todayStr = today.toISOString().split('T')[0];
             const yesterdayStr = yesterday.toISOString().split('T')[0];
 
+            // 1. Data Checklist
             const { count: todayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', todayStr + 'T00:00:00');
             const { count: totalCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
             const { count: completedCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).eq('status', 'completed');
@@ -435,6 +437,14 @@ function initAiAssistant() {
             }
             const { data: recent } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, created_at, submission_time').order('created_at', { ascending: false }).limit(5);
 
+            // 2. Data Lingkungan (BARU: Agar AI bisa baca suhu & kelembapan)
+            const { data: recentEnvironment } = await supabase
+                .from('environment_readings')
+                .select('user_name, temperature, humidity, notes, submission_time, created_at')
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            // 3. Data User Saat Ini
             const currentUserEmail = window.currentUser?.email || '';
             const { data: myTodaySubmission } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, submission_time, created_at').eq('user_email', currentUserEmail).gte('created_at', todayStr + 'T00:00:00').lte('created_at', todayStr + 'T23:59:59').order('created_at', { ascending: false }).limit(1);
 
@@ -443,7 +453,7 @@ function initAiAssistant() {
             if (myTodaySubmission && myTodaySubmission.length > 0) {
                 hasSubmittedToday = true;
                 const sub = myTodaySubmission[0];
-                mySubmissionInfo = `✅ User ${sub.user_name || currentUserEmail} SUDAH submit hari ini (${todayStr}) pukul ${sub.submission_time || '-'} dengan progress ${sub.progress_percentage}%. ID: ${sub.id}`;
+                mySubmissionInfo = `✅ User ${sub.user_name || currentUserEmail} SUDAH submit checklist hari ini (${todayStr}) pukul ${sub.submission_time || '-'} dengan progress ${sub.progress_percentage}%. ID: ${sub.id}`;
             }
 
             const { data: myYesterdaySubmission } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, submission_time, created_at').eq('user_email', currentUserEmail).gte('created_at', yesterdayStr + 'T00:00:00').lte('created_at', yesterdayStr + 'T23:59:59').order('created_at', { ascending: false }).limit(1);
@@ -453,22 +463,45 @@ function initAiAssistant() {
                 myYesterdayInfo = `Submission kemarin (${yesterdayStr}): ID ${sub.id}, progress ${sub.progress_percentage}%, jam ${sub.submission_time || '-'}.`;
             }
 
+            // 4. Gabungkan Semua Data ke dalam JSON
             return JSON.stringify({
-                today_submissions: todayCount || 0, total_submissions: totalCount || 0, average_progress: avgProgress + '%', completed_submissions: completedCount || 0, recent_activity: recent || [],
-                yesterday_date_str: yesterday.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }), yesterday_submissions_count: yesterdayCount || 0, yesterday_avg_progress: yesterdayAvg + '%', yesterday_details: yesterdayDetails || [],
-                current_user: window.currentUser?.name || 'User', current_user_email: currentUserEmail, current_date: today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-                has_submitted_today: hasSubmittedToday, my_today_submission: mySubmissionInfo, my_yesterday_submission: myYesterdayInfo
+                today_submissions: todayCount || 0, 
+                total_submissions: totalCount || 0, 
+                average_progress: avgProgress + '%', 
+                completed_submissions: completedCount || 0, 
+                recent_activity: recent || [],
+                
+                // Data Lingkungan (BARU)
+                recent_environment_readings: recentEnvironment || [],
+
+                yesterday_date_str: yesterday.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }), 
+                yesterday_submissions_count: yesterdayCount || 0, 
+                yesterday_avg_progress: yesterdayAvg + '%', 
+                yesterday_details: yesterdayDetails || [],
+                
+                current_user: window.currentUser?.name || 'User', 
+                current_user_email: currentUserEmail, 
+                current_date: today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                has_submitted_today: hasSubmittedToday, 
+                my_today_submission: mySubmissionInfo, 
+                my_yesterday_submission: myYesterdayInfo
             }, null, 2);
         } catch (error) {
             return 'Error mengambil data: ' + error.message;
         }
     }
 
+    // ✅ SYSTEM PROMPT DIUPDATE AGAR AI TAHU CARA PAKAI DATA LINGKUNGAN
     async function getGroqResponse(history, context) {
         if (!GROQ_API_KEY || GROQ_API_KEY === 'gsk_API_KEY_ANDA_DISINI') return "⚠️ API Key Groq belum diatur.";
         
         const systemPrompt = `Anda adalah AI Assistant "Gudang Clean". Jawab ramah, profesional, pakai emoji. Maks 150 kata.
-ATURAN: 1. Gunakan DATA KONTEKS. 2. Ingat riwayat chat. 3. Jika diminta hapus data, pakai tool 'delete_submission'. 4. Cek 'has_submitted_today' untuk status hari ini.
+ATURAN: 
+1. Gunakan DATA KONTEKS di bawah ini. JANGAN mengarang angka.
+2. Anda memiliki akses ke data checklist DAN data lingkungan (suhu, kelembapan). Jika ditanya tentang suhu/kelembapan, gunakan data "recent_environment_readings".
+3. Ingat riwayat chat. 
+4. Jika diminta hapus data, pakai tool 'delete_submission'. 
+5. Cek 'has_submitted_today' untuk status checklist hari ini.
 DATA KONTEKS:\n${context}`;
 
         const tools = [{
@@ -635,7 +668,7 @@ async function initDashboardPage(session) {
     
     loadSidebar();
     updateDashboardStats();
-    loadDashboardEnvironmentHistory(); // ✅ TAMBAHAN BARU: Muat data lingkungan
+    loadDashboardEnvironmentHistory();
     
     const tbody = document.getElementById('recentActivityBody');
     if (!tbody) {
@@ -712,7 +745,6 @@ async function updateDashboardStats() {
     }
 }
 
-// ✅ FUNGSI BARU: Muat 4 Data Lingkungan Terakhir untuk Dashboard
 async function loadDashboardEnvironmentHistory() {
     const tbody = document.getElementById('dashboardEnvironmentBody');
     if (!tbody) return;
