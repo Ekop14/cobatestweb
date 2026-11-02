@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - VERSI FINAL ALL-IN-ONE
+// SCRIPT.JS - VERSI FINAL ALL-IN-ONE (DENGAN LINGKUNGAN)
 // ==========================================
 
 let filteredReports = [];
@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'register.html') initRegisterPage();
         else if (currentPage === 'dashboard.html') initDashboardPage(session);
         else if (currentPage === 'checklist.html') initChecklistPage(session);
+        else if (currentPage === 'lingkungan.html') initEnvironmentPage(session); // ✅ TAMBAHAN BARU
     });
 
     // Inisialisasi AI Assistant (tunggu sidebar/HTML siap)
@@ -86,7 +87,6 @@ async function loadSidebar() {
         setupSidebarNavigation();
         setupCategoryFilter();
         
-        // Update user & progress SETELAH sidebar dimuat
         updateSidebarUserInfo();
         updateSidebarProgress();
     } catch (error) {
@@ -313,7 +313,6 @@ function initAiAssistant() {
     const sendBtn = document.getElementById('aiChatSend');
     const messagesContainer = document.getElementById('aiChatMessages');
     
-    // ⚠️ INI SATU-SATUNYA DEKLARASI 'aiBtn' DI SELURUH FILE
     const aiBtn = document.getElementById('aiFloatingBtn') || document.getElementById('aiAssistantBtn');
 
     if (!modal || !aiBtn) return;
@@ -713,7 +712,160 @@ async function updateDashboardStats() {
 }
 
 // ==========================================
-// 5. LOGIN & REGISTER
+// 5. HALAMAN LINGKUNGAN (BARU DITAMBAHKAN)
+// ==========================================
+function initEnvironmentPage(session) {
+    console.log("🌡️ Memuat halaman Lingkungan...");
+    
+    window.currentUser = {
+        name: session.user.user_metadata?.full_name || session.user.email || 'User',
+        email: session.user.email
+    };
+
+    const dateDisplay = document.getElementById('currentDate');
+    if (dateDisplay) {
+        dateDisplay.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    loadSidebar();
+    checkEnvironmentSubmission(session.user.email);
+    loadEnvironmentHistory();
+
+    const form = document.getElementById('environmentForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitEnvironmentBtn');
+            if (submitBtn.disabled) return;
+
+            const temperature = parseFloat(document.getElementById('temperature').value);
+            const humidity = parseFloat(document.getElementById('humidity').value);
+            const notes = document.getElementById('notes').value.trim();
+
+            if (isNaN(temperature) || isNaN(humidity)) {
+                showNotification('Suhu dan kelembapan harus diisi!', 'warning');
+                return;
+            }
+
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Menyimpan...';
+
+            const environmentData = {
+                user_name: window.currentUser.name,
+                user_email: window.currentUser.email,
+                temperature: temperature,
+                humidity: humidity,
+                notes: notes || null,
+                submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+
+            try {
+                const { error } = await window.supabaseClient
+                    .from('environment_readings')
+                    .insert([environmentData]);
+                
+                if (error) throw error;
+
+                showNotification('✅ Data lingkungan berhasil disimpan!', 'success');
+                disableEnvironmentButton(environmentData);
+
+                setTimeout(() => {
+                    form.reset();
+                    loadEnvironmentHistory();
+                }, 1500);
+
+            } catch (error) {
+                console.error("❌ Gagal menyimpan:", error);
+                showNotification('❌ Gagal: ' + error.message, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+        });
+    }
+}
+
+async function checkEnvironmentSubmission(userEmail) {
+    const today = new Date().toISOString().split('T')[0];
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('environment_readings')
+            .select('id, submission_time, created_at')
+            .eq('user_email', userEmail)
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`)
+            .limit(1);
+        
+        if (error) throw error;
+        if (data && data.length > 0) disableEnvironmentButton(data[0]);
+    } catch (error) {
+        console.error("Gagal cek submission lingkungan:", error);
+    }
+}
+
+function disableEnvironmentButton(submission) {
+    const btn = document.getElementById('submitEnvironmentBtn');
+    const infoBox = document.getElementById('dailySubmissionInfo');
+    const timeDisplay = document.getElementById('submissionTimeDisplay');
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.innerHTML = '<span>✅ Sudah Submit Hari Ini</span>';
+    }
+    if (infoBox) infoBox.classList.remove('hidden');
+    if (timeDisplay) {
+        timeDisplay.textContent = submission.submission_time || new Date(submission.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    }
+}
+
+async function loadEnvironmentHistory() {
+    const tbody = document.getElementById('environmentHistoryBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>';
+
+    try {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+
+        const { data, error } = await window.supabaseClient
+            .from('environment_readings')
+            .select('*')
+            .gte('created_at', sevenDaysAgoStr + 'T00:00:00')
+            .order('created_at', { ascending: false })
+            .limit(7);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-white/50">Belum ada riwayat data</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map(row => {
+            const date = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            const tempStatus = row.temperature >= 20 && row.temperature <= 27 ? 'text-green-400' : 'text-amber-400';
+            const humStatus = row.humidity >= 50 && row.humidity <= 70 ? 'text-green-400' : 'text-amber-400';
+            
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                <td class="px-4 py-3 text-sm">${date}</td>
+                <td class="px-4 py-3 text-sm text-center font-semibold ${tempStatus}">${row.temperature}°C</td>
+                <td class="px-4 py-3 text-sm text-center font-semibold ${humStatus}">${row.humidity}%</td>
+                <td class="px-4 py-3 text-sm text-white/60">${row.notes || '-'}</td>
+            </tr>`;
+        }).join('');
+
+    } catch (error) {
+        console.error("Error loading environment history:", error);
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`;
+    }
+}
+
+// ==========================================
+// 6. LOGIN & REGISTER
 // ==========================================
 function initLoginPage() {
     const loginForm = document.getElementById('loginForm');
@@ -772,7 +924,7 @@ function initRegisterPage() {
 }
 
 // ==========================================
-// 6. UTILS & GLOBAL LOGOUT
+// 7. UTILS & GLOBAL LOGOUT
 // ==========================================
 document.addEventListener('click', async function(event) {
     const logoutBtn = event.target.closest('#logoutBtn');
