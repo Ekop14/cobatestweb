@@ -1,9 +1,11 @@
 // ==========================================
 // SCRIPT.JS - VERSI FINAL ALL-IN-ONE
-// (AI + Memori + Function Calling + Batasan Harian + Export)
 // ==========================================
 
 let filteredReports = [];
+
+// Pastikan currentUser tersedia secara global
+window.currentUser = window.currentUser || { name: 'User', email: 'user@example.com' };
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 Script berhasil dimuat");
@@ -39,8 +41,156 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.getElementById('aiAssistantBtn')) {
             initAiAssistant();
         }
-    }, 1000);
+    }, 1500);
 });
+
+// ==========================================
+// FUNGSI UPDATE SIDEBAR (DIPANGGIL SETELAH SIDEBAR DIMUAT)
+// ==========================================
+function updateSidebarUserInfo() {
+    if (!window.currentUser) {
+        console.warn('⚠️ currentUser belum tersedia');
+        return;
+    }
+    
+    const nameEl = document.getElementById('sidebarUserName');
+    const emailEl = document.getElementById('sidebarUserEmail');
+    const avatarEl = document.getElementById('userAvatar');
+
+    const displayName = window.currentUser.name || 'User';
+    const displayEmail = window.currentUser.email || 'user@example.com';
+
+    if (nameEl) nameEl.textContent = displayName;
+    if (emailEl) emailEl.textContent = displayEmail;
+    if (avatarEl) avatarEl.textContent = displayName.charAt(0).toUpperCase();
+    
+    console.log('✅ Sidebar user info diupdate:', displayName, displayEmail);
+}
+
+function updateSidebarProgress() {
+    const allCheckboxes = document.querySelectorAll('.checklist-card .glass-checkbox');
+    const total = allCheckboxes.length;
+    const checked = document.querySelectorAll('.checklist-card .glass-checkbox:checked').length;
+    const percent = total ? Math.round((checked / total) * 100) : 0;
+    
+    const bar = document.getElementById('overallProgressBar');
+    const text = document.getElementById('overallProgressText');
+    const completed = document.getElementById('completedCount');
+    const totalEl = document.getElementById('totalCount');
+    const pendingEl = document.getElementById('pendingCount');
+    
+    if (bar) bar.style.width = percent + '%';
+    if (text) text.textContent = percent + '%';
+    if (completed) completed.textContent = checked;
+    if (totalEl) totalEl.textContent = total;
+    if (pendingEl) pendingEl.textContent = total - checked;
+    
+    // Update teks "X dari Y selesai"
+    const progressText = document.getElementById('sidebarProgressText');
+    if (progressText) progressText.textContent = `${checked} dari ${total} selesai`;
+}
+
+// ==========================================
+// LOAD SIDEBAR (DENGAN UPDATE USER & PROGRESS SETELAH DIMUAT)
+// ==========================================
+async function loadSidebar() {
+    const slot = document.getElementById('sidebar-slot');
+    if (!slot) return;
+    
+    try {
+        const response = await fetch('sidebar.html');
+        if (!response.ok) throw new Error('Gagal memuat sidebar');
+        const html = await response.text();
+        slot.innerHTML = html;
+        
+        highlightActiveMenu();
+        setupSidebarToggle();
+        setupSidebarNavigation();
+        setupCategoryFilter();
+        
+        // ✅ UPDATE USER & PROGRESS SETELAH SIDEBAR DIMUAT
+        updateSidebarUserInfo();
+        updateSidebarProgress();
+        
+        // Inisialisasi AI Assistant
+        if (document.getElementById('aiAssistantBtn')) {
+            initAiAssistant();
+        }
+    } catch (error) {
+        console.error('Error loading sidebar:', error);
+        slot.innerHTML = '<div class="p-6 text-red-400 text-sm">Gagal memuat menu.</div>';
+    }
+}
+
+function setupSidebarNavigation() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            if (window.innerWidth < 1024) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (sidebar) sidebar.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    });
+}
+
+function highlightActiveMenu() {
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    document.querySelectorAll('.nav-item').forEach(link => {
+        link.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
+        link.classList.add('text-white/70');
+        const page = link.getAttribute('data-page');
+        if (page === currentPage) {
+            link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
+            link.classList.remove('text-white/70');
+        }
+    });
+}
+
+function setupSidebarToggle() {
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('sidebarToggle');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    if (toggle && sidebar) {
+        toggle.addEventListener('click', () => {
+            sidebar.classList.add('open');
+            if (overlay) overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+    }
+    if (overlay && sidebar) {
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+    }
+}
+
+function setupCategoryFilter() {
+    const categoryButtons = document.querySelectorAll('.category-btn');
+    const checklistCards = document.querySelectorAll('.checklist-card');
+    if (categoryButtons.length === 0) return;
+    
+    categoryButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            categoryButtons.forEach(b => {
+                b.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10');
+                b.classList.add('text-white/60');
+            });
+            btn.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10');
+            btn.classList.remove('text-white/60');
+            
+            checklistCards.forEach(card => {
+                const show = btn.dataset.category === 'all' || card.dataset.category === btn.dataset.category;
+                card.classList.toggle('hidden-card', !show);
+            });
+        });
+    });
+}
 
 // ==========================================
 // 1. HALAMAN CHECKLIST
@@ -48,6 +198,14 @@ document.addEventListener('DOMContentLoaded', () => {
 function initChecklistPage(session) {
     console.log("📋 Memuat halaman Checklist...");
 
+    // ✅ SET currentUser SEBELUM SEMUA UPDATE
+    window.currentUser = {
+        name: session.user.user_metadata?.full_name || session.user.email || 'User',
+        email: session.user.email
+    };
+    console.log('✅ currentUser di-set:', window.currentUser);
+
+    // Update Tanggal
     const dateDisplay = document.getElementById('currentDate');
     if (dateDisplay) {
         dateDisplay.textContent = new Date().toLocaleDateString('id-ID', {
@@ -55,23 +213,37 @@ function initChecklistPage(session) {
         });
     }
 
+    // Load sidebar dulu, baru update user info
+    loadSidebar();
+
+    // Logika Checkbox
     const checkboxes = document.querySelectorAll('.glass-checkbox');
     const totalItems = checkboxes.length;
     const totalCountEl = document.getElementById('totalCount');
     const completedCountEl = document.getElementById('completedCount');
     const progressTextEl = document.getElementById('overallProgressText');
     const progressBarEl = document.getElementById('overallProgressBar');
-    const statPendingEl = document.getElementById('statPending');
+    const statPendingEl = document.getElementById('statPending') || document.getElementById('pendingCount');
+    const statTotalEl = document.getElementById('statTotal');
+    const statCompletedEl = document.getElementById('statCompleted');
+    const statProgressEl = document.getElementById('statProgress');
 
     if (totalCountEl) totalCountEl.textContent = totalItems;
+    if (statTotalEl) statTotalEl.textContent = totalItems;
 
     function updateProgress() {
         const completed = document.querySelectorAll('.glass-checkbox:checked').length;
         const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
+        
         if (completedCountEl) completedCountEl.textContent = completed;
+        if (statCompletedEl) statCompletedEl.textContent = completed;
         if (progressTextEl) progressTextEl.textContent = percentage + '%';
+        if (statProgressEl) statProgressEl.textContent = percentage + '%';
         if (progressBarEl) progressBarEl.style.width = percentage + '%';
         if (statPendingEl) statPendingEl.textContent = totalItems - completed;
+        
+        // Update sidebar progress juga
+        updateSidebarProgress();
     }
 
     checkboxes.forEach(cb => cb.addEventListener('change', () => {
@@ -84,8 +256,11 @@ function initChecklistPage(session) {
     }));
     
     updateProgress();
+
+    // Cek Batasan Harian
     checkDailySubmission(session.user.email);
 
+    // Logika Tombol Kirim
     const submitBtn = document.getElementById('submitChecklistBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', async (e) => {
@@ -105,8 +280,8 @@ function initChecklistPage(session) {
             submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Mengirim...';
 
             const submissionData = {
-                user_name: session.user.user_metadata?.full_name || session.user.email,
-                user_email: session.user.email,
+                user_name: window.currentUser.name,
+                user_email: window.currentUser.email,
                 total_items: totalItems,
                 completed_items: completed,
                 progress_percentage: percentage,
@@ -191,7 +366,6 @@ function initAiAssistant() {
 
     if (!modal || !aiBtn) return;
 
-    // VARIABEL MEMORI (Menyimpan riwayat chat)
     let chatHistory = []; 
 
     aiBtn.addEventListener('click', () => {
@@ -204,7 +378,7 @@ function initAiAssistant() {
         panel.classList.add('translate-x-full');
         setTimeout(() => { 
             modal.classList.add('hidden');
-            chatHistory = []; // Reset memori saat modal ditutup
+            chatHistory = [];
         }, 300);
     }
     closeBtn?.addEventListener('click', closeModal);
@@ -231,19 +405,11 @@ function initAiAssistant() {
 
         try {
             const context = await getFullSupabaseContext();
-            
-            // Simpan pertanyaan user ke memori
             chatHistory.push({ role: 'user', content: question });
-
-            // Kirim seluruh riwayat ke AI
             const answer = await getGroqResponse(chatHistory, context);
-            
             removeTypingIndicator(typingId);
             addMessage(answer, 'ai');
-
-            // Simpan jawaban AI ke memori
             chatHistory.push({ role: 'assistant', content: answer });
-
         } catch (error) {
             removeTypingIndicator(typingId);
             addMessage('Maaf, terjadi kesalahan: ' + error.message, 'ai', true);
@@ -280,7 +446,6 @@ function initAiAssistant() {
         if (el) el.remove(); 
     }
 
-    // FUNGSI EKSEKUSI HAPUS DATA (DIPANGGIL OLEH AI)
     async function executeDeleteSubmission(submissionId, reason) {
         const supabase = window.supabaseClient;
         try {
@@ -295,7 +460,6 @@ function initAiAssistant() {
         }
     }
 
-    // FUNGSI AMBIL KONTEKS DATABASE LENGKAP
     async function getFullSupabaseContext() {
         const supabase = window.supabaseClient;
         if (!supabase) return "Tidak ada koneksi database.";
@@ -355,7 +519,6 @@ function initAiAssistant() {
         }
     }
 
-    // FUNGSI PANGGIL GROQ DENGAN MEMORI
     async function getGroqResponse(history, context) {
         if (!GROQ_API_KEY || GROQ_API_KEY === 'gsk_API_KEY_ANDA_DISINI') {
             return "⚠️ API Key Groq belum diatur di config.js.";
@@ -391,7 +554,6 @@ ${context}`;
         ];
 
         try {
-            // Gabungkan system prompt + seluruh riwayat chat
             const messagesPayload = [
                 { role: 'system', content: systemPrompt },
                 ...history
@@ -416,25 +578,20 @@ ${context}`;
             const data = await response.json();
             const message = data.choices[0].message;
 
-            // Handle Tool Calls (Hapus Data)
             if (message.tool_calls && message.tool_calls.length > 0) {
                 const toolCall = message.tool_calls[0];
-                
-                // Tambahkan permintaan tool ke history
                 history.push(message); 
 
                 if (toolCall.function.name === "delete_submission") {
                     const args = JSON.parse(toolCall.function.arguments);
                     const executionResult = await executeDeleteSubmission(args.submission_id, args.reason);
                     
-                    // Tambahkan hasil tool ke history
                     history.push({ 
                         role: "tool", 
                         tool_call_id: toolCall.id,
                         content: executionResult 
                     });
 
-                    // Minta AI merangkum hasil
                     const finalResponse = await fetch(GROQ_API_URL, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
@@ -464,6 +621,11 @@ ${context}`;
 // 3. HALAMAN LAPORAN
 // ==========================================
 function initLaporanPage(session) {
+    window.currentUser = {
+        name: session.user.user_metadata?.full_name || session.user.email || 'User',
+        email: session.user.email
+    };
+    
     const today = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(today.getDate() - 30);
@@ -577,11 +739,19 @@ function downloadExcel() {
 // 4. HALAMAN DASHBOARD
 // ==========================================
 async function initDashboardPage(session) {
+    window.currentUser = {
+        name: session.user.user_metadata?.full_name || session.user.email || 'User',
+        email: session.user.email
+    };
+    
     const welcomeEl = document.getElementById('welcomeUser');
     if (welcomeEl) {
         const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
         welcomeEl.textContent = `Selamat Datang, ${name}! 👋`;
     }
+    
+    loadSidebar();
+    
     const { data, error } = await window.supabaseClient.from('checklist_submissions').select('*').order('created_at', { ascending: false }).limit(5);
     if (!error && data) {
         const tbody = document.querySelector('#recentActivityTable tbody');
