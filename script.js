@@ -107,6 +107,7 @@ function setupSidebarNavigation() {
         });
     });
 }
+
 function highlightActiveMenu() {
     const currentUrl = window.location.href;
     const currentPath = window.location.pathname;
@@ -142,7 +143,7 @@ function highlightActiveMenu() {
         const isAreaGudang = areaGudangKeywords.some(keyword => text.includes(keyword));
         
         if (isAreaGudang) {
-            console.log(`📋 [DEBUG] Menu #${index}: "${text}" - Area Gudang: YA`);
+            console.log('📋 [DEBUG] Menu #' + index + ': "' + text + '" - Area Gudang: YA');
             
             if (isOnChecklist) {
                 // AKTIF - sedang di halaman checklist
@@ -150,7 +151,7 @@ function highlightActiveMenu() {
                 if (href && href !== '#' && (currentUrl.includes(href) || currentPath.includes(href))) {
                     link.classList.add('active', 'bg-white/10', 'border', 'border-white/10', 'shadow-lg');
                 }
-                console.log(`✅ [DEBUG] Menu "${text}" AKTIF (karena di checklist)`);
+                console.log('✅ [DEBUG] Menu "' + text + '" AKTIF (karena di checklist)');
             } else {
                 // NON-AKTIF - sedang di halaman lain
                 link.classList.add('menu-disabled');
@@ -158,22 +159,23 @@ function highlightActiveMenu() {
                 link.style.opacity = '0.25';
                 link.style.pointerEvents = 'none';
                 link.style.cursor = 'not-allowed';
-                console.log(`❌ [DEBUG] Menu "${text}" NON-AKTIF (karena di luar checklist)`);
+                console.log('❌ [DEBUG] Menu "' + text + '" NON-AKTIF (karena di luar checklist)');
             }
         } else {
             // Menu utama (Dashboard, Lingkungan, Checklist, Laporan)
-            console.log(` [DEBUG] Menu #${index}: "${text}" - Menu Utama`);
+            console.log(' [DEBUG] Menu #' + index + ': "' + text + '" - Menu Utama');
             link.classList.add('text-white/70');
             
             if (href && href !== '#' && (currentUrl.includes(href) || currentPath.includes(href))) {
                 link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
-                console.log(`✅ [DEBUG] Menu "${text}" AKTIF (highlighted)`);
+                console.log('✅ [DEBUG] Menu "' + text + '" AKTIF (highlighted)');
             }
         }
     });
     
     console.log('✅ [DEBUG] highlightActiveMenu selesai dijalankan');
 }
+
 function setupSidebarToggle() {
     const sidebar = document.getElementById('sidebar');
     const toggle = document.getElementById('sidebarToggle');
@@ -277,7 +279,7 @@ function initChecklistPage(session) {
             const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
 
             if (completed < totalItems) {
-                showNotification(`Selesaikan semua tugas dulu ya! (${completed}/${totalItems})`, 'warning');
+                showNotification('Selesaikan semua tugas dulu ya! (' + completed + '/' + totalItems + ')', 'warning');
                 return;
             }
 
@@ -330,8 +332,8 @@ async function checkDailySubmission(userEmail) {
             .from('checklist_submissions')
             .select('id, submission_time, created_at')
             .eq('user_email', userEmail)
-            .gte('created_at', `${today}T00:00:00`)
-            .lte('created_at', `${today}T23:59:59`)
+            .gte('created_at', today + 'T00:00:00')
+            .lte('created_at', today + 'T23:59:59')
             .limit(1);
         if (error) throw error;
         if (data && data.length > 0) disableSubmitButtonUI(data[0]);
@@ -425,10 +427,10 @@ function initAiAssistant() {
         const div = document.createElement('div');
         div.className = 'flex gap-3 ' + (sender === 'user' ? 'flex-row-reverse' : '');
         const avatar = sender === 'user' 
-            ? `<div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>`
-            : `<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg></div>`;
+            ? '<div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>'
+            : '<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg></div>';
         const bubbleClass = sender === 'user' ? 'bg-blue-500/20 border border-blue-500/30 rounded-2xl rounded-tr-none' : (isError ? 'bg-red-500/20 border border-red-500/30 rounded-2xl rounded-tl-none' : 'bg-white/5 border border-white/10 rounded-2xl rounded-tl-none');
-        div.innerHTML = `${avatar}<div class="flex-1 ${bubbleClass} p-4"><p class="text-white text-sm whitespace-pre-wrap">${text}</p></div>`;
+        div.innerHTML = avatar + '<div class="flex-1 ' + bubbleClass + ' p-4"><p class="text-white text-sm whitespace-pre-wrap">' + text + '</p></div>';
         messagesContainer.appendChild(div);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
@@ -438,7 +440,7 @@ function initAiAssistant() {
         const div = document.createElement('div');
         div.id = id;
         div.className = 'flex gap-3';
-        div.innerHTML = `<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg></div><div class="flex-1 bg-white/5 border border-white/10 rounded-2xl rounded-tl-none p-4"><div class="flex gap-1"><div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 0ms"></div><div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 150ms"></div><div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 300ms"></div></div></div>`;
+        div.innerHTML = '<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg></div><div class="flex-1 bg-white/5 border border-white/10 rounded-2xl rounded-tl-none p-4"><div class="flex gap-1"><div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 0ms"></div><div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 150ms"></div><div class="w-2 h-2 bg-white/50 rounded-full animate-bounce" style="animation-delay: 300ms"></div></div></div>';
         messagesContainer.appendChild(div);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         return id;
@@ -452,13 +454,13 @@ function initAiAssistant() {
     async function executeDeleteSubmission(submissionId, reason) {
         const supabase = window.supabaseClient;
         try {
-            const isConfirmed = confirm(`⚠️ KONFIRMASI KEAMANAN\n\nAI meminta izin untuk MENGHAPUS data submission.\nID: ${submissionId}\nAlasan: ${reason}\n\nLanjutkan?`);
+            const isConfirmed = confirm('⚠️ KONFIRMASI KEAMANAN\n\nAI meminta izin untuk MENGHAPUS data submission.\nID: ' + submissionId + '\nAlasan: ' + reason + '\n\nLanjutkan?');
             if (!isConfirmed) return "Penghapusan dibatalkan.";
             const { error } = await supabase.from('checklist_submissions').delete().eq('id', submissionId);
             if (error) throw error;
-            return `Berhasil! Data ID ${submissionId} telah dihapus.`;
+            return 'Berhasil! Data ID ' + submissionId + ' telah dihapus.';
         } catch (error) {
-            return `Gagal: ${error.message}`;
+            return 'Gagal: ' + error.message;
         }
     }
 
@@ -506,14 +508,14 @@ function initAiAssistant() {
             if (myTodaySubmission && myTodaySubmission.length > 0) {
                 hasSubmittedToday = true;
                 const sub = myTodaySubmission[0];
-                mySubmissionInfo = `✅ User ${sub.user_name || currentUserEmail} SUDAH submit checklist hari ini (${todayStr}) pukul ${sub.submission_time || '-'} dengan progress ${sub.progress_percentage}%. ID: ${sub.id}`;
+                mySubmissionInfo = '✅ User ' + (sub.user_name || currentUserEmail) + ' SUDAH submit checklist hari ini (' + todayStr + ') pukul ' + (sub.submission_time || '-') + ' dengan progress ' + sub.progress_percentage + '%. ID: ' + sub.id;
             }
 
             const { data: myYesterdaySubmission } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, submission_time, created_at').eq('user_email', currentUserEmail).gte('created_at', yesterdayStr + 'T00:00:00').lte('created_at', yesterdayStr + 'T23:59:59').order('created_at', { ascending: false }).limit(1);
             let myYesterdayInfo = "User tidak ada submission kemarin.";
             if (myYesterdaySubmission && myYesterdaySubmission.length > 0) {
                 const sub = myYesterdaySubmission[0];
-                myYesterdayInfo = `Submission kemarin (${yesterdayStr}): ID ${sub.id}, progress ${sub.progress_percentage}%, jam ${sub.submission_time || '-'}.`;
+                myYesterdayInfo = 'Submission kemarin (' + yesterdayStr + '): ID ' + sub.id + ', progress ' + sub.progress_percentage + '%, jam ' + (sub.submission_time || '-') + '.';
             }
 
             // 4. Gabungkan Semua Data ke dalam JSON
@@ -543,14 +545,7 @@ function initAiAssistant() {
     async function getGroqResponse(history, context) {
         if (!GROQ_API_KEY || GROQ_API_KEY === 'gsk_API_KEY_ANDA_DISINI') return "⚠️ API Key Groq belum diatur.";
         
-        const systemPrompt = `Anda adalah AI Assistant "Gudang Clean". Jawab ramah, profesional, pakai emoji. Maks 150 kata.
-ATURAN: 
-1. Gunakan DATA KONTEKS di bawah ini. JANGAN mengarang angka.
-2. Anda memiliki akses ke data checklist DAN data lingkungan (suhu, kelembapan). Jika ditanya tentang suhu/kelembapan, gunakan data "recent_environment_readings".
-3. Ingat riwayat chat. 
-4. Jika diminta hapus data, pakai tool 'delete_submission'. 
-5. Cek 'has_submitted_today' untuk status checklist hari ini.
-DATA KONTEKS:\n${context}`;
+        const systemPrompt = 'Anda adalah AI Assistant "Gudang Clean". Jawab ramah, profesional, pakai emoji. Maks 150 kata.\nATURAN: \n1. Gunakan DATA KONTEKS di bawah ini. JANGAN mengarang angka.\n2. Anda memiliki akses ke data checklist DAN data lingkungan (suhu, kelembapan). Jika ditanya tentang suhu/kelembapan, gunakan data "recent_environment_readings".\n3. Ingat riwayat chat. \n4. Jika diminta hapus data, pakai tool \'delete_submission\'. \n5. Cek \'has_submitted_today\' untuk status checklist hari ini.\nDATA KONTEKS:\n' + context;
 
         const tools = [{
             type: "function",
@@ -564,10 +559,10 @@ DATA KONTEKS:\n${context}`;
         try {
             const response = await fetch(GROQ_API_URL, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+                headers: { 'Authorization': 'Bearer ' + GROQ_API_KEY, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'system', content: systemPrompt }, ...history], tools: tools, tool_choice: "auto" })
             });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            if (!response.ok) throw new Error('HTTP ' + response.status);
             const data = await response.json();
             const message = data.choices[0].message;
 
@@ -580,7 +575,7 @@ DATA KONTEKS:\n${context}`;
                     history.push({ role: "tool", tool_call_id: toolCall.id, content: result });
                     const finalRes = await fetch(GROQ_API_URL, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+                        headers: { 'Authorization': 'Bearer ' + GROQ_API_KEY, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'system', content: systemPrompt }, ...history] })
                     });
                     const finalData = await finalRes.json();
@@ -617,15 +612,48 @@ async function loadReports() {
     const from = document.getElementById('filterFrom')?.value || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const to = document.getElementById('filterTo')?.value || new Date().toISOString().split('T')[0];
     const tableBody = document.getElementById('reportsTableBody');
-    if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>`;
+    
+    // PERBAIKAN: Aktifkan/nonaktifkan tombol PDF/Excel
+    const pdfBtn = document.getElementById('downloadPdfBtn');
+    const excelBtn = document.getElementById('downloadExcelBtn');
+    const reportCountText = document.getElementById('reportCountText');
+    
+    if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>';
+    
+    // Disable tombol saat loading
+    if (pdfBtn) { 
+        pdfBtn.disabled = true; 
+        pdfBtn.classList.add('opacity-50', 'cursor-not-allowed'); 
+    }
+    if (excelBtn) { 
+        excelBtn.disabled = true; 
+        excelBtn.classList.add('opacity-50', 'cursor-not-allowed'); 
+    }
+    if (reportCountText) reportCountText.textContent = "Memuat data...";
+    
     try {
         const { data, error } = await supabase.from('checklist_submissions').select('*').gte('created_at', from + 'T00:00:00').lte('created_at', to + 'T23:59:59').order('created_at', { ascending: false });
         if (error) throw error;
         filteredReports = data || [];
         renderReports(filteredReports);
         updateReportStats(filteredReports);
+        
+        if (reportCountText) reportCountText.textContent = 'Menampilkan ' + filteredReports.length + ' laporan';
+        
+        // Enable tombol jika ada data
+        if (filteredReports.length > 0) {
+            if (pdfBtn) { 
+                pdfBtn.disabled = false; 
+                pdfBtn.classList.remove('opacity-50', 'cursor-not-allowed'); 
+            }
+            if (excelBtn) { 
+                excelBtn.disabled = false; 
+                excelBtn.classList.remove('opacity-50', 'cursor-not-allowed'); 
+            }
+        }
     } catch (error) {
-        if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-red-400 py-8">Gagal: ${error.message}</td></tr>`;
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-red-400 py-8">Gagal: ' + error.message + '</td></tr>';
+        if (reportCountText) reportCountText.textContent = "Gagal memuat data";
     }
 }
 
@@ -633,7 +661,7 @@ function renderReports(reports) {
     const tableBody = document.getElementById('reportsTableBody');
     if (!tableBody) return;
     if (reports.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-white/50 py-8">Tidak ada laporan</td></tr>`;
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-white/50 py-8">Tidak ada laporan</td></tr>';
         return;
     }
     tableBody.innerHTML = reports.map(r => {
@@ -641,15 +669,15 @@ function renderReports(reports) {
         const time = r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
         const statusColor = r.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400';
         const progressColor = r.progress_percentage === 100 ? 'text-green-400' : (r.progress_percentage >= 50 ? 'text-amber-400' : 'text-red-400');
-        return `<tr>
-            <td class="px-4 py-3 text-sm">${date}</td>
-            <td class="px-4 py-3 text-sm font-mono text-white/70">${time}</td>
-            <td class="px-4 py-3 text-sm">${r.user_name || '-'}</td>
-            <td class="px-4 py-3 text-sm text-center">${r.total_items || 0}</td>
-            <td class="px-4 py-3 text-sm text-center text-green-400 font-medium">${r.completed_items || 0}</td>
-            <td class="px-4 py-3 text-sm font-semibold text-center ${progressColor}">${r.progress_percentage || 0}%</td>
-            <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor}">${r.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
-        </tr>`;
+        return '<tr>' +
+            '<td class="px-4 py-3 text-sm">' + date + '</td>' +
+            '<td class="px-4 py-3 text-sm font-mono text-white/70">' + time + '</td>' +
+            '<td class="px-4 py-3 text-sm">' + (r.user_name || '-') + '</td>' +
+            '<td class="px-4 py-3 text-sm text-center">' + (r.total_items || 0) + '</td>' +
+            '<td class="px-4 py-3 text-sm text-center text-green-400 font-medium">' + (r.completed_items || 0) + '</td>' +
+            '<td class="px-4 py-3 text-sm font-semibold text-center ' + progressColor + '">' + (r.progress_percentage || 0) + '%</td>' +
+            '<td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ' + statusColor + '">' + (r.status === 'completed' ? 'Selesai' : 'Proses') + '</span></td>' +
+        '</tr>';
     }).join('');
 }
 
@@ -675,14 +703,14 @@ function downloadPDF() {
     const from = document.getElementById('filterFrom').value;
     const to = document.getElementById('filterTo').value;
     doc.setFontSize(18); doc.text('Laporan Kebersihan Gudang', 14, 20);
-    doc.setFontSize(10); doc.text(`Periode: ${from} s/d ${to}`, 14, 28);
+    doc.setFontSize(10); doc.text('Periode: ' + from + ' s/d ' + to, 14, 28);
     if (typeof doc.autoTable === 'function') {
         doc.autoTable({
             startY: 35, head: [['Tanggal', 'Jam', 'User', 'Total', 'Selesai', 'Progress', 'Status']],
             body: filteredReports.map(r => [new Date(r.created_at).toLocaleDateString('id-ID'), r.submission_time || '-', r.user_name || '-', r.total_items || 0, r.completed_items || 0, (r.progress_percentage || 0) + '%', r.status === 'completed' ? 'Selesai' : 'Proses']),
             theme: 'grid', headStyles: { fillColor: [102, 126, 234] }
         });
-        doc.save(`Laporan-${from}-to-${to}.pdf`);
+        doc.save('Laporan-' + from + '-to-' + to + '.pdf');
         showNotification('PDF diunduh! ✅', 'success');
     }
 }
@@ -694,7 +722,7 @@ function downloadExcel() {
     const data = filteredReports.map(r => ({ 'Tanggal': new Date(r.created_at).toLocaleDateString('id-ID'), 'Jam': r.submission_time || '-', 'User': r.user_name || '-', 'Total': r.total_items || 0, 'Selesai': r.completed_items || 0, 'Progress': (r.progress_percentage || 0) + '%', 'Status': r.status === 'completed' ? 'Selesai' : 'Proses' }));
     const wb = window.XLSX.utils.book_new();
     window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(data), 'Laporan');
-    window.XLSX.writeFile(wb, `Laporan-${from}-to-${to}.xlsx`);
+    window.XLSX.writeFile(wb, 'Laporan-' + from + '-to-' + to + '.xlsx');
     showNotification('Excel diunduh! ✅', 'success');
 }
 
@@ -702,7 +730,7 @@ function downloadExcel() {
 // 4. HALAMAN DASHBOARD
 // ==========================================
 async function initDashboardPage(session) {
-    console.log("📊 Memuat halaman Dashboard...");
+    console.log(" Memuat halaman Dashboard...");
     
     window.currentUser = { 
         name: session.user.user_metadata?.full_name || session.user.email || 'User', 
@@ -746,17 +774,17 @@ async function initDashboardPage(session) {
             const statusColor = row.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400';
             const progressColor = row.progress_percentage === 100 ? 'text-green-400' : (row.progress_percentage >= 50 ? 'text-amber-400' : 'text-red-400');
             
-            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
-                <td class="px-4 py-3 text-sm">${row.user_name || 'User'}</td>
-                <td class="px-4 py-3 text-sm text-white/60">${dateStr} ${timeStr}</td>
-                <td class="px-4 py-3 text-sm font-semibold text-center ${progressColor}">${row.progress_percentage}%</td>
-                <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor}">${row.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
-            </tr>`;
+            return '<tr class="border-b border-white/5 hover:bg-white/5 transition">' +
+                '<td class="px-4 py-3 text-sm">' + (row.user_name || 'User') + '</td>' +
+                '<td class="px-4 py-3 text-sm text-white/60">' + dateStr + ' ' + timeStr + '</td>' +
+                '<td class="px-4 py-3 text-sm font-semibold text-center ' + progressColor + '">' + row.progress_percentage + '%</td>' +
+                '<td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ' + statusColor + '">' + (row.status === 'completed' ? 'Selesai' : 'Proses') + '</span></td>' +
+            '</tr>';
         }).join('');
         
     } catch (error) {
         console.error("❌ Error memuat aktivitas dashboard:", error);
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-red-400">Gagal memuat: ${error.message}</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-red-400">Gagal memuat: ' + error.message + '</td></tr>';
     }
 }
 
@@ -818,16 +846,16 @@ async function loadDashboardEnvironmentHistory() {
             const tempStatus = (row.temperature >= 20 && row.temperature <= 27) ? 'text-green-400' : 'text-amber-400';
             const humStatus = (row.humidity >= 50 && row.humidity <= 70) ? 'text-green-400' : 'text-amber-400';
             
-            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
-                <td class="px-4 py-3 text-sm text-white/60">${dateStr}<br><span class="text-xs">${timeStr}</span></td>
-                <td class="px-4 py-3 text-sm text-center font-semibold ${tempStatus}">${row.temperature}°C</td>
-                <td class="px-4 py-3 text-sm text-center font-semibold ${humStatus}">${row.humidity}%</td>
-            </tr>`;
+            return '<tr class="border-b border-white/5 hover:bg-white/5 transition">' +
+                '<td class="px-4 py-3 text-sm text-white/60">' + dateStr + '<br><span class="text-xs">' + timeStr + '</span></td>' +
+                '<td class="px-4 py-3 text-sm text-center font-semibold ' + tempStatus + '">' + row.temperature + '°C</td>' +
+                '<td class="px-4 py-3 text-sm text-center font-semibold ' + humStatus + '">' + row.humidity + '%</td>' +
+            '</tr>';
         }).join('');
 
     } catch (error) {
         console.error("❌ Error memuat data lingkungan dashboard:", error);
-        tbody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-red-400 text-sm">Gagal memuat</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-red-400 text-sm">Gagal memuat</td></tr>';
     }
 }
 
@@ -898,7 +926,7 @@ function initEnvironmentPage(session) {
 
             } catch (error) {
                 console.error("❌ Gagal menyimpan:", error);
-                showNotification('❌ Gagal: ' + error.message, 'error');
+                showNotification(' Gagal: ' + error.message, 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalBtnText;
             }
@@ -913,8 +941,8 @@ async function checkEnvironmentSubmission(userEmail) {
             .from('environment_readings')
             .select('id, submission_time, created_at')
             .eq('user_email', userEmail)
-            .gte('created_at', `${today}T00:00:00`)
-            .lte('created_at', `${today}T23:59:59`)
+            .gte('created_at', today + 'T00:00:00')
+            .lte('created_at', today + 'T23:59:59')
             .limit(1);
         
         if (error) throw error;
@@ -970,17 +998,17 @@ async function loadEnvironmentHistory() {
             const tempStatus = row.temperature >= 20 && row.temperature <= 27 ? 'text-green-400' : 'text-amber-400';
             const humStatus = row.humidity >= 50 && row.humidity <= 70 ? 'text-green-400' : 'text-amber-400';
             
-            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
-                <td class="px-4 py-3 text-sm">${date}</td>
-                <td class="px-4 py-3 text-sm text-center font-semibold ${tempStatus}">${row.temperature}°C</td>
-                <td class="px-4 py-3 text-sm text-center font-semibold ${humStatus}">${row.humidity}%</td>
-                <td class="px-4 py-3 text-sm text-white/60">${row.notes || '-'}</td>
-            </tr>`;
+            return '<tr class="border-b border-white/5 hover:bg-white/5 transition">' +
+                '<td class="px-4 py-3 text-sm">' + date + '</td>' +
+                '<td class="px-4 py-3 text-sm text-center font-semibold ' + tempStatus + '">' + row.temperature + '°C</td>' +
+                '<td class="px-4 py-3 text-sm text-center font-semibold ' + humStatus + '">' + row.humidity + '%</td>' +
+                '<td class="px-4 py-3 text-sm text-white/60">' + (row.notes || '-') + '</td>' +
+            '</tr>';
         }).join('');
 
     } catch (error) {
         console.error("Error loading environment history:", error);
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-red-400">Gagal memuat: ' + error.message + '</td></tr>';
     }
 }
 
@@ -1071,8 +1099,8 @@ function showNotification(message, type = 'info') {
     const c = colors[type] || colors.info;
     const el = document.createElement('div');
     el.className = 'fixed top-6 right-6 z-[100] px-6 py-4 rounded-xl text-white font-medium';
-    el.style.cssText = `background: ${c.bg}; backdrop-filter: blur(20px); border: 1px solid ${c.border}; box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: slideIn 0.4s ease;`;
-    el.innerHTML = `<div class="flex items-center gap-3"><svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" /></svg><span>${message}</span></div>`;
+    el.style.cssText = 'background: ' + c.bg + '; backdrop-filter: blur(20px); border: 1px solid ' + c.border + '; box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: slideIn 0.4s ease;';
+    el.innerHTML = '<div class="flex items-center gap-3"><svg class="h-5 w-5" style="color: ' + c.icon + '" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="' + (type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z') + '" /></svg><span>' + message + '</span></div>';
     document.body.appendChild(el);
     setTimeout(() => {
         el.style.animation = 'slideOut 0.4s ease forwards';
@@ -1083,6 +1111,6 @@ function showNotification(message, type = 'info') {
 if (!document.getElementById('notif-styles')) {
     const s = document.createElement('style');
     s.id = 'notif-styles';
-    s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
+    s.textContent = '@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }';
     document.head.appendChild(s);
 }
