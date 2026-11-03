@@ -110,12 +110,34 @@ function setupSidebarNavigation() {
 
 function highlightActiveMenu() {
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-    document.querySelectorAll('.nav-item').forEach(link => {
-        link.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
+    const navItems = document.querySelectorAll('.nav-item');
+
+    navItems.forEach(link => {
+        // 1. Reset semua class active/default dulu
+        link.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg', 'menu-disabled');
         link.classList.add('text-white/70');
-        if (link.getAttribute('data-page') === currentPage) {
-            link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
-            link.classList.remove('text-white/70');
+
+        // 2. Cek apakah link ini mengarah ke halaman checklist
+        const href = link.getAttribute('href') || '';
+        const isChecklistLink = href.includes('checklist.html');
+
+        // 3. LOGIKA UTAMA:
+        if (currentPage === 'checklist.html') {
+            // JIKA SEDANG DI CHECKLIST.HTML: Menu checklist AKTIF (bisa diklik & terang)
+            if (isChecklistLink) {
+                link.classList.remove('text-white/70');
+                link.classList.add('text-white');
+                
+                // Highlight khusus untuk menu yang sedang dibuka persis
+                if (link.getAttribute('data-page') === currentPage || (currentPage.includes('checklist.html') && link.getAttribute('data-page') === 'checklist.html')) {
+                    link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
+                }
+            }
+        } else {
+            // JIKA DI HALAMAN LAIN (Dashboard, Laporan, dll): Menu checklist NON-AKTIF
+            if (isChecklistLink) {
+                link.classList.add('menu-disabled');
+            }
         }
     });
 }
