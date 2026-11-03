@@ -450,23 +450,39 @@ textarea.glass-input {
     border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 /* ============================================
-   FINAL FIX: MENU AREA GUDANG NON-AKTIF
+   FINAL FIX - MENU AREA GUDANG NON-AKTIF
    ============================================ */
-.nav-item.menu-disabled {
-  opacity: 0.3 !important;
+.nav-item.menu-disabled,
+.category-btn.menu-disabled,
+a.menu-disabled,
+button.menu-disabled {
+  opacity: 0.25 !important;
   pointer-events: none !important;
   cursor: not-allowed !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  color: rgba(255, 255, 255, 0.3) !important;
+  color: rgba(255, 255, 255, 0.25) !important;
+  text-decoration: none !important;
 }
 
-.nav-item.menu-disabled:hover {
+.nav-item.menu-disabled:hover,
+.category-btn.menu-disabled:hover,
+a.menu-disabled:hover,
+button.menu-disabled:hover {
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.3) !important;
+  color: rgba(255, 255, 255, 0.25) !important;
+  opacity: 0.25 !important;
+  transform: none !important;
 }
 
-.nav-item.menu-disabled svg {
-  opacity: 0.3 !important;
+.nav-item.menu-disabled svg,
+.category-btn.menu-disabled svg,
+a.menu-disabled svg,
+button.menu-disabled svg,
+.nav-item.menu-disabled span,
+.category-btn.menu-disabled span {
+  opacity: 0.25 !important;
+  color: rgba(255, 255, 255, 0.25) !important;
+  pointer-events: none !important;
 }
