@@ -545,7 +545,7 @@ function initAiAssistant() {
     async function getGroqResponse(history, context) {
         if (!GROQ_API_KEY || GROQ_API_KEY === 'gsk_API_KEY_ANDA_DISINI') return "⚠️ API Key Groq belum diatur.";
         
-        const systemPrompt = 'Anda adalah AI Assistant "Gudang Clean". Jawab ramah, profesional, pakai emoji. Maks 150 kata.\nATURAN: \n1. Gunakan DATA KONTEKS di bawah ini. JANGAN mengarang angka.\n2. Anda memiliki akses ke data checklist DAN data lingkungan (suhu, kelembapan). Jika ditanya tentang suhu/kelembapan, gunakan data "recent_environment_readings".\n3. Ingat riwayat chat. \n4. Jika diminta hapus data, pakai tool \'delete_submission\'. \n5. Cek \'has_submitted_today\' untuk status checklist hari ini.\nDATA KONTEKS:\n' + context;
+        const systemPrompt = 'Anda adalah AI Assistant "Mas Eko". Jawab ramah, profesional, pakai emoji. Maks 150 kata.\nATURAN: \n1. Gunakan DATA KONTEKS di bawah ini. JANGAN mengarang angka.\n2. Anda memiliki akses ke data checklist DAN data lingkungan (suhu, kelembapan). Jika ditanya tentang suhu/kelembapan, gunakan data "recent_environment_readings".\n3. Ingat riwayat chat. \n4. Jika diminta hapus data, pakai tool \'delete_submission\'. \n5. Cek \'has_submitted_today\' untuk status checklist hari ini.\nDATA KONTEKS:\n' + context;
 
         const tools = [{
             type: "function",
