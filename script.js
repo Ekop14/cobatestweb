@@ -107,54 +107,43 @@ function setupSidebarNavigation() {
         });
     });
 }
-
-// ==========================================
-// FUNGSI HIGHLIGHT MENU (LOGIKA 100% ROBUST)
-// ==========================================
 function highlightActiveMenu() {
-    const currentUrl = window.location.href; // Menggunakan href agar termasuk ?query string
+    const currentUrl = window.location.href;
     const isOnChecklist = currentUrl.includes('checklist.html');
     const navItems = document.querySelectorAll('.nav-item');
 
     navItems.forEach(link => {
-        // 1. Reset semua class styling agar bersih dari awal
-        link.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg', 'menu-disabled', 'text-white/70');
-        
+        const text = link.textContent.trim().toLowerCase();
         const href = link.getAttribute('href') || '';
-        
-        // 2. Identifikasi jenis menu berdasarkan href
-        const isMainChecklist = href.includes('checklist.html') && !href.includes('?'); // Menu "Checklist" utama
-        const isAreaGudang = href.includes('checklist.html') && href.includes('?');     // Menu "Area Gudang" (pakai ?)
-        const isOtherMenu = !href.includes('checklist.html');                           // Dashboard, Laporan, dll
 
-        // 3. Terapkan logika styling
-        if (isMainChecklist || isOtherMenu) {
-            // MENU UTAMA: SELALU AKTIF dan bisa diklik dari mana saja
-            link.classList.add('text-white/70');
-            
-            // Highlight jika URL saat ini cocok dengan href menu
-            if (currentUrl.includes(href) && href !== '#') {
-                link.classList.remove('text-white/70');
-                link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
-            }
-        } 
-        else if (isAreaGudang) {
-            // MENU AREA GUDANG: Hanya aktif jika sedang di halaman checklist
+        // 1. Reset semua class styling
+        link.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg', 'menu-disabled', 'text-white/70');
+
+        // 2. Deteksi menu "Area Gudang" berdasarkan teksnya
+        const areaGudangKeywords = ['semua area', 'lantai', 'rak', 'loading', 'fasilitas'];
+        const isAreaGudang = areaGudangKeywords.some(keyword => text.includes(keyword));
+
+        if (isAreaGudang) {
+            // === LOGIKA UNTUK MENU AREA GUDANG ===
             if (isOnChecklist) {
+                // Jika di halaman Checklist: AKTIF
                 link.classList.add('text-white');
-                
-                // Highlight jika query string cocok (misal: ?area=lantai)
-                if (currentUrl.includes(href)) {
+                if (href && href !== '#' && currentUrl.includes(href)) {
                     link.classList.add('active', 'bg-white/10', 'border', 'border-white/10', 'shadow-lg');
                 }
             } else {
-                // Di luar checklist: MATI total (abu-abu & tidak bisa diklik)
+                // Jika di halaman LAIN (Laporan, Dashboard, dll): MATI TOTAL
                 link.classList.add('menu-disabled');
+            }
+        } else {
+            // === LOGIKA UNTUK MENU UTAMA (Dashboard, Lingkungan, Checklist, Laporan) ===
+            link.classList.add('text-white/70');
+            if (href && href !== '#' && currentUrl.includes(href)) {
+                link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
             }
         }
     });
 }
-
 function setupSidebarToggle() {
     const sidebar = document.getElementById('sidebar');
     const toggle = document.getElementById('sidebarToggle');
