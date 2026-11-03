@@ -109,38 +109,52 @@ function setupSidebarNavigation() {
 }
 
 function highlightActiveMenu() {
-    // Gunakan pathname (lebih aman, mengabaikan ?query string di belakang URL)
     const currentPath = window.location.pathname;
     const navItems = document.querySelectorAll('.nav-item');
 
     navItems.forEach(link => {
-        // 1. Reset semua class styling dulu agar bersih
+        // Reset semua class styling
         link.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg', 'menu-disabled');
         link.classList.add('text-white/70');
 
-        // 2. Cek apakah link ini mengarah ke halaman checklist
+        // Cek href link
         const href = link.getAttribute('href') || '';
-        const isChecklistLink = href.includes('checklist.html');
-
-        // 3. Cek apakah kita SEDANG BERADA di halaman checklist (aman untuk URL dengan ?query)
-        const isCurrentlyOnChecklist = currentPath.includes('checklist.html');
-
-        // 4. LOGIKA UTAMA:
-        if (isCurrentlyOnChecklist) {
-            // JIKA SEDANG DI HALAMAN CHECKLIST: Menu checklist AKTIF & bisa diklik
-            if (isChecklistLink) {
+        
+        // 1. Menu "Checklist" di MENU UTAMA - SELALU AKTIF
+        if (href === 'checklist.html') {
+            link.classList.remove('text-white/70');
+            link.classList.add('text-white');
+            
+            // Highlight jika sedang di checklist.html
+            if (currentPath.includes('checklist.html')) {
+                link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
+            }
+        }
+        // 2. Menu di "AREA GUDANG" (filter kategori) - Hanya aktif di checklist.html
+        else if (href.includes('checklist.html?') || href.includes('?area=')) {
+            const isCurrentlyOnChecklist = currentPath.includes('checklist.html');
+            
+            if (isCurrentlyOnChecklist) {
+                // Aktif jika sedang di checklist.html
                 link.classList.remove('text-white/70');
                 link.classList.add('text-white');
                 
-                // Beri highlight khusus (background & border) pada menu yang persis sedang dibuka
-                if (href === currentPath || (currentPath.endsWith('checklist.html') && href.includes('checklist.html'))) {
+                // Highlight jika href cocok dengan URL saat ini
+                if (href === currentPath || currentPath.includes(href.split('?')[1])) {
                     link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
                 }
-            }
-        } else {
-            // JIKA DI HALAMAN LAIN (Dashboard, Laporan, dll): Menu checklist NON-AKTIF (abu-abu)
-            if (isChecklistLink) {
+            } else {
+                // Non-aktif (abu-abu) jika di halaman lain
                 link.classList.add('menu-disabled');
+            }
+        }
+        // 3. Menu lainnya (Dashboard, Lingkungan, Laporan) - selalu aktif
+        else {
+            link.classList.remove('text-white/70');
+            link.classList.add('text-white');
+            
+            if (href === currentPath || (href !== 'index.html' && currentPath.includes(href))) {
+                link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
             }
         }
     });
