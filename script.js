@@ -109,11 +109,12 @@ function setupSidebarNavigation() {
 }
 
 function highlightActiveMenu() {
-    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    // Gunakan pathname (lebih aman, mengabaikan ?query string di belakang URL)
+    const currentPath = window.location.pathname;
     const navItems = document.querySelectorAll('.nav-item');
 
     navItems.forEach(link => {
-        // 1. Reset semua class active/default dulu
+        // 1. Reset semua class styling dulu agar bersih
         link.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg', 'menu-disabled');
         link.classList.add('text-white/70');
 
@@ -121,20 +122,23 @@ function highlightActiveMenu() {
         const href = link.getAttribute('href') || '';
         const isChecklistLink = href.includes('checklist.html');
 
-        // 3. LOGIKA UTAMA:
-        if (currentPage === 'checklist.html') {
-            // JIKA SEDANG DI CHECKLIST.HTML: Menu checklist AKTIF (bisa diklik & terang)
+        // 3. Cek apakah kita SEDANG BERADA di halaman checklist (aman untuk URL dengan ?query)
+        const isCurrentlyOnChecklist = currentPath.includes('checklist.html');
+
+        // 4. LOGIKA UTAMA:
+        if (isCurrentlyOnChecklist) {
+            // JIKA SEDANG DI HALAMAN CHECKLIST: Menu checklist AKTIF & bisa diklik
             if (isChecklistLink) {
                 link.classList.remove('text-white/70');
                 link.classList.add('text-white');
                 
-                // Highlight khusus untuk menu yang sedang dibuka persis
-                if (link.getAttribute('data-page') === currentPage || (currentPage.includes('checklist.html') && link.getAttribute('data-page') === 'checklist.html')) {
+                // Beri highlight khusus (background & border) pada menu yang persis sedang dibuka
+                if (href === currentPath || (currentPath.endsWith('checklist.html') && href.includes('checklist.html'))) {
                     link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
                 }
             }
         } else {
-            // JIKA DI HALAMAN LAIN (Dashboard, Laporan, dll): Menu checklist NON-AKTIF
+            // JIKA DI HALAMAN LAIN (Dashboard, Laporan, dll): Menu checklist NON-AKTIF (abu-abu)
             if (isChecklistLink) {
                 link.classList.add('menu-disabled');
             }
