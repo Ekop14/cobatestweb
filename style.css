@@ -450,19 +450,23 @@ textarea.glass-input {
     border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 /* ============================================
-   MENU NON-AKTIF (KHUSUS AREA GUDANG DI LUAR CHECKLIST)
+   FINAL FIX: MENU AREA GUDANG NON-AKTIF
    ============================================ */
 .nav-item.menu-disabled {
   opacity: 0.3 !important;
-  pointer-events: none !important;       /* MEMATIKAN KLIK 100% */
+  pointer-events: none !important;
   cursor: not-allowed !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  color: rgba(255, 255, 255, 0.4) !important; /* PAKSA warna teks jadi abu-abu pudar */
+  color: rgba(255, 255, 255, 0.3) !important;
 }
 
-/* Pastikan icon di dalam menu yang disabled juga ikut pudar */
+.nav-item.menu-disabled:hover {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
 .nav-item.menu-disabled svg {
-  opacity: 0.4 !important;
+  opacity: 0.3 !important;
 }
