@@ -450,7 +450,7 @@ textarea.glass-input {
     border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 /* ============================================
-   MENU NON-AKTIF (KHUSUS DI LUAR HALAMAN CHECKLIST)
+   MENU NON-AKTIF (KHUSUS AREA GUDANG DI LUAR CHECKLIST)
    ============================================ */
 .nav-item.menu-disabled {
   opacity: 0.3 !important;
