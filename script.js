@@ -115,8 +115,9 @@ function highlightActiveMenu() {
     console.log('🔍 [DEBUG] Halaman saat ini:', currentPath);
     console.log('🔍 [DEBUG] Apakah di checklist?', isOnChecklist);
     
-    const navItems = document.querySelectorAll('.nav-item');
-    console.log('🔍 [DEBUG] Ditemukan', navItems.length, 'menu nav-item');
+    // PERBAIKAN: Target .nav-item DAN .category-btn
+    const menuItems = document.querySelectorAll('.nav-item, .category-btn');
+    console.log('🔍 [DEBUG] Ditemukan', menuItems.length, 'menu items (.nav-item atau .category-btn)');
 
     // Kata kunci untuk mendeteksi menu Area Gudang
     const areaGudangKeywords = [
@@ -127,7 +128,7 @@ function highlightActiveMenu() {
         'fasilitas'
     ];
 
-    navItems.forEach((link, index) => {
+    menuItems.forEach((link, index) => {
         const text = link.textContent.trim().toLowerCase();
         const href = link.getAttribute('href') || '';
         
