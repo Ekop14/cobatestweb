@@ -107,48 +107,49 @@ function setupSidebarNavigation() {
         });
     });
 }
+
+// ==========================================
+// FUNGSI HIGHLIGHT MENU (LOGIKA 100% ROBUST)
+// ==========================================
 function highlightActiveMenu() {
-    const currentPath = window.location.pathname;
-    // Cek apakah kita sedang berada di halaman checklist (aman untuk URL dengan ?query)
-    const isOnChecklist = currentPath.includes('checklist.html');
+    const currentUrl = window.location.href; // Menggunakan href agar termasuk ?query string
+    const isOnChecklist = currentUrl.includes('checklist.html');
     const navItems = document.querySelectorAll('.nav-item');
 
     navItems.forEach(link => {
-        // 1. Reset SEMUA class styling agar benar-benar bersih dari awal
+        // 1. Reset semua class styling agar bersih dari awal
         link.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg', 'menu-disabled', 'text-white/70');
         
         const href = link.getAttribute('href') || '';
-        // Cek apakah link ini berhubungan dengan checklist (baik "checklist.html" maupun "checklist.html?area=...")
-        const isChecklistRelated = href.includes('checklist.html');
+        
+        // 2. Identifikasi jenis menu berdasarkan href
+        const isMainChecklist = href.includes('checklist.html') && !href.includes('?'); // Menu "Checklist" utama
+        const isAreaGudang = href.includes('checklist.html') && href.includes('?');     // Menu "Area Gudang" (pakai ?)
+        const isOtherMenu = !href.includes('checklist.html');                           // Dashboard, Laporan, dll
 
-        if (isOnChecklist) {
-            // === KONDISI: SEDANG DI HALAMAN CHECKLIST ===
-            if (isChecklistRelated) {
-                // Tampilkan warna putih (aktif)
+        // 3. Terapkan logika styling
+        if (isMainChecklist || isOtherMenu) {
+            // MENU UTAMA: SELALU AKTIF dan bisa diklik dari mana saja
+            link.classList.add('text-white/70');
+            
+            // Highlight jika URL saat ini cocok dengan href menu
+            if (currentUrl.includes(href) && href !== '#') {
+                link.classList.remove('text-white/70');
+                link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
+            }
+        } 
+        else if (isAreaGudang) {
+            // MENU AREA GUDANG: Hanya aktif jika sedang di halaman checklist
+            if (isOnChecklist) {
                 link.classList.add('text-white');
                 
-                // Beri highlight background hanya jika URL benar-benar cocok
-                const currentQuery = currentPath.split('?')[1];
-                const linkQuery = href.split('?')[1];
-                
-                if (href === currentPath || (href === 'checklist.html' && !currentQuery) || (currentQuery && linkQuery && currentQuery.includes(linkQuery))) {
+                // Highlight jika query string cocok (misal: ?area=lantai)
+                if (currentUrl.includes(href)) {
                     link.classList.add('active', 'bg-white/10', 'border', 'border-white/10', 'shadow-lg');
                 }
             } else {
-                // Menu lain (Dashboard, Laporan, dll) tampil normal (agak redup)
-                link.classList.add('text-white/70');
-            }
-        } else {
-            // === KONDISI: SEDANG DI HALAMAN LAIN (Dashboard, Laporan, Lingkungan, dll) ===
-            if (isChecklistRelated) {
-                // PAKSA NON-AKTIF untuk SEMUA link yang mengarah ke checklist (Termasuk Area Gudang)
+                // Di luar checklist: MATI total (abu-abu & tidak bisa diklik)
                 link.classList.add('menu-disabled');
-            } else {
-                // Menu lain tampil normal, dan aktif jika cocok dengan halaman saat ini
-                link.classList.add('text-white/70');
-                if (href === currentPath || (href !== 'index.html' && currentPath.includes(href))) {
-                    link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
-                }
             }
         }
     });
@@ -442,7 +443,6 @@ function initAiAssistant() {
         }
     }
 
-    // ✅ FUNGSI INI SUDAH DIUPDATE UNTUK MENGAMBIL DATA LINGKUNGAN
     async function getFullSupabaseContext() {
         const supabase = window.supabaseClient;
         if (!supabase) return "Tidak ada koneksi database.";
@@ -471,7 +471,7 @@ function initAiAssistant() {
             }
             const { data: recent } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, created_at, submission_time').order('created_at', { ascending: false }).limit(5);
 
-            // 2. Data Lingkungan (BARU: Agar AI bisa baca suhu & kelembapan)
+            // 2. Data Lingkungan
             const { data: recentEnvironment } = await supabase
                 .from('environment_readings')
                 .select('user_name, temperature, humidity, notes, submission_time, created_at')
@@ -504,15 +504,11 @@ function initAiAssistant() {
                 average_progress: avgProgress + '%', 
                 completed_submissions: completedCount || 0, 
                 recent_activity: recent || [],
-                
-                // Data Lingkungan (BARU)
                 recent_environment_readings: recentEnvironment || [],
-
                 yesterday_date_str: yesterday.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }), 
                 yesterday_submissions_count: yesterdayCount || 0, 
                 yesterday_avg_progress: yesterdayAvg + '%', 
                 yesterday_details: yesterdayDetails || [],
-                
                 current_user: window.currentUser?.name || 'User', 
                 current_user_email: currentUserEmail, 
                 current_date: today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
@@ -525,7 +521,6 @@ function initAiAssistant() {
         }
     }
 
-    // ✅ SYSTEM PROMPT DIUPDATE AGAR AI TAHU CARA PAKAI DATA LINGKUNGAN
     async function getGroqResponse(history, context) {
         if (!GROQ_API_KEY || GROQ_API_KEY === 'gsk_API_KEY_ANDA_DISINI') return "⚠️ API Key Groq belum diatur.";
         
