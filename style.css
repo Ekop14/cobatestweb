@@ -449,3 +449,15 @@ textarea.glass-input {
     -webkit-backdrop-filter: blur(40px) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
+/* ============================================
+   MENU NON-AKTIF (KHUSUS DI LUAR HALAMAN CHECKLIST)
+   ============================================ */
+.nav-item.menu-disabled {
+  opacity: 0.3 !important;           /* Membuat sangat pudar / abu-abu */
+  pointer-events: none !important;   /* KUNCI: Mematikan fungsi klik sama sekali */
+  cursor: not-allowed !important;    /* Mengubah kursor jadi tanda "dilarang" */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
