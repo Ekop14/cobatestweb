@@ -109,40 +109,69 @@ function setupSidebarNavigation() {
 }
 function highlightActiveMenu() {
     const currentUrl = window.location.href;
-    const isOnChecklist = currentUrl.includes('checklist.html');
+    const currentPath = window.location.pathname;
+    const isOnChecklist = currentPath.includes('checklist.html') || currentUrl.includes('checklist.html');
+    
+    console.log('🔍 [DEBUG] Halaman saat ini:', currentPath);
+    console.log('🔍 [DEBUG] Apakah di checklist?', isOnChecklist);
+    
     const navItems = document.querySelectorAll('.nav-item');
+    console.log('🔍 [DEBUG] Ditemukan', navItems.length, 'menu nav-item');
 
-    navItems.forEach(link => {
+    // Kata kunci untuk mendeteksi menu Area Gudang
+    const areaGudangKeywords = [
+        'semua area', 
+        'lantai', 
+        'rak', 
+        'loading', 
+        'fasilitas'
+    ];
+
+    navItems.forEach((link, index) => {
         const text = link.textContent.trim().toLowerCase();
         const href = link.getAttribute('href') || '';
-
-        // 1. Reset semua class styling
+        
+        // Reset SEMUA class yang mungkin ada
         link.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg', 'menu-disabled', 'text-white/70');
+        link.style.opacity = '';
+        link.style.pointerEvents = '';
+        link.style.cursor = '';
 
-        // 2. Deteksi menu "Area Gudang" berdasarkan teksnya
-        const areaGudangKeywords = ['semua area', 'lantai', 'rak', 'loading', 'fasilitas'];
+        // Cek apakah ini menu Area Gudang
         const isAreaGudang = areaGudangKeywords.some(keyword => text.includes(keyword));
-
+        
         if (isAreaGudang) {
-            // === LOGIKA UNTUK MENU AREA GUDANG ===
+            console.log(`📋 [DEBUG] Menu #${index}: "${text}" - Area Gudang: YA`);
+            
             if (isOnChecklist) {
-                // Jika di halaman Checklist: AKTIF
+                // AKTIF - sedang di halaman checklist
                 link.classList.add('text-white');
-                if (href && href !== '#' && currentUrl.includes(href)) {
+                if (href && href !== '#' && (currentUrl.includes(href) || currentPath.includes(href))) {
                     link.classList.add('active', 'bg-white/10', 'border', 'border-white/10', 'shadow-lg');
                 }
+                console.log(`✅ [DEBUG] Menu "${text}" AKTIF (karena di checklist)`);
             } else {
-                // Jika di halaman LAIN (Laporan, Dashboard, dll): MATI TOTAL
+                // NON-AKTIF - sedang di halaman lain
                 link.classList.add('menu-disabled');
+                // Force inline styles sebagai backup
+                link.style.opacity = '0.25';
+                link.style.pointerEvents = 'none';
+                link.style.cursor = 'not-allowed';
+                console.log(`❌ [DEBUG] Menu "${text}" NON-AKTIF (karena di luar checklist)`);
             }
         } else {
-            // === LOGIKA UNTUK MENU UTAMA (Dashboard, Lingkungan, Checklist, Laporan) ===
+            // Menu utama (Dashboard, Lingkungan, Checklist, Laporan)
+            console.log(` [DEBUG] Menu #${index}: "${text}" - Menu Utama`);
             link.classList.add('text-white/70');
-            if (href && href !== '#' && currentUrl.includes(href)) {
+            
+            if (href && href !== '#' && (currentUrl.includes(href) || currentPath.includes(href))) {
                 link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
+                console.log(`✅ [DEBUG] Menu "${text}" AKTIF (highlighted)`);
             }
         }
     });
+    
+    console.log('✅ [DEBUG] highlightActiveMenu selesai dijalankan');
 }
 function setupSidebarToggle() {
     const sidebar = document.getElementById('sidebar');
