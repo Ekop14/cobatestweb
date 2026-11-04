@@ -512,21 +512,21 @@ function initAiAssistant() {
     }
 
     // ==========================================
-    // FUNGSI AI RESPONSE (GOOGLE GEMINI COMPATIBLE)
+    // FUNGSI AI RESPONSE (GOOGLE GEMINI COMPATIBLE) - SUDAH DIPERBAIKI
     // ==========================================
-        async function getAIResponse(history, context) {
+    async function getAIResponse(history, context) {
         const apiKey = window.GEMINI_API_KEY;
         const apiUrl = window.AI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
         const apiModel = window.AI_MODEL || 'gemini-1.5-flash';
 
         if (!apiKey || apiKey.includes('GANTI')) {
-            return "⚠️ API Key Google Gemini belum diatur di config.js.";
+            return "⚠️ API Key Google Gemini belum diatur dengan benar di config.js.";
         }
         
         const systemPrompt = `Anda adalah AI Assistant bernama "Tanya Mas Eko". Jawab ramah, profesional, pakai emoji. Maks 150 kata.
 ATURAN: 
 1. Gunakan DATA KONTEKS di bawah ini. JANGAN mengarang angka.
-2. Anda memiliki akses ke data checklist DAN data lingkungan.
+2. Anda memiliki akses ke data checklist DAN data lingkungan (suhu, kelembapan). Jika ditanya tentang suhu/kelembapan, gunakan data "recent_environment_readings".
 3. Ingat riwayat chat. 
 4. Jika diminta hapus data, pakai tool 'delete_submission'. 
 5. Cek 'has_submitted_today' untuk status checklist hari ini.
@@ -546,8 +546,7 @@ DATA KONTEKS:\n${context}`;
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`  // ← Untuk endpoint OpenAI-compatible
-                        
+                    'Authorization': `Bearer ${apiKey}` // <-- INI KUNCINYA: Pakai Bearer untuk endpoint OpenAI-compatible
                 },
                 body: JSON.stringify({ 
                     model: apiModel, 
@@ -577,7 +576,7 @@ DATA KONTEKS:\n${context}`;
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`  // ← Untuk endpoint OpenAI-compatible
+                            'Authorization': `Bearer ${apiKey}` // <-- JUGA DI SINI
                         },
                         body: JSON.stringify({ 
                             model: apiModel, 
@@ -593,7 +592,8 @@ DATA KONTEKS:\n${context}`;
             throw new Error('Gagal menghubungi AI: ' + error.message);
         }
     }
-}   
+} // <-- KURUNG KURAWAL PENUTUP initAiAssistant SUDAH BENAR DI SINI
+
 // ==========================================
 // 3. HALAMAN LAPORAN
 // ==========================================
