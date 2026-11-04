@@ -1,3 +1,4 @@
+
 // ==========================================
 // SCRIPT.JS - VERSI FINAL (AI BACA SEMUA DATA: CHECKLIST + LINGKUNGAN)
 // ==========================================
@@ -113,67 +114,39 @@ function highlightActiveMenu() {
     const currentPath = window.location.pathname;
     const isOnChecklist = currentPath.includes('checklist.html') || currentUrl.includes('checklist.html');
     
-    console.log('🔍 [DEBUG] Halaman saat ini:', currentPath);
-    console.log('🔍 [DEBUG] Apakah di checklist?', isOnChecklist);
-    
-    // PERBAIKAN: Target .nav-item DAN .category-btn
     const menuItems = document.querySelectorAll('.nav-item, .category-btn');
-    console.log('🔍 [DEBUG] Ditemukan', menuItems.length, 'menu items (.nav-item atau .category-btn)');
-
-    // Kata kunci untuk mendeteksi menu Area Gudang
-    const areaGudangKeywords = [
-        'semua area', 
-        'lantai', 
-        'rak', 
-        'loading', 
-        'fasilitas'
-    ];
+    const areaGudangKeywords = ['semua area', 'lantai', 'rak', 'loading', 'fasilitas'];
 
     menuItems.forEach((link, index) => {
         const text = link.textContent.trim().toLowerCase();
         const href = link.getAttribute('href') || '';
         
-        // Reset SEMUA class yang mungkin ada
         link.classList.remove('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg', 'menu-disabled', 'text-white/70');
         link.style.opacity = '';
         link.style.pointerEvents = '';
         link.style.cursor = '';
 
-        // Cek apakah ini menu Area Gudang
         const isAreaGudang = areaGudangKeywords.some(keyword => text.includes(keyword));
         
         if (isAreaGudang) {
-            console.log('📋 [DEBUG] Menu #' + index + ': "' + text + '" - Area Gudang: YA');
-            
             if (isOnChecklist) {
-                // AKTIF - sedang di halaman checklist
                 link.classList.add('text-white');
                 if (href && href !== '#' && (currentUrl.includes(href) || currentPath.includes(href))) {
                     link.classList.add('active', 'bg-white/10', 'border', 'border-white/10', 'shadow-lg');
                 }
-                console.log('✅ [DEBUG] Menu "' + text + '" AKTIF (karena di checklist)');
             } else {
-                // NON-AKTIF - sedang di halaman lain
                 link.classList.add('menu-disabled');
-                // Force inline styles sebagai backup
                 link.style.opacity = '0.25';
                 link.style.pointerEvents = 'none';
                 link.style.cursor = 'not-allowed';
-                console.log('❌ [DEBUG] Menu "' + text + '" NON-AKTIF (karena di luar checklist)');
             }
         } else {
-            // Menu utama (Dashboard, Lingkungan, Checklist, Laporan)
-            console.log(' [DEBUG] Menu #' + index + ': "' + text + '" - Menu Utama');
             link.classList.add('text-white/70');
-            
             if (href && href !== '#' && (currentUrl.includes(href) || currentPath.includes(href))) {
                 link.classList.add('active', 'bg-white/10', 'text-white', 'border', 'border-white/10', 'shadow-lg');
-                console.log('✅ [DEBUG] Menu "' + text + '" AKTIF (highlighted)');
             }
         }
     });
-    
-    console.log('✅ [DEBUG] highlightActiveMenu selesai dijalankan');
 }
 
 function setupSidebarToggle() {
@@ -411,7 +384,10 @@ function initAiAssistant() {
         try {
             const context = await getFullSupabaseContext();
             chatHistory.push({ role: 'user', content: question });
-            const answer = await getGroqResponse(chatHistory, context);
+            
+            // PANGGIL FUNGSI AI YANG SUDAH DIUPDATE KE OPENROUTER
+            const answer = await getAIResponse(chatHistory, context);
+            
             removeTypingIndicator(typingId);
             addMessage(answer, 'ai');
             chatHistory.push({ role: 'assistant', content: answer });
@@ -474,7 +450,6 @@ function initAiAssistant() {
             const todayStr = today.toISOString().split('T')[0];
             const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-            // 1. Data Checklist
             const { count: todayCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).gte('created_at', todayStr + 'T00:00:00');
             const { count: totalCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true });
             const { count: completedCount } = await supabase.from('checklist_submissions').select('*', { count: 'exact', head: true }).eq('status', 'completed');
@@ -492,14 +467,12 @@ function initAiAssistant() {
             }
             const { data: recent } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, created_at, submission_time').order('created_at', { ascending: false }).limit(5);
 
-            // 2. Data Lingkungan
             const { data: recentEnvironment } = await supabase
                 .from('environment_readings')
                 .select('user_name, temperature, humidity, notes, submission_time, created_at')
                 .order('created_at', { ascending: false })
                 .limit(5);
 
-            // 3. Data User Saat Ini
             const currentUserEmail = window.currentUser?.email || '';
             const { data: myTodaySubmission } = await supabase.from('checklist_submissions').select('id, user_name, progress_percentage, status, submission_time, created_at').eq('user_email', currentUserEmail).gte('created_at', todayStr + 'T00:00:00').lte('created_at', todayStr + 'T23:59:59').order('created_at', { ascending: false }).limit(1);
 
@@ -518,7 +491,6 @@ function initAiAssistant() {
                 myYesterdayInfo = 'Submission kemarin (' + yesterdayStr + '): ID ' + sub.id + ', progress ' + sub.progress_percentage + '%, jam ' + (sub.submission_time || '-') + '.';
             }
 
-            // 4. Gabungkan Semua Data ke dalam JSON
             return JSON.stringify({
                 today_submissions: todayCount || 0, 
                 total_submissions: totalCount || 0, 
@@ -542,10 +514,22 @@ function initAiAssistant() {
         }
     }
 
-    async function getGroqResponse(history, context) {
-        if (!GROQ_API_KEY || GROQ_API_KEY === 'gsk_API_KEY_ANDA_DISINI') return "⚠️ API Key Groq belum diatur.";
+    // ==========================================
+    // FUNGSI AI RESPONSE (OPENROUTER)
+    // ==========================================
+    async function getAIResponse(history, context) {
+        if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxx') {
+            return "⚠️ API Key OpenRouter belum diatur. Silakan cek konfigurasi di bagian atas script.js.";
+        }
         
-        const systemPrompt = 'Anda adalah AI Assistant "Mas Eko". Jawab ramah, profesional, pakai emoji. Maks 150 kata.\nATURAN: \n1. Gunakan DATA KONTEKS di bawah ini. JANGAN mengarang angka.\n2. Anda memiliki akses ke data checklist DAN data lingkungan (suhu, kelembapan). Jika ditanya tentang suhu/kelembapan, gunakan data "recent_environment_readings".\n3. Ingat riwayat chat. \n4. Jika diminta hapus data, pakai tool \'delete_submission\'. \n5. Cek \'has_submitted_today\' untuk status checklist hari ini.\nDATA KONTEKS:\n' + context;
+        const systemPrompt = `Anda adalah AI Assistant bernama "Tanya Mas Eko". Jawab ramah, profesional, pakai emoji. Maks 150 kata.
+ATURAN: 
+1. Gunakan DATA KONTEKS di bawah ini. JANGAN mengarang angka.
+2. Anda memiliki akses ke data checklist DAN data lingkungan (suhu, kelembapan). Jika ditanya tentang suhu/kelembapan, gunakan data "recent_environment_readings".
+3. Ingat riwayat chat. 
+4. Jika diminta hapus data, pakai tool 'delete_submission'. 
+5. Cek 'has_submitted_today' untuk status checklist hari ini.
+DATA KONTEKS:\n${context}`;
 
         const tools = [{
             type: "function",
@@ -557,15 +541,31 @@ function initAiAssistant() {
         }];
 
         try {
-            const response = await fetch(GROQ_API_URL, {
+            const response = await fetch(OPENROUTER_API_URL, {
                 method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + GROQ_API_KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'system', content: systemPrompt }, ...history], tools: tools, tool_choice: "auto" })
+                headers: { 
+                    'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': window.location.href, // Wajib untuk OpenRouter
+                    'X-Title': 'Gudang Clean AI' // Wajib untuk OpenRouter
+                },
+                body: JSON.stringify({ 
+                    model: OPENROUTER_MODEL, 
+                    messages: [{ role: 'system', content: systemPrompt }, ...history], 
+                    tools: tools, 
+                    tool_choice: "auto" 
+                })
             });
-            if (!response.ok) throw new Error('HTTP ' + response.status);
+            
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(`HTTP ${response.status}: ${errData.error?.message || 'Gagal menghubungi server'}`);
+            }
+            
             const data = await response.json();
             const message = data.choices[0].message;
 
+            // Logika Function Calling (Hapus Data)
             if (message.tool_calls && message.tool_calls.length > 0) {
                 const toolCall = message.tool_calls[0];
                 history.push(message);
@@ -573,10 +573,17 @@ function initAiAssistant() {
                     const args = JSON.parse(toolCall.function.arguments);
                     const result = await executeDeleteSubmission(args.submission_id, args.reason);
                     history.push({ role: "tool", tool_call_id: toolCall.id, content: result });
-                    const finalRes = await fetch(GROQ_API_URL, {
+                    
+                    const finalRes = await fetch(OPENROUTER_API_URL, {
                         method: 'POST',
-                        headers: { 'Authorization': 'Bearer ' + GROQ_API_KEY, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'system', content: systemPrompt }, ...history] })
+                        headers: { 
+                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 
+                            'Content-Type': 'application/json' 
+                        },
+                        body: JSON.stringify({ 
+                            model: OPENROUTER_MODEL, 
+                            messages: [{ role: 'system', content: systemPrompt }, ...history] 
+                        })
                     });
                     const finalData = await finalRes.json();
                     return finalData.choices[0].message.content;
@@ -613,22 +620,14 @@ async function loadReports() {
     const to = document.getElementById('filterTo')?.value || new Date().toISOString().split('T')[0];
     const tableBody = document.getElementById('reportsTableBody');
     
-    // PERBAIKAN: Aktifkan/nonaktifkan tombol PDF/Excel
     const pdfBtn = document.getElementById('downloadPdfBtn');
     const excelBtn = document.getElementById('downloadExcelBtn');
     const reportCountText = document.getElementById('reportCountText');
     
     if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>';
     
-    // Disable tombol saat loading
-    if (pdfBtn) { 
-        pdfBtn.disabled = true; 
-        pdfBtn.classList.add('opacity-50', 'cursor-not-allowed'); 
-    }
-    if (excelBtn) { 
-        excelBtn.disabled = true; 
-        excelBtn.classList.add('opacity-50', 'cursor-not-allowed'); 
-    }
+    if (pdfBtn) { pdfBtn.disabled = true; pdfBtn.classList.add('opacity-50', 'cursor-not-allowed'); }
+    if (excelBtn) { excelBtn.disabled = true; excelBtn.classList.add('opacity-50', 'cursor-not-allowed'); }
     if (reportCountText) reportCountText.textContent = "Memuat data...";
     
     try {
@@ -640,16 +639,9 @@ async function loadReports() {
         
         if (reportCountText) reportCountText.textContent = 'Menampilkan ' + filteredReports.length + ' laporan';
         
-        // Enable tombol jika ada data
         if (filteredReports.length > 0) {
-            if (pdfBtn) { 
-                pdfBtn.disabled = false; 
-                pdfBtn.classList.remove('opacity-50', 'cursor-not-allowed'); 
-            }
-            if (excelBtn) { 
-                excelBtn.disabled = false; 
-                excelBtn.classList.remove('opacity-50', 'cursor-not-allowed'); 
-            }
+            if (pdfBtn) { pdfBtn.disabled = false; pdfBtn.classList.remove('opacity-50', 'cursor-not-allowed'); }
+            if (excelBtn) { excelBtn.disabled = false; excelBtn.classList.remove('opacity-50', 'cursor-not-allowed'); }
         }
     } catch (error) {
         if (tableBody) tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-red-400 py-8">Gagal: ' + error.message + '</td></tr>';
