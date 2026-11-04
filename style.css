@@ -486,3 +486,127 @@ button.menu-disabled svg,
   color: rgba(255, 255, 255, 0.25) !important;
   pointer-events: none !important;
 }
+/* ============================================
+   GLASS EMBOSSED / 3D GLASS CARDS
+   ============================================ */
+.stat-card {
+  /* Background gradient untuk efek highlight kaca */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.02) 100%
+  ) !important;
+  
+  /* Border highlight di atas-kiri */
+  border-top: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  
+  /* Double shadow: highlight terang + depth gelap = efek 3D */
+  box-shadow:
+    /* Highlight terang di atas-kiri (efek cahaya) */
+    inset 2px 2px 4px rgba(255, 255, 255, 0.15),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.05),
+    /* Shadow gelap di bawah-kanan (efek kedalaman) */
+    6px 6px 20px rgba(0, 0, 0, 0.4),
+    -2px -2px 10px rgba(255, 255, 255, 0.03) !important;
+  
+  /* Blur kaca */
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  
+  /* Sudut lebih bulat untuk kesan premium */
+  border-radius: 20px !important;
+  padding: 1.5rem !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Efek kilau diagonal (opsional, bikin makin mewah) */
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+.stat-card:hover::before {
+  left: 100%;
+}
+
+.stat-card:hover {
+  /* Saat hover, kartu "terangkat" */
+  transform: translateY(-6px) scale(1.02) !important;
+  box-shadow:
+    inset 2px 2px 6px rgba(255, 255, 255, 0.2),
+    inset -1px -1px 4px rgba(255, 255, 255, 0.08),
+    10px 10px 30px rgba(0, 0, 0, 0.5),
+    -3px -3px 15px rgba(255, 255, 255, 0.05) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.35) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Efek "ditekan" saat diklik */
+.stat-card:active {
+  transform: translateY(-2px) scale(0.98) !important;
+  box-shadow:
+    inset 3px 3px 8px rgba(0, 0, 0, 0.3),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.1),
+    2px 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ============================================
+   ICON DALAM STAT CARD - EFEK EMBOS JUGA
+   ============================================ */
+.stat-card .stat-icon,
+.stat-card .card-icon {
+  /* Icon juga dibuat timbul */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  ) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow:
+    inset 1px 1px 3px rgba(255, 255, 255, 0.2),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.2),
+    3px 3px 8px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 14px !important;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon,
+.stat-card:hover .card-icon {
+  transform: scale(1.1) rotate(-5deg);
+  box-shadow:
+    inset 1px 1px 4px rgba(255, 255, 255, 0.25),
+    4px 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ============================================
+   ANGKA STAT - EFEK TEXT SHADOW EMBOSS
+   ============================================ */
+.stat-card p.text-2xl,
+.stat-card .stat-value {
+  text-shadow:
+    1px 1px 2px rgba(0, 0, 0, 0.5),
+    -1px -1px 1px rgba(255, 255, 255, 0.1);
+  font-weight: 700 !important;
+  letter-spacing: 0.5px;
+}
