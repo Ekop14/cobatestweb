@@ -514,21 +514,19 @@ function initAiAssistant() {
     // ==========================================
     // FUNGSI AI RESPONSE (GOOGLE GEMINI COMPATIBLE)
     // ==========================================
-    async function getAIResponse(history, context) {
-        // Baca konfigurasi dari window object (sesuai dengan config.js)
+        async function getAIResponse(history, context) {
         const apiKey = window.GEMINI_API_KEY;
         const apiUrl = window.AI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
         const apiModel = window.AI_MODEL || 'gemini-1.5-flash';
 
-        // Validasi: Pastikan API Key sudah diganti dan bukan lagi placeholder
-        if (!apiKey || apiKey.includes('GANTI') || apiKey === 'AIzaSy_GANTI_DENGAN_API_KEY_GOOGLE_ANDA_DISINI') {
-            return "⚠️ API Key Google Gemini belum diatur dengan benar di config.js. Silakan buat key gratis di Google AI Studio.";
+        if (!apiKey || apiKey.includes('GANTI')) {
+            return "⚠️ API Key Google Gemini belum diatur di config.js.";
         }
         
         const systemPrompt = `Anda adalah AI Assistant bernama "Tanya Mas Eko". Jawab ramah, profesional, pakai emoji. Maks 150 kata.
 ATURAN: 
 1. Gunakan DATA KONTEKS di bawah ini. JANGAN mengarang angka.
-2. Anda memiliki akses ke data checklist DAN data lingkungan (suhu, kelembapan). Jika ditanya tentang suhu/kelembapan, gunakan data "recent_environment_readings".
+2. Anda memiliki akses ke data checklist DAN data lingkungan.
 3. Ingat riwayat chat. 
 4. Jika diminta hapus data, pakai tool 'delete_submission'. 
 5. Cek 'has_submitted_today' untuk status checklist hari ini.
@@ -547,8 +545,8 @@ DATA KONTEKS:\n${context}`;
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 
-                    'Authorization': `Bearer ${apiKey}`, 
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': apiKey  // ← INI PERUBAHANNYA! Pakai x-goog-api-key, bukan Authorization Bearer
                 },
                 body: JSON.stringify({ 
                     model: apiModel, 
@@ -577,8 +575,8 @@ DATA KONTEKS:\n${context}`;
                     const finalRes = await fetch(apiUrl, {
                         method: 'POST',
                         headers: { 
-                            'Authorization': `Bearer ${apiKey}`, 
-                            'Content-Type': 'application/json' 
+                            'Content-Type': 'application/json',
+                            'x-goog-api-key': apiKey  // ← JUGA DI SINI
                         },
                         body: JSON.stringify({ 
                             model: apiModel, 
@@ -594,8 +592,6 @@ DATA KONTEKS:\n${context}`;
             throw new Error('Gagal menghubungi AI: ' + error.message);
         }
     }
-}
-
 // ==========================================
 // 3. HALAMAN LAPORAN
 // ==========================================
