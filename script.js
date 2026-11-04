@@ -1,10 +1,8 @@
-
 // ==========================================
-// SCRIPT.JS - VERSI FINAL (AI BACA SEMUA DATA: CHECKLIST + LINGKUNGAN)
+// SCRIPT.JS - VERSI FINAL (AI GEMINI + ALL FIXES)
 // ==========================================
 
 let filteredReports = [];
-window.currentUser = window.currentUser || { name: 'User', email: 'user@example.com' };
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 Script berhasil dimuat");
@@ -13,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const supabase = window.supabaseClient;
 
     if (!supabase) {
-        console.error("❌ Supabase client tidak ditemukan. Pastikan config.js dimuat.");
+        console.error("❌ Supabase client tidak ditemukan. Pastikan config.js dimuat setelah library Supabase.");
         return;
     }
 
@@ -331,7 +329,7 @@ function disableSubmitButtonUI(submission) {
 }
 
 // ==========================================
-// 2. AI ASSISTANT (DENGAN AKSES FULL DATABASE: CHECKLIST + LINGKUNGAN)
+// 2. AI ASSISTANT (GOOGLE GEMINI - TANYA MAS EKO)
 // ==========================================
 function initAiAssistant() {
     const modal = document.getElementById('aiChatModal');
@@ -385,7 +383,6 @@ function initAiAssistant() {
             const context = await getFullSupabaseContext();
             chatHistory.push({ role: 'user', content: question });
             
-            // PANGGIL FUNGSI AI YANG SUDAH DIUPDATE KE OPENROUTER
             const answer = await getAIResponse(chatHistory, context);
             
             removeTypingIndicator(typingId);
@@ -515,11 +512,17 @@ function initAiAssistant() {
     }
 
     // ==========================================
-    // FUNGSI AI RESPONSE (OPENROUTER)
+    // FUNGSI AI RESPONSE (GOOGLE GEMINI COMPATIBLE)
     // ==========================================
     async function getAIResponse(history, context) {
-        if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxx') {
-            return "⚠️ API Key OpenRouter belum diatur. Silakan cek konfigurasi di bagian atas script.js.";
+        // Baca konfigurasi dari window object (sesuai dengan config.js)
+        const apiKey = window.GEMINI_API_KEY;
+        const apiUrl = window.AI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+        const apiModel = window.AI_MODEL || 'gemini-1.5-flash';
+
+        // Validasi: Pastikan API Key sudah diganti dan bukan lagi placeholder
+        if (!apiKey || apiKey.includes('GANTI') || apiKey === 'AIzaSy_GANTI_DENGAN_API_KEY_GOOGLE_ANDA_DISINI') {
+            return "⚠️ API Key Google Gemini belum diatur dengan benar di config.js. Silakan buat key gratis di Google AI Studio.";
         }
         
         const systemPrompt = `Anda adalah AI Assistant bernama "Tanya Mas Eko". Jawab ramah, profesional, pakai emoji. Maks 150 kata.
@@ -541,16 +544,14 @@ DATA KONTEKS:\n${context}`;
         }];
 
         try {
-            const response = await fetch(OPENROUTER_API_URL, {
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 
-                    'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 
-                    'Content-Type': 'application/json',
-                    'HTTP-Referer': window.location.href, // Wajib untuk OpenRouter
-                    'X-Title': 'Gudang Clean AI' // Wajib untuk OpenRouter
+                    'Authorization': `Bearer ${apiKey}`, 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
-                    model: OPENROUTER_MODEL, 
+                    model: apiModel, 
                     messages: [{ role: 'system', content: systemPrompt }, ...history], 
                     tools: tools, 
                     tool_choice: "auto" 
@@ -565,7 +566,6 @@ DATA KONTEKS:\n${context}`;
             const data = await response.json();
             const message = data.choices[0].message;
 
-            // Logika Function Calling (Hapus Data)
             if (message.tool_calls && message.tool_calls.length > 0) {
                 const toolCall = message.tool_calls[0];
                 history.push(message);
@@ -574,14 +574,14 @@ DATA KONTEKS:\n${context}`;
                     const result = await executeDeleteSubmission(args.submission_id, args.reason);
                     history.push({ role: "tool", tool_call_id: toolCall.id, content: result });
                     
-                    const finalRes = await fetch(OPENROUTER_API_URL, {
+                    const finalRes = await fetch(apiUrl, {
                         method: 'POST',
                         headers: { 
-                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 
+                            'Authorization': `Bearer ${apiKey}`, 
                             'Content-Type': 'application/json' 
                         },
                         body: JSON.stringify({ 
-                            model: OPENROUTER_MODEL, 
+                            model: apiModel, 
                             messages: [{ role: 'system', content: systemPrompt }, ...history] 
                         })
                     });
