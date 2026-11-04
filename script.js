@@ -546,7 +546,7 @@ DATA KONTEKS:\n${context}`;
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'x-goog-api-key': apiKey  // ← INI PERUBAHANNYA! Pakai x-goog-api-key, bukan Authorization Bearer
+                    'x-goog-api-key': 'Bearer ${apiKey}`  // ← Untuk endpoint OpenAI-compatible
                 },
                 body: JSON.stringify({ 
                     model: apiModel, 
