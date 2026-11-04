@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - VERSI FINAL (AI GEMINI + ALL FIXES)
+// SCRIPT.JS - VERSI FINAL (AI GROQ + ALL FIXES)
 // ==========================================
 
 let filteredReports = [];
@@ -329,7 +329,7 @@ function disableSubmitButtonUI(submission) {
 }
 
 // ==========================================
-// 2. AI ASSISTANT (GOOGLE GEMINI - TANYA MAS EKO)
+// 2. AI ASSISTANT (GROQ - TANYA MAS EKO)
 // ==========================================
 function initAiAssistant() {
     const modal = document.getElementById('aiChatModal');
@@ -512,15 +512,15 @@ function initAiAssistant() {
     }
 
     // ==========================================
-    // FUNGSI AI RESPONSE (GOOGLE GEMINI COMPATIBLE) - SUDAH DIPERBAIKI
+    // FUNGSI AI RESPONSE (GROQ)
     // ==========================================
     async function getAIResponse(history, context) {
-        const apiKey = window.GEMINI_API_KEY;
-        const apiUrl = window.AI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-        const apiModel = window.AI_MODEL || 'gemini-1.5-flash';
+        const apiKey = window.GROQ_API_KEY;
+        const apiUrl = window.GROQ_API_URL || 'https://api.groq.com/openai/v1/chat/completions';
+        const apiModel = window.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
         if (!apiKey || apiKey.includes('GANTI')) {
-            return "⚠️ API Key Google Gemini belum diatur dengan benar di config.js.";
+            return "⚠️ API Key Groq belum diatur dengan benar di config.js.";
         }
         
         const systemPrompt = `Anda adalah AI Assistant bernama "Tanya Mas Eko". Jawab ramah, profesional, pakai emoji. Maks 150 kata.
@@ -545,8 +545,8 @@ DATA KONTEKS:\n${context}`;
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}` // <-- INI KUNCINYA: Pakai Bearer untuk endpoint OpenAI-compatible
+                    'Authorization': `Bearer ${apiKey}`, 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
                     model: apiModel, 
@@ -575,8 +575,8 @@ DATA KONTEKS:\n${context}`;
                     const finalRes = await fetch(apiUrl, {
                         method: 'POST',
                         headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}` // <-- JUGA DI SINI
+                            'Authorization': `Bearer ${apiKey}`, 
+                            'Content-Type': 'application/json' 
                         },
                         body: JSON.stringify({ 
                             model: apiModel, 
@@ -592,7 +592,7 @@ DATA KONTEKS:\n${context}`;
             throw new Error('Gagal menghubungi AI: ' + error.message);
         }
     }
-} // <-- KURUNG KURAWAL PENUTUP initAiAssistant SUDAH BENAR DI SINI
+}
 
 // ==========================================
 // 3. HALAMAN LAPORAN
