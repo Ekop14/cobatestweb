@@ -592,6 +592,7 @@ DATA KONTEKS:\n${context}`;
             throw new Error('Gagal menghubungi AI: ' + error.message);
         }
     }
+}   
 // ==========================================
 // 3. HALAMAN LAPORAN
 // ==========================================
