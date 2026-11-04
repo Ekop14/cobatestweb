@@ -10,7 +10,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // PENTING: Ganti 'sk-or-v1-GANTI_...' di bawah ini dengan API Key ASLI dari openrouter.ai/keys
 window.OPENROUTER_API_KEY = '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'; 
 window.OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-window.OPENROUTER_MODEL = 'google/gemini-flash-1.5:free';
+window.OPENROUTER_MODEL = 'qwen/qwen-2.5-72b-instruct:free';
 
 /* ============================================
    FUNGSI INISIALISASI
