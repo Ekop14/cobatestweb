@@ -1,8 +1,10 @@
+
 // ==========================================
-// SCRIPT.JS - VERSI FINAL (AI OPENROUTER + FIXES)
+// SCRIPT.JS - VERSI FINAL (AI BACA SEMUA DATA: CHECKLIST + LINGKUNGAN)
 // ==========================================
 
 let filteredReports = [];
+window.currentUser = window.currentUser || { name: 'User', email: 'user@example.com' };
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 Script berhasil dimuat");
@@ -11,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const supabase = window.supabaseClient;
 
     if (!supabase) {
-        console.error("❌ Supabase client tidak ditemukan. Pastikan config.js dimuat setelah library Supabase.");
+        console.error("❌ Supabase client tidak ditemukan. Pastikan config.js dimuat.");
         return;
     }
 
@@ -329,7 +331,7 @@ function disableSubmitButtonUI(submission) {
 }
 
 // ==========================================
-// 2. AI ASSISTANT (OPENROUTER - TANYA MAS EKO)
+// 2. AI ASSISTANT (DENGAN AKSES FULL DATABASE: CHECKLIST + LINGKUNGAN)
 // ==========================================
 function initAiAssistant() {
     const modal = document.getElementById('aiChatModal');
@@ -383,6 +385,7 @@ function initAiAssistant() {
             const context = await getFullSupabaseContext();
             chatHistory.push({ role: 'user', content: question });
             
+            // PANGGIL FUNGSI AI YANG SUDAH DIUPDATE KE OPENROUTER
             const answer = await getAIResponse(chatHistory, context);
             
             removeTypingIndicator(typingId);
@@ -511,15 +514,12 @@ function initAiAssistant() {
         }
     }
 
+    // ==========================================
+    // FUNGSI AI RESPONSE (OPENROUTER)
+    // ==========================================
     async function getAIResponse(history, context) {
-        // Baca konfigurasi dari window object (dari config.js)
-        const apiKey = window.GEMINI_API_KEY;
-        const apiUrl = window.AI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-        const apiModel = window.AI_MODEL || 'gemini-1.5-flash';
-
-        // Validasi: Pastikan API Key sudah diganti dan bukan lagi placeholder
-        if (!apiKey || apiKey.includes('GANTI') || apiKey === 'AIzaSy_GANTI_DENGAN_API_KEY_GOOGLE_ANDA_DISINI') {
-            return "⚠️ API Key Google Gemini belum diatur dengan benar di config.js. Silakan buat key gratis di Google AI Studio.";
+        if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxx') {
+            return "⚠️ API Key OpenRouter belum diatur. Silakan cek konfigurasi di bagian atas script.js.";
         }
         
         const systemPrompt = `Anda adalah AI Assistant bernama "Tanya Mas Eko". Jawab ramah, profesional, pakai emoji. Maks 150 kata.
@@ -541,14 +541,16 @@ DATA KONTEKS:\n${context}`;
         }];
 
         try {
-            const response = await fetch(apiUrl, {
+            const response = await fetch(OPENROUTER_API_URL, {
                 method: 'POST',
                 headers: { 
-                    'Authorization': `Bearer ${apiKey}`, 
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': window.location.href, // Wajib untuk OpenRouter
+                    'X-Title': 'Gudang Clean AI' // Wajib untuk OpenRouter
                 },
                 body: JSON.stringify({ 
-                    model: apiModel, 
+                    model: OPENROUTER_MODEL, 
                     messages: [{ role: 'system', content: systemPrompt }, ...history], 
                     tools: tools, 
                     tool_choice: "auto" 
@@ -563,6 +565,7 @@ DATA KONTEKS:\n${context}`;
             const data = await response.json();
             const message = data.choices[0].message;
 
+            // Logika Function Calling (Hapus Data)
             if (message.tool_calls && message.tool_calls.length > 0) {
                 const toolCall = message.tool_calls[0];
                 history.push(message);
@@ -571,14 +574,14 @@ DATA KONTEKS:\n${context}`;
                     const result = await executeDeleteSubmission(args.submission_id, args.reason);
                     history.push({ role: "tool", tool_call_id: toolCall.id, content: result });
                     
-                    const finalRes = await fetch(apiUrl, {
+                    const finalRes = await fetch(OPENROUTER_API_URL, {
                         method: 'POST',
                         headers: { 
-                            'Authorization': `Bearer ${apiKey}`, 
+                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 
                             'Content-Type': 'application/json' 
                         },
                         body: JSON.stringify({ 
-                            model: apiModel, 
+                            model: OPENROUTER_MODEL, 
                             messages: [{ role: 'system', content: systemPrompt }, ...history] 
                         })
                     });
@@ -591,6 +594,7 @@ DATA KONTEKS:\n${context}`;
             throw new Error('Gagal menghubungi AI: ' + error.message);
         }
     }
+}
 
 // ==========================================
 // 3. HALAMAN LAPORAN
