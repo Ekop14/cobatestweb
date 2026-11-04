@@ -1,10 +1,8 @@
-
 // ==========================================
-// SCRIPT.JS - VERSI FINAL (AI BACA SEMUA DATA: CHECKLIST + LINGKUNGAN)
+// SCRIPT.JS - VERSI FINAL (AI OPENROUTER + FIXES)
 // ==========================================
 
 let filteredReports = [];
-window.currentUser = window.currentUser || { name: 'User', email: 'user@example.com' };
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 Script berhasil dimuat");
@@ -13,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const supabase = window.supabaseClient;
 
     if (!supabase) {
-        console.error("❌ Supabase client tidak ditemukan. Pastikan config.js dimuat.");
+        console.error("❌ Supabase client tidak ditemukan. Pastikan config.js dimuat setelah library Supabase.");
         return;
     }
 
@@ -331,7 +329,7 @@ function disableSubmitButtonUI(submission) {
 }
 
 // ==========================================
-// 2. AI ASSISTANT (DENGAN AKSES FULL DATABASE: CHECKLIST + LINGKUNGAN)
+// 2. AI ASSISTANT (OPENROUTER - TANYA MAS EKO)
 // ==========================================
 function initAiAssistant() {
     const modal = document.getElementById('aiChatModal');
@@ -385,7 +383,6 @@ function initAiAssistant() {
             const context = await getFullSupabaseContext();
             chatHistory.push({ role: 'user', content: question });
             
-            // PANGGIL FUNGSI AI YANG SUDAH DIUPDATE KE OPENROUTER
             const answer = await getAIResponse(chatHistory, context);
             
             removeTypingIndicator(typingId);
@@ -514,12 +511,15 @@ function initAiAssistant() {
         }
     }
 
-    // ==========================================
-    // FUNGSI AI RESPONSE (OPENROUTER)
-    // ==========================================
     async function getAIResponse(history, context) {
-        if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxx') {
-            return "⚠️ API Key OpenRouter belum diatur. Silakan cek konfigurasi di bagian atas script.js.";
+        // Baca konfigurasi dari window object (dari config.js)
+        const apiKey = window.OPENROUTER_API_KEY;
+        const apiUrl = window.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+        const apiModel = window.OPENROUTER_MODEL || 'google/gemini-flash-1.5:free';
+
+        // Validasi: Pastikan API Key sudah diganti dan bukan lagi placeholder
+        if (!apiKey || apiKey.includes('GANTI') || apiKey === 'sk-or-v1-GANTI_DENGAN_API_KEY_ASLI_KAMU') {
+            return "⚠️ API Key OpenRouter belum diatur dengan benar di config.js. Silakan cek dan ganti dengan key asli dari openrouter.ai/keys";
         }
         
         const systemPrompt = `Anda adalah AI Assistant bernama "Tanya Mas Eko". Jawab ramah, profesional, pakai emoji. Maks 150 kata.
@@ -541,16 +541,16 @@ DATA KONTEKS:\n${context}`;
         }];
 
         try {
-            const response = await fetch(OPENROUTER_API_URL, {
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 
-                    'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 
+                    'Authorization': `Bearer ${apiKey}`, 
                     'Content-Type': 'application/json',
-                    'HTTP-Referer': window.location.href, // Wajib untuk OpenRouter
-                    'X-Title': 'Gudang Clean AI' // Wajib untuk OpenRouter
+                    'HTTP-Referer': window.location.href,
+                    'X-Title': 'Gudang Clean AI'
                 },
                 body: JSON.stringify({ 
-                    model: OPENROUTER_MODEL, 
+                    model: apiModel, 
                     messages: [{ role: 'system', content: systemPrompt }, ...history], 
                     tools: tools, 
                     tool_choice: "auto" 
@@ -565,7 +565,6 @@ DATA KONTEKS:\n${context}`;
             const data = await response.json();
             const message = data.choices[0].message;
 
-            // Logika Function Calling (Hapus Data)
             if (message.tool_calls && message.tool_calls.length > 0) {
                 const toolCall = message.tool_calls[0];
                 history.push(message);
@@ -574,14 +573,14 @@ DATA KONTEKS:\n${context}`;
                     const result = await executeDeleteSubmission(args.submission_id, args.reason);
                     history.push({ role: "tool", tool_call_id: toolCall.id, content: result });
                     
-                    const finalRes = await fetch(OPENROUTER_API_URL, {
+                    const finalRes = await fetch(apiUrl, {
                         method: 'POST',
                         headers: { 
-                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 
+                            'Authorization': `Bearer ${apiKey}`, 
                             'Content-Type': 'application/json' 
                         },
                         body: JSON.stringify({ 
-                            model: OPENROUTER_MODEL, 
+                            model: apiModel, 
                             messages: [{ role: 'system', content: systemPrompt }, ...history] 
                         })
                     });
