@@ -513,13 +513,13 @@ function initAiAssistant() {
 
     async function getAIResponse(history, context) {
         // Baca konfigurasi dari window object (dari config.js)
-        const apiKey = window.OPENROUTER_API_KEY;
-        const apiUrl = window.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
-        const apiModel = window.OPENROUTER_MODEL || 'google/gemini-flash-1.5:free';
+        const apiKey = window.GEMINI_API_KEY;
+        const apiUrl = window.AI_API_URL || 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+        const apiModel = window.AI_MODEL || 'gemini-1.5-flash';
 
         // Validasi: Pastikan API Key sudah diganti dan bukan lagi placeholder
-        if (!apiKey || apiKey.includes('GANTI') || apiKey === 'sk-or-v1-GANTI_DENGAN_API_KEY_ASLI_KAMU') {
-            return "⚠️ API Key OpenRouter belum diatur dengan benar di config.js. Silakan cek dan ganti dengan key asli dari openrouter.ai/keys";
+        if (!apiKey || apiKey.includes('GANTI') || apiKey === 'AIzaSy_GANTI_DENGAN_API_KEY_GOOGLE_ANDA_DISINI') {
+            return "⚠️ API Key Google Gemini belum diatur dengan benar di config.js. Silakan buat key gratis di Google AI Studio.";
         }
         
         const systemPrompt = `Anda adalah AI Assistant bernama "Tanya Mas Eko". Jawab ramah, profesional, pakai emoji. Maks 150 kata.
@@ -545,9 +545,7 @@ DATA KONTEKS:\n${context}`;
                 method: 'POST',
                 headers: { 
                     'Authorization': `Bearer ${apiKey}`, 
-                    'Content-Type': 'application/json',
-                    'HTTP-Referer': window.location.href,
-                    'X-Title': 'Gudang Clean AI'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
                     model: apiModel, 
@@ -593,7 +591,6 @@ DATA KONTEKS:\n${context}`;
             throw new Error('Gagal menghubungi AI: ' + error.message);
         }
     }
-}
 
 // ==========================================
 // 3. HALAMAN LAPORAN
