@@ -10,7 +10,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // PENTING: Ganti 'gsk_...' di bawah ini dengan API Key ASLI dari console.groq.com
 window.GROQ_API_KEY = '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'; 
 window.GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-window.GROQ_MODEL = 'llama-3.1-70b-versatile'; // Model gratis Groq yang paling cerdas & cepat saat ini
+window.GROQ_MODEL = 'llama3-70b-8192'; // Model gratis Groq yang paling cerdas & cepat saat ini
 
 /* ============================================
    FUNGSI INISIALISASI
