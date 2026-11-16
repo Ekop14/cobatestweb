@@ -637,24 +637,76 @@ function filterSupervisorReports(status) {
 async function loadSupervisorReports(status) {
     const tbody = document.getElementById('supervisorTableBody');
     if (!tbody) return;
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>`;
+    
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
+
     try {
-        const { data, error } = await window.supabaseClient.from('checklist_submissions').select('id, user_name, user_email, progress_percentage, status, supervisor_status, supervisor_notes, created_at, submission_time').eq('supervisor_status', status).order('created_at', { ascending: false });
+        // Ambil semua data sekaligus untuk update counter
+        const { data: allData, error: allError } = await window.supabaseClient
+            .from('checklist_submissions')
+            .select('id, supervisor_status');
+        
+        if (!allError && allData) {
+            const pending = allData.filter(r => r.supervisor_status === 'pending').length;
+            const approved = allData.filter(r => r.supervisor_status === 'approved').length;
+            const rejected = allData.filter(r => r.supervisor_status === 'rejected').length;
+            
+            const elPending = document.getElementById('countPending');
+            const elApproved = document.getElementById('countApproved');
+            const elRejected = document.getElementById('countRejected');
+            if (elPending) elPending.textContent = pending;
+            if (elApproved) elApproved.textContent = approved;
+            if (elRejected) elRejected.textContent = rejected;
+        }
+
+        // Ambil data untuk filter yang aktif
+        const { data, error } = await window.supabaseClient
+            .from('checklist_submissions')
+            .select('id, user_name, user_email, progress_percentage, status, supervisor_status, supervisor_notes, created_at, submission_time')
+            .eq('supervisor_status', status)
+            .order('created_at', { ascending: false });
+
         if (error) throw error;
-        if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada laporan dengan status "${status}"</td></tr>`; return; }
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada laporan dengan status "${status}"</td></tr>`;
+            return;
+        }
+
         tbody.innerHTML = data.map(row => {
             const date = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
             const time = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            
             let actionButtons = '';
             if (status === 'pending') {
-                actionButtons = `<button onclick="openActionModal('${row.id}', 'approved')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button><button onclick="openActionModal('${row.id}', 'rejected')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>`;
+                actionButtons = `
+                    <button type="button" onclick="openActionModal('${row.id}', 'approved')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button>
+                    <button type="button" onclick="openActionModal('${row.id}', 'rejected')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>
+                `;
             } else {
                 actionButtons = `<span class="text-white/40 text-xs">-${row.supervisor_notes || 'Tidak ada catatan'}-</span>`;
             }
-            const statusBadge = row.supervisor_status === 'approved' ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">Disetujui</span>' : (row.supervisor_status === 'rejected' ? '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">Ditolak</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400">Pending</span>');
-            return `<tr class="border-b border-white/5 hover:bg-white/5 transition"><td class="px-4 py-3"><div class="text-sm font-medium text-white">${row.user_name || 'User'}</div><div class="text-xs text-white/50">${date} • ${time}</div></td><td class="px-4 py-3 text-center text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td><td class="px-4 py-3 text-sm text-white/60 max-w-xs truncate">${row.supervisor_notes || '-'}</td><td class="px-4 py-3 text-center">${statusBadge}</td><td class="px-4 py-3 text-center">${actionButtons}</td></tr>`;
+
+            const statusBadge = row.supervisor_status === 'approved' 
+                ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">Disetujui</span>'
+                : (row.supervisor_status === 'rejected' ? '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">Ditolak</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400">Pending</span>');
+
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                <td class="px-4 py-3">
+                    <div class="text-sm font-medium text-white">${row.user_name || 'User'}</div>
+                    <div class="text-xs text-white/50">${date} • ${time}</div>
+                </td>
+                <td class="px-4 py-3 text-center text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td>
+                <td class="px-4 py-3 text-sm text-white/60 max-w-xs truncate">${row.supervisor_notes || '-'}</td>
+                <td class="px-4 py-3 text-center">${statusBadge}</td>
+                <td class="px-4 py-3 text-center">${actionButtons}</td>
+            </tr>`;
         }).join('');
-    } catch (error) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`; }
+
+    } catch (error) {
+        console.error("Error loading supervisor reports:", error);
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`;
+    }
 }
 
 function openActionModal(id, type) {
