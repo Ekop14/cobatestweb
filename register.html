@@ -1,30 +1,75 @@
-<form id="registerForm" class="space-y-4">
-    <div>
-        <label class="block text-white/70 text-sm font-medium mb-2">Nama Lengkap</label>
-        <input type="text" id="fullName" required class="glass-input w-full py-3 px-4 text-white placeholder-white/30" placeholder="Masukkan nama lengkap">
-    </div>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Daftar - Gudang Clean</title>
+    <link rel="icon" type="image/png" href="https://companieslogo.com/img/orig/UVRBF-fdcd1dc7.png?t=1720244494">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="font-['Inter'] min-h-screen relative bg-[#0a0a1f] text-white flex items-center justify-center p-4">
     
-    <div>
-        <label class="block text-white/70 text-sm font-medium mb-2">Email</label>
-        <input type="email" id="email" required class="glass-input w-full py-3 px-4 text-white placeholder-white/30" placeholder="nama@perusahaan.com">
+    <!-- BACKGROUND ELEMENTS -->
+    <div class="background-mesh"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
+    <div class="noise-overlay"></div>
+
+    <!-- REGISTER CARD -->
+    <div class="glass-card w-full max-w-md !p-8 relative z-10">
+        
+        <!-- Logo & Title -->
+        <div class="text-center mb-8">
+            <div class="glass-icon w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <img src="https://companieslogo.com/img/orig/UVRBF-fdcd1dc7.png?t=1720244494" alt="Logo" class="h-10 w-auto object-contain">
+            </div>
+            <h1 class="text-2xl font-bold text-white mb-1">Buat Akun Baru</h1>
+            <p class="text-white/60 text-sm">Bergabung dengan sistem Gudang Clean</p>
+        </div>
+
+        <!-- Form Registrasi -->
+        <form id="registerForm" class="space-y-4">
+            <div>
+                <label class="block text-white/70 text-sm font-medium mb-2">Nama Lengkap</label>
+                <input type="text" id="fullName" required class="glass-input w-full py-3 px-4 text-white placeholder-white/30" placeholder="Masukkan nama lengkap">
+            </div>
+            
+            <div>
+                <label class="block text-white/70 text-sm font-medium mb-2">Email</label>
+                <input type="email" id="email" required class="glass-input w-full py-3 px-4 text-white placeholder-white/30" placeholder="nama@perusahaan.com">
+            </div>
+
+            <div>
+                <label class="block text-white/70 text-sm font-medium mb-2">Password</label>
+                <input type="password" id="password" required class="glass-input w-full py-3 px-4 text-white placeholder-white/30" placeholder="Minimal 6 karakter">
+            </div>
+
+            <!-- PILIH ROLE -->
+            <div>
+                <label class="block text-white/70 text-sm font-medium mb-2">Peran / Role</label>
+                <select id="userRole" class="glass-input w-full py-3 px-4 text-white">
+                    <option value="staff" class="bg-[#0a0a1f]">Staff Gudang</option>
+                    <option value="supervisor" class="bg-[#0a0a1f]">Supervisor (SPV)</option>
+                </select>
+                <p class="text-white/40 text-xs mt-1">Pilih 'Supervisor' jika Anda bertugas memvalidasi laporan.</p>
+            </div>
+
+            <button type="submit" id="submitBtn" class="glass-button w-full !py-3 text-base mt-6">
+                <span id="btnText">Daftar Sekarang</span>
+            </button>
+        </form>
+
+        <!-- Link ke Login -->
+        <div class="text-center mt-6 pt-6 border-t border-white/10">
+            <p class="text-white/60 text-sm">Sudah punya akun? 
+                <a href="index.html" class="text-blue-400 hover:text-blue-300 font-medium transition">Masuk di sini</a>
+            </p>
+        </div>
     </div>
 
-    <div>
-        <label class="block text-white/70 text-sm font-medium mb-2">Password</label>
-        <input type="password" id="password" required class="glass-input w-full py-3 px-4 text-white placeholder-white/30" placeholder="Minimal 6 karakter">
-    </div>
-
-    <!-- ✅ BAGIAN BARU: PILIH ROLE -->
-    <div>
-        <label class="block text-white/70 text-sm font-medium mb-2">Peran / Role</label>
-        <select id="userRole" class="glass-input w-full py-3 px-4 text-white bg-[#0a0a1f]">
-            <option value="staff">Staff Gudang</option>
-            <option value="supervisor">Supervisor (SPV)</option>
-        </select>
-        <p class="text-white/40 text-xs mt-1">Pilih 'Supervisor' jika Anda bertugas memvalidasi laporan.</p>
-    </div>
-
-    <button type="submit" id="submitBtn" class="glass-button w-full !py-3 text-base mt-6">
-        <span id="btnText">Daftar Sekarang</span>
-    </button>
-</form>
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
