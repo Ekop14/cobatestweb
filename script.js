@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - FINAL ALL-IN-ONE (DENGAN BIOMETRIC AUTO-LOGIN)
+// SCRIPT.JS - FINAL ALL-IN-ONE (DENGAN KELOLA USER VIA EDGE FUNCTION)
 // ==========================================
 
 let filteredReports = [];
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'checklist.html') initChecklistPage(session);
         else if (currentPage === 'lingkungan.html') initEnvironmentPage(session);
         else if (currentPage === 'supervisor.html') initSupervisorPage(session);
-        else if (currentPage === 'kelola-user.html') initKelolaUserPage(session); // ✅ TAMBAHKAN INI
+        else if (currentPage === 'kelola-user.html') initKelolaUserPage(session); // ✅ ROUTING KELOLA USER
     });
 
     setTimeout(() => {
@@ -803,7 +803,6 @@ function initLoginPage() {
                 btnText.textContent = 'Masuk'; 
             } else { 
                 showNotification('Login berhasil!', 'success');
-                // Tampilkan tombol daftar sidik jari jika belum terdaftar
                 const hasBiometric = localStorage.getItem('biometric_data');
                 if (!hasBiometric) {
                     const regBtn = document.getElementById('registerBiometricBtn');
@@ -817,7 +816,6 @@ function initLoginPage() {
     const passwordInput = document.getElementById('password');
     if (togglePassword && passwordInput) { togglePassword.addEventListener('click', () => { passwordInput.setAttribute('type', passwordInput.getAttribute('type') === 'password' ? 'text' : 'password'); }); }
     
-    // Inisialisasi biometric login
     initBiometricLogin();
 }
 
@@ -847,9 +845,8 @@ function initRegisterPage() {
 }
 
 // ==========================================
-// 8. BIOMETRIC AUTHENTICATION (AUTO-LOGIN TANPA PASSWORD)
+// 8. BIOMETRIC AUTHENTICATION (AUTO-LOGIN)
 // ==========================================
-
 function obfuscate(text) {
     let result = '';
     for (let i = 0; i < text.length; i++) {
@@ -866,9 +863,7 @@ function deobfuscate(encoded) {
             result += String.fromCharCode(decoded.charCodeAt(i) ^ BIO_KEY.charCodeAt(i % BIO_KEY.length));
         }
         return result;
-    } catch (e) {
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
 function isBiometricSupported() {
@@ -877,11 +872,8 @@ function isBiometricSupported() {
 
 async function checkBiometricAvailability() {
     if (!isBiometricSupported()) return false;
-    try {
-        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    } catch (error) {
-        return false;
-    }
+    try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } 
+    catch (error) { return false; }
 }
 
 function generateChallenge() {
@@ -891,8 +883,7 @@ function generateChallenge() {
 }
 
 function bufferToBase64(buffer) {
-    return btoa(String.fromCharCode(...new Uint8Array(buffer)))
-        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 function base64ToBuffer(base64) {
@@ -903,50 +894,28 @@ function base64ToBuffer(base64) {
     return bytes.buffer;
 }
 
-// Daftarkan sidik jari + simpan credential login
 async function registerBiometric(email, password) {
     try {
         const challenge = generateChallenge();
         const userIdBuffer = new TextEncoder().encode(email);
-        
         const credential = await navigator.credentials.create({
             publicKey: {
-                challenge: challenge,
-                rp: { name: "Gudang Clean", id: window.location.hostname },
-                user: {
-                    id: userIdBuffer,
-                    name: email,
-                    displayName: email
-                },
-                pubKeyCredParams: [
-                    { type: "public-key", alg: -7 },
-                    { type: "public-key", alg: -257 }
-                ],
-                authenticatorSelection: {
-                    authenticatorAttachment: "platform",
-                    userVerification: "required",
-                    requireResidentKey: false
-                },
-                timeout: 60000,
-                attestation: "none"
+                challenge: challenge, rp: { name: "Gudang Clean", id: window.location.hostname },
+                user: { id: userIdBuffer, name: email, displayName: email },
+                pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+                authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", requireResidentKey: false },
+                timeout: 60000, attestation: "none"
             }
         });
-        
         if (!credential) throw new Error("Pendaftaran dibatalkan");
         
         const bioData = {
-            credentialId: credential.id,
-            credentialRawId: bufferToBase64(credential.rawId),
-            email: obfuscate(email),
-            password: obfuscate(password),
-            registeredAt: new Date().toISOString()
+            credentialId: credential.id, credentialRawId: bufferToBase64(credential.rawId),
+            email: obfuscate(email), password: obfuscate(password), registeredAt: new Date().toISOString()
         };
-        
         localStorage.setItem('biometric_data', JSON.stringify(bioData));
-        
         showNotification('✅ Sidik jari berhasil didaftarkan! Anda bisa login cepat tanpa password.', 'success');
         return true;
-        
     } catch (error) {
         console.error("Error registering biometric:", error);
         showNotification('❌ Gagal mendaftar sidik jari: ' + error.message, 'error');
@@ -954,77 +923,45 @@ async function registerBiometric(email, password) {
     }
 }
 
-// Login dengan sidik jari - AUTO LOGIN TANPA INPUT APAPUN
 async function loginWithBiometric() {
     try {
         const storedData = localStorage.getItem('biometric_data');
-        if (!storedData) {
-            showNotification('⚠️ Tidak ada sidik jari terdaftar.', 'warning');
-            return;
-        }
+        if (!storedData) { showNotification('⚠️ Tidak ada sidik jari terdaftar.', 'warning'); return; }
         
         const bioData = JSON.parse(storedData);
         const email = deobfuscate(bioData.email);
         const password = deobfuscate(bioData.password);
+        if (!email || !password) { showNotification('⚠️ Data sidik jari rusak. Silakan daftar ulang.', 'warning'); return; }
         
-        if (!email || !password) {
-            showNotification('⚠️ Data sidik jari rusak. Silakan daftar ulang.', 'warning');
-            return;
-        }
-        
-        // 1. Verifikasi sidik jari di device
         const assertion = await navigator.credentials.get({
             publicKey: {
                 challenge: generateChallenge(),
-                allowCredentials: [{
-                    id: base64ToBuffer(bioData.credentialRawId),
-                    type: 'public-key',
-                    transports: ['internal']
-                }],
-                timeout: 60000,
-                userVerification: "required"
+                allowCredentials: [{ id: base64ToBuffer(bioData.credentialRawId), type: 'public-key', transports: ['internal'] }],
+                timeout: 60000, userVerification: "required"
             }
         });
-        
         if (!assertion) throw new Error("Verifikasi dibatalkan");
         
         showNotification('🔐 Verifikasi sidik jari berhasil! Memproses login...', 'info');
-        
-        // 2. Auto-login ke Supabase menggunakan credential tersimpan
-        const { data, error } = await window.supabaseClient.auth.signInWithPassword({ 
-            email: email, 
-            password: password 
-        });
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email: email, password: password });
         
         if (error) {
             if (error.message.includes('Invalid')) {
                 showNotification('⚠️ Password telah berubah. Sidik jari dihapus, silakan daftar ulang.', 'warning');
                 localStorage.removeItem('biometric_data');
                 setTimeout(() => window.location.reload(), 2000);
-            } else {
-                showNotification('❌ Login gagal: ' + error.message, 'error');
-            }
+            } else { showNotification('❌ Login gagal: ' + error.message, 'error'); }
             return;
         }
         
-        // 3. Login berhasil! Redirect sesuai role
         showNotification('✅ Login berhasil! Selamat datang kembali.', 'success');
         setTimeout(() => {
             const userRole = data.user.user_metadata?.role || 'staff';
-            if (userRole === 'supervisor') {
-                window.location.replace('supervisor.html');
-            } else {
-                window.location.replace('checklist.html');
-            }
+            window.location.replace(userRole === 'supervisor' ? 'supervisor.html' : 'checklist.html');
         }, 800);
-        
     } catch (error) {
         console.error("Error logging in with biometric:", error);
-        if (error.name === 'NotAllowedError') {
-            showNotification('⚠️ Verifikasi sidik jari dibatalkan.', 'warning');
-        } else {
-            showNotification('❌ Gagal login: ' + error.message, 'error');
-        }
+        showNotification(error.name === 'NotAllowedError' ? '⚠️ Verifikasi sidik jari dibatalkan.' : '❌ Gagal login: ' + error.message, 'error');
     }
 }
 
@@ -1042,138 +979,92 @@ async function initBiometricLogin() {
     const biometricStatus = document.getElementById('biometricStatus');
     const removeBiometricBtn = document.getElementById('removeBiometricBtn');
     const registerBiometricBtn = document.getElementById('registerBiometricBtn');
-    
     if (!biometricBtn) return;
     
     const isSupported = await checkBiometricAvailability();
     const hasBiometric = localStorage.getItem('biometric_data');
     
     if (!isSupported) {
-        if (biometricStatus) {
-            biometricStatus.textContent = '⚠️ Perangkat tidak mendukung sidik jari';
-            biometricStatus.classList.remove('hidden');
-        }
+        if (biometricStatus) { biometricStatus.textContent = '⚠️ Perangkat tidak mendukung sidik jari'; biometricStatus.classList.remove('hidden'); }
         return;
     }
     
     if (hasBiometric) {
-        // ✅ SUDAH PUNYA SIDIK JARI - Tampilkan tombol login cepat
+        const bioData = JSON.parse(hasBiometric);
         biometricBtn.classList.remove('hidden');
         biometricBtnText.textContent = '🔐 Masuk Cepat dengan Sidik Jari';
         biometricBtn.addEventListener('click', loginWithBiometric);
-        
         if (biometricStatus) {
-            const bioData = JSON.parse(hasBiometric);
-            const email = deobfuscate(bioData.email);
-            biometricStatus.textContent = `✓ Sidik jari terdaftar untuk ${email}`;
+            biometricStatus.textContent = `✓ Sidik jari terdaftar untuk ${deobfuscate(bioData.email)}`;
             biometricStatus.classList.remove('hidden');
         }
-        
-        if (removeBiometricBtn) {
-            removeBiometricBtn.classList.remove('hidden');
-            removeBiometricBtn.addEventListener('click', removeBiometric);
-        }
-        
+        if (removeBiometricBtn) { removeBiometricBtn.classList.remove('hidden'); removeBiometricBtn.addEventListener('click', removeBiometric); }
         if (registerBiometricBtn) registerBiometricBtn.classList.add('hidden');
-        
     } else {
-        // ❌ BELUM PUNYA SIDIK JARI - Tampilkan tombol daftar
         if (registerBiometricBtn) {
             registerBiometricBtn.classList.remove('hidden');
             registerBiometricBtn.addEventListener('click', async () => {
                 const email = document.getElementById('email')?.value;
                 const password = document.getElementById('password')?.value;
-                
-                if (!email || !password) {
-                    showNotification('⚠️ Masukkan email dan password terlebih dahulu.', 'warning');
-                    return;
-                }
-                
+                if (!email || !password) { showNotification('⚠️ Masukkan email dan password terlebih dahulu.', 'warning'); return; }
                 const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
-                if (error) {
-                    showNotification('❌ Email atau password salah.', 'error');
-                    return;
-                }
-                
+                if (error) { showNotification('❌ Email atau password salah.', 'error'); return; }
                 const success = await registerBiometric(email, password);
-                if (success) {
-                    setTimeout(() => window.location.reload(), 1500);
-                }
+                if (success) setTimeout(() => window.location.reload(), 1500);
             });
         }
-        
-        if (biometricStatus) {
-            biometricStatus.textContent = 'Belum ada sidik jari terdaftar. Login dulu untuk mendaftarkan.';
-            biometricStatus.classList.remove('hidden');
-        }
-        
+        if (biometricStatus) { biometricStatus.textContent = 'Belum ada sidik jari terdaftar. Login dulu untuk mendaftarkan.'; biometricStatus.classList.remove('hidden'); }
         biometricBtn.classList.add('hidden');
         if (removeBiometricBtn) removeBiometricBtn.classList.add('hidden');
     }
 }
 
 // ==========================================
-// 9. UTILS & GLOBAL LOGOUT
-// ==========================================
-document.addEventListener('click', async function(event) {
-    const logoutBtn = event.target.closest('#logoutBtn');
-    if (logoutBtn) {
-        event.preventDefault();
-        if (!confirm('Yakin ingin keluar?')) return;
-        try { await window.supabaseClient.auth.signOut(); localStorage.removeItem('gudang_clean_state'); window.location.replace('index.html'); }
-        catch (error) { console.error("Error logout:", error); }
-    }
-});
-// ==========================================
-// HALAMAN KELOLA USER (HANYA SUPERVISOR)
+// 9. HALAMAN KELOLA USER (HANYA SUPERVISOR)
 // ==========================================
 let allUsersData = [];
 let deleteTargetId = null;
 
 function initKelolaUserPage(session) {
-    // Cek akses supervisor
     if (!isSupervisor(session)) {
         showNotification("⛔ Akses Ditolak: Hanya supervisor yang bisa mengakses.", 'error');
         setTimeout(() => window.location.replace('dashboard.html'), 2000);
         return;
     }
 
-    window.currentUser = { 
-        name: session.user.user_metadata?.full_name || 'Supervisor', 
-        email: session.user.email 
-    };
-    
+    window.currentUser = { name: session.user.user_metadata?.full_name || 'Supervisor', email: session.user.email };
     loadSidebar();
     loadAllUsers();
 
-    // Search handler
     const searchInput = document.getElementById('searchUser');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => filterUsers(e.target.value));
-    }
+    if (searchInput) searchInput.addEventListener('input', (e) => filterUsers(e.target.value));
 
-    // Refresh handler
     const refreshBtn = document.getElementById('refreshUsersBtn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', loadAllUsers);
-    }
+    if (refreshBtn) refreshBtn.addEventListener('click', loadAllUsers);
 }
 
 async function loadAllUsers() {
     const tbody = document.getElementById('usersTableBody');
     if (!tbody) return;
-    
     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
 
     try {
-        const { data, error } = await window.supabaseClient
-            .from('profiles')
-            .select('*')
-            .order('created_at', { ascending: false });
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (!session) throw new Error("Session tidak ditemukan");
 
-        if (error) throw error;
+        // Panggil Edge Function list-users
+        const response = await fetch(LIST_USERS_FUNCTION_URL, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
 
-        allUsersData = data || [];
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Gagal memuat user');
+
+        allUsersData = result.users || [];
         updateUsersStats(allUsersData);
         renderUsersTable(allUsersData);
 
@@ -1187,14 +1078,9 @@ function updateUsersStats(users) {
     const total = users.length;
     const staff = users.filter(u => u.role === 'staff').length;
     const supervisor = users.filter(u => u.role === 'supervisor').length;
-
-    const elTotal = document.getElementById('statTotalUsers');
-    const elStaff = document.getElementById('statStaffUsers');
-    const elSupervisor = document.getElementById('statSupervisorUsers');
-
-    if (elTotal) elTotal.textContent = total;
-    if (elStaff) elStaff.textContent = staff;
-    if (elSupervisor) elSupervisor.textContent = supervisor;
+    if (document.getElementById('statTotalUsers')) document.getElementById('statTotalUsers').textContent = total;
+    if (document.getElementById('statStaffUsers')) document.getElementById('statStaffUsers').textContent = staff;
+    if (document.getElementById('statSupervisorUsers')) document.getElementById('statSupervisorUsers').textContent = supervisor;
 }
 
 function renderUsersTable(users) {
@@ -1207,17 +1093,14 @@ function renderUsersTable(users) {
     }
 
     tbody.innerHTML = users.map(user => {
-        const date = new Date(user.created_at).toLocaleDateString('id-ID', { 
-            day: '2-digit', month: 'short', year: 'numeric' 
-        });
-        
+        const date = new Date(user.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
         const roleBadge = user.role === 'supervisor' 
             ? '<span class="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30">👑 Supervisor</span>'
             : '<span class="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30">👷 Staff</span>';
 
         const isCurrentUser = user.email === window.currentUser.email;
         const deleteBtn = isCurrentUser 
-            ? '<span class="text-xs text-white/30">Anda</span>'
+            ? '<span class="text-xs text-white/30 italic">Anda</span>'
             : `<button type="button" onclick="openDeleteModal('${user.id}', '${user.full_name || 'User'}', '${user.email}')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">🗑️ Hapus</button>`;
 
         const initial = (user.full_name || user.email).charAt(0).toUpperCase();
@@ -1239,14 +1122,8 @@ function renderUsersTable(users) {
 
 function filterUsers(query) {
     const q = query.toLowerCase().trim();
-    if (!q) {
-        renderUsersTable(allUsersData);
-        return;
-    }
-    const filtered = allUsersData.filter(u => 
-        (u.full_name || '').toLowerCase().includes(q) || 
-        u.email.toLowerCase().includes(q)
-    );
+    if (!q) { renderUsersTable(allUsersData); return; }
+    const filtered = allUsersData.filter(u => (u.full_name || '').toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
     renderUsersTable(filtered);
 }
 
@@ -1262,10 +1139,11 @@ function closeDeleteModal() {
     deleteTargetId = null;
 }
 
+// Event listener global untuk tombol hapus user & logout
 document.addEventListener('click', async function(event) {
+    // 1. Handle Delete User
     if (event.target.id === 'confirmDeleteBtn') {
         if (!deleteTargetId) return;
-        
         const btn = document.getElementById('confirmDeleteBtn');
         const originalText = btn.textContent;
         btn.disabled = true;
@@ -1274,21 +1152,15 @@ document.addEventListener('click', async function(event) {
         try {
             const response = await fetch(DELETE_USER_FUNCTION_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
                 body: JSON.stringify({ userId: deleteTargetId })
             });
-
             const result = await response.json();
-
             if (!response.ok) throw new Error(result.error || 'Gagal menghapus user');
 
             showNotification('✅ User berhasil dihapus dari sistem.', 'success');
             closeDeleteModal();
-            loadAllUsers(); // Refresh tabel
-
+            loadAllUsers();
         } catch (error) {
             console.error("Error deleting user:", error);
             showNotification('❌ Gagal menghapus: ' + error.message, 'error');
@@ -1297,9 +1169,30 @@ document.addEventListener('click', async function(event) {
             btn.textContent = originalText;
         }
     }
+
+    // 2. Handle Global Logout
+    const logoutBtn = event.target.closest('#logoutBtn');
+    if (logoutBtn) {
+        event.preventDefault();
+        if (!confirm('Yakin ingin keluar?')) return;
+        try { 
+            await window.supabaseClient.auth.signOut(); 
+            localStorage.removeItem('gudang_clean_state'); 
+            window.location.replace('index.html'); 
+        } catch (error) { console.error("Error logout:", error); }
+    }
 });
+
+// ==========================================
+// 10. UTILS
+// ==========================================
 function showNotification(message, type = 'info') {
-    const colors = { success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' }, warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' }, error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' }, info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' } };
+    const colors = { 
+        success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' }, 
+        warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' }, 
+        error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' }, 
+        info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' } 
+    };
     const c = colors[type] || colors.info;
     const el = document.createElement('div');
     el.className = 'fixed top-6 right-6 z-[100] px-6 py-4 rounded-xl text-white font-medium';
