@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'checklist.html') initChecklistPage(session);
         else if (currentPage === 'lingkungan.html') initEnvironmentPage(session);
         else if (currentPage === 'supervisor.html') initSupervisorPage(session);
+        else if (currentPage === 'kelola-user.html') initKelolaUserPage(session); // ✅ TAMBAHKAN INI
     });
 
     setTimeout(() => {
