@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- Library Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="font-['Inter'] min-h-screen relative bg-[#0a0a1f] text-white">
@@ -123,12 +124,14 @@
         </main>
     </div>
 
-    <!-- SCRIPT KHUSUS HALAMAN PUBLIK -->
+    <!-- SCRIPT KHUSUS HALAMAN PUBLIK (DIPERBAIKI: Menghindari konflik variabel 'supabase') -->
     <script>
-        // 1. Inisialisasi Supabase (Gunakan URL dan Anon Key yang sama dengan config.js Anda)
-        const SUPABASE_URL = 'https://nluyhswnrhbuwahwromq.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sdXloc3ducmhidXdhaHdyb21xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNDI4NTYsImV4cCI6MjEwODYxODg1Nn0.4RlSNdAnT2DK4__L7YPF091dnUZgZa1LrddR8G2j0Z0';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // 1. Inisialisasi Supabase (Menggunakan nama variabel 'publicDb' agar tidak bentrok)
+        const PUB_SUPABASE_URL = 'https://nluyhswnrhbuwahwromq.supabase.co';
+        const PUB_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sdXloc3ducmhidXdhaHdyb21xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNDI4NTYsImV4cCI6MjEwODYxODg1Nn0.4RlSNdAnT2DK4__L7YPF091dnUZgZa1LrddR8G2j0Z0';
+        
+        // Gunakan client yang sudah ada di window (dari config.js), atau buat baru
+        const publicDb = window.supabaseClient || window.supabase.createClient(PUB_SUPABASE_URL, PUB_SUPABASE_ANON_KEY);
 
         // 2. Set Default Tanggal: 1 Bulan Berjalan (Hari pertama bulan ini s/d hari ini)
         function setDefaultDates() {
@@ -152,7 +155,7 @@
 
             try {
                 // Ambil Data Kebersihan
-                const { data: dataKebersihan, error: err1 } = await supabase
+                const { data: dataKebersihan, error: err1 } = await publicDb
                     .from('checklist_submissions')
                     .select('created_at, user_name, progress_percentage, status, supervisor_status, submission_time')
                     .gte('created_at', from)
@@ -160,7 +163,7 @@
                     .order('created_at', { ascending: false });
 
                 // Ambil Data Lingkungan
-                const { data: dataLingkungan, error: err2 } = await supabase
+                const { data: dataLingkungan, error: err2 } = await publicDb
                     .from('environment_readings')
                     .select('created_at, user_name, temperature, humidity, notes, submission_time')
                     .gte('created_at', from)
