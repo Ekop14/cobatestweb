@@ -11,8 +11,11 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 window.GROQ_API_KEY = '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'; 
 window.GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 window.GROQ_MODEL = 'llama3-70b-8192'; // Model gratis Groq yang paling cerdas & cepat saat ini
-// URL Edge Function untuk hapus user
-const DELETE_USER_FUNCTION_URL = 'https://nluyhswnrhbuwahwromq.supabase.co/functions/v1/delete-user';
+// 3. URL Edge Functions (Sesuaikan dengan fungsi yang kamu deploy)
+// ⚠️ PENTING: Pastikan URL di bawah ini sesuai dengan fungsi masing-masing!
+// Jika tertukar, silakan swap (tukar) URL-nya.
+const LIST_USERS_FUNCTION_URL = 'https://nluyhswnrhbuwahwromq.supabase.co/functions/v1/swift-function'; 
+const DELETE_USER_FUNCTION_URL = 'https://nluyhswnrhbuwahwromq.supabase.co/functions/v1/clever-action'; 
 
 /* ============================================
    FUNGSI INISIALISASI
