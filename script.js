@@ -1,11 +1,12 @@
 // ==========================================
-// SCRIPT.JS - FINAL ALL-IN-ONE (DENGAN BIOMETRIC LOGIN TANPA PASSWORD)
+// SCRIPT.JS - FINAL ALL-IN-ONE (DENGAN BIOMETRIC AUTO-LOGIN)
 // ==========================================
 
 let filteredReports = [];
 window.currentUser = window.currentUser || { name: 'User', email: 'user@example.com' };
 
 const SUPERVISOR_EMAILS = ['admin@gudang.com', 'supervisor@gudang.com']; 
+const BIO_KEY = 'GudangClean2024!BioKey';
 
 function isSupervisor(session) {
     if (!session) return false;
@@ -795,8 +796,20 @@ function initLoginPage() {
             submitBtn.disabled = true;
             btnText.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Memproses...';
             const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) { showNotification("Login gagal: " + error.message, 'error'); submitBtn.disabled = false; btnText.textContent = 'Masuk'; }
-            else { showNotification('Login berhasil!', 'success'); setTimeout(() => window.location.replace('checklist.html'), 1000); }
+            if (error) { 
+                showNotification("Login gagal: " + error.message, 'error'); 
+                submitBtn.disabled = false; 
+                btnText.textContent = 'Masuk'; 
+            } else { 
+                showNotification('Login berhasil!', 'success');
+                // Tampilkan tombol daftar sidik jari jika belum terdaftar
+                const hasBiometric = localStorage.getItem('biometric_data');
+                if (!hasBiometric) {
+                    const regBtn = document.getElementById('registerBiometricBtn');
+                    if (regBtn) regBtn.classList.remove('hidden');
+                }
+                setTimeout(() => window.location.replace('checklist.html'), 1000); 
+            }
         });
     }
     const togglePassword = document.getElementById('togglePassword');
@@ -833,8 +846,29 @@ function initRegisterPage() {
 }
 
 // ==========================================
-// 8. BIOMETRIC AUTHENTICATION (SIDIK JARI - LANGSUNG MASUK)
+// 8. BIOMETRIC AUTHENTICATION (AUTO-LOGIN TANPA PASSWORD)
 // ==========================================
+
+function obfuscate(text) {
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+        result += String.fromCharCode(text.charCodeAt(i) ^ BIO_KEY.charCodeAt(i % BIO_KEY.length));
+    }
+    return btoa(result);
+}
+
+function deobfuscate(encoded) {
+    try {
+        const decoded = atob(encoded);
+        let result = '';
+        for (let i = 0; i < decoded.length; i++) {
+            result += String.fromCharCode(decoded.charCodeAt(i) ^ BIO_KEY.charCodeAt(i % BIO_KEY.length));
+        }
+        return result;
+    } catch (e) {
+        return null;
+    }
+}
 
 function isBiometricSupported() {
     return window.PublicKeyCredential !== undefined && navigator.credentials !== undefined;
@@ -843,10 +877,8 @@ function isBiometricSupported() {
 async function checkBiometricAvailability() {
     if (!isBiometricSupported()) return false;
     try {
-        const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-        return available;
+        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
     } catch (error) {
-        console.error("Error checking biometric:", error);
         return false;
     }
 }
@@ -859,68 +891,59 @@ function generateChallenge() {
 
 function bufferToBase64(buffer) {
     return btoa(String.fromCharCode(...new Uint8Array(buffer)))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 function base64ToBuffer(base64) {
-    const base64Clean = base64.replace(/-/g, '+').replace(/_/g, '/');
-    const binaryString = atob(base64Clean);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-    }
+    const clean = base64.replace(/-/g, '+').replace(/_/g, '/');
+    const binary = atob(clean);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return bytes.buffer;
 }
 
-async function registerBiometric(userId, userEmail) {
+// Daftarkan sidik jari + simpan credential login
+async function registerBiometric(email, password) {
     try {
         const challenge = generateChallenge();
-        const userIdBuffer = new TextEncoder().encode(userId);
-        
-        const publicKeyCredentialCreationOptions = {
-            challenge: challenge,
-            rp: {
-                name: "Gudang Clean",
-                id: window.location.hostname
-            },
-            user: {
-                id: userIdBuffer,
-                name: userEmail,
-                displayName: userEmail
-            },
-            pubKeyCredParams: [
-                { type: "public-key", alg: -7 },
-                { type: "public-key", alg: -257 }
-            ],
-            authenticatorSelection: {
-                authenticatorAttachment: "platform",
-                userVerification: "required",
-                requireResidentKey: false
-            },
-            timeout: 60000,
-            attestation: "none"
-        };
+        const userIdBuffer = new TextEncoder().encode(email);
         
         const credential = await navigator.credentials.create({
-            publicKey: publicKeyCredentialCreationOptions
+            publicKey: {
+                challenge: challenge,
+                rp: { name: "Gudang Clean", id: window.location.hostname },
+                user: {
+                    id: userIdBuffer,
+                    name: email,
+                    displayName: email
+                },
+                pubKeyCredParams: [
+                    { type: "public-key", alg: -7 },
+                    { type: "public-key", alg: -257 }
+                ],
+                authenticatorSelection: {
+                    authenticatorAttachment: "platform",
+                    userVerification: "required",
+                    requireResidentKey: false
+                },
+                timeout: 60000,
+                attestation: "none"
+            }
         });
         
         if (!credential) throw new Error("Pendaftaran dibatalkan");
         
-        const credentialData = {
-            id: credential.id,
-            rawId: bufferToBase64(credential.rawId),
-            type: credential.type,
-            userEmail: userEmail,
-            userId: userId,
+        const bioData = {
+            credentialId: credential.id,
+            credentialRawId: bufferToBase64(credential.rawId),
+            email: obfuscate(email),
+            password: obfuscate(password),
             registeredAt: new Date().toISOString()
         };
         
-        localStorage.setItem('biometric_credential', JSON.stringify(credentialData));
+        localStorage.setItem('biometric_data', JSON.stringify(bioData));
         
-        showNotification('✅ Sidik jari berhasil didaftarkan! Sekarang Anda bisa login tanpa password.', 'success');
+        showNotification('✅ Sidik jari berhasil didaftarkan! Anda bisa login cepat tanpa password.', 'success');
         return true;
         
     } catch (error) {
@@ -930,75 +953,83 @@ async function registerBiometric(userId, userEmail) {
     }
 }
 
-// Login dengan biometrik - LANGSUNG MASUK TANPA PASSWORD
+// Login dengan sidik jari - AUTO LOGIN TANPA INPUT APAPUN
 async function loginWithBiometric() {
     try {
-        const storedCredential = localStorage.getItem('biometric_credential');
-        if (!storedCredential) {
+        const storedData = localStorage.getItem('biometric_data');
+        if (!storedData) {
             showNotification('⚠️ Tidak ada sidik jari terdaftar.', 'warning');
             return;
         }
         
-        const credentialData = JSON.parse(storedCredential);
-        const challenge = generateChallenge();
+        const bioData = JSON.parse(storedData);
+        const email = deobfuscate(bioData.email);
+        const password = deobfuscate(bioData.password);
         
-        const publicKeyCredentialRequestOptions = {
-            challenge: challenge,
-            allowCredentials: [{
-                id: base64ToBuffer(credentialData.rawId),
-                type: 'public-key',
-                transports: ['internal']
-            }],
-            timeout: 60000,
-            userVerification: "required"
-        };
+        if (!email || !password) {
+            showNotification('⚠️ Data sidik jari rusak. Silakan daftar ulang.', 'warning');
+            return;
+        }
         
+        // 1. Verifikasi sidik jari di device
         const assertion = await navigator.credentials.get({
-            publicKey: publicKeyCredentialRequestOptions
+            publicKey: {
+                challenge: generateChallenge(),
+                allowCredentials: [{
+                    id: base64ToBuffer(bioData.credentialRawId),
+                    type: 'public-key',
+                    transports: ['internal']
+                }],
+                timeout: 60000,
+                userVerification: "required"
+            }
         });
         
-        if (!assertion) throw new Error("Login dibatalkan");
+        if (!assertion) throw new Error("Verifikasi dibatalkan");
         
         showNotification('🔐 Verifikasi sidik jari berhasil! Memproses login...', 'info');
         
-        // Cek apakah ada session Supabase yang masih aktif
-        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        // 2. Auto-login ke Supabase menggunakan credential tersimpan
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({ 
+            email: email, 
+            password: password 
+        });
         
-        if (session && session.user.email === credentialData.userEmail) {
-            // Session masih valid, langsung masuk tanpa password
-            showNotification('✅ Login berhasil! Selamat datang kembali.', 'success');
-            setTimeout(() => {
-                const userRole = session.user.user_metadata?.role || 'staff';
-                if (userRole === 'supervisor') {
-                    window.location.replace('supervisor.html');
-                } else {
-                    window.location.replace('checklist.html');
-                }
-            }, 1000);
-        } else {
-            // Session expired, perlu login ulang dengan password
-            showNotification('⚠️ Session expired. Silakan login dengan email dan password.', 'warning');
-            
-            const emailInput = document.getElementById('email');
-            if (emailInput) {
-                emailInput.value = credentialData.userEmail;
-                emailInput.focus();
+        if (error) {
+            if (error.message.includes('Invalid')) {
+                showNotification('⚠️ Password telah berubah. Sidik jari dihapus, silakan daftar ulang.', 'warning');
+                localStorage.removeItem('biometric_data');
+                setTimeout(() => window.location.reload(), 2000);
+            } else {
+                showNotification('❌ Login gagal: ' + error.message, 'error');
             }
+            return;
         }
+        
+        // 3. Login berhasil! Redirect sesuai role
+        showNotification('✅ Login berhasil! Selamat datang kembali.', 'success');
+        setTimeout(() => {
+            const userRole = data.user.user_metadata?.role || 'staff';
+            if (userRole === 'supervisor') {
+                window.location.replace('supervisor.html');
+            } else {
+                window.location.replace('checklist.html');
+            }
+        }, 800);
         
     } catch (error) {
         console.error("Error logging in with biometric:", error);
         if (error.name === 'NotAllowedError') {
-            showNotification('⚠️ Verifikasi sidik jari dibatalkan atau gagal.', 'warning');
+            showNotification('⚠️ Verifikasi sidik jari dibatalkan.', 'warning');
         } else {
-            showNotification('❌ Gagal login dengan sidik jari: ' + error.message, 'error');
+            showNotification('❌ Gagal login: ' + error.message, 'error');
         }
     }
 }
 
 function removeBiometric() {
     if (confirm('Yakin ingin menghapus sidik jari terdaftar? Anda perlu mendaftar ulang untuk menggunakan fitur ini.')) {
-        localStorage.removeItem('biometric_credential');
+        localStorage.removeItem('biometric_data');
         showNotification('✅ Sidik jari berhasil dihapus.', 'success');
         setTimeout(() => window.location.reload(), 1000);
     }
@@ -1009,83 +1040,74 @@ async function initBiometricLogin() {
     const biometricBtnText = document.getElementById('biometricBtnText');
     const biometricStatus = document.getElementById('biometricStatus');
     const removeBiometricBtn = document.getElementById('removeBiometricBtn');
+    const registerBiometricBtn = document.getElementById('registerBiometricBtn');
     
     if (!biometricBtn) return;
     
     const isSupported = await checkBiometricAvailability();
-    const hasCredential = localStorage.getItem('biometric_credential');
+    const hasBiometric = localStorage.getItem('biometric_data');
     
-    if (isSupported) {
+    if (!isSupported) {
+        if (biometricStatus) {
+            biometricStatus.textContent = '⚠️ Perangkat tidak mendukung sidik jari';
+            biometricStatus.classList.remove('hidden');
+        }
+        return;
+    }
+    
+    if (hasBiometric) {
+        // ✅ SUDAH PUNYA SIDIK JARI - Tampilkan tombol login cepat
         biometricBtn.classList.remove('hidden');
+        biometricBtnText.textContent = '🔐 Masuk Cepat dengan Sidik Jari';
+        biometricBtn.addEventListener('click', loginWithBiometric);
         
-        if (hasCredential) {
-            const credentialData = JSON.parse(hasCredential);
-            
-            if (removeBiometricBtn) {
-                removeBiometricBtn.classList.remove('hidden');
-                removeBiometricBtn.addEventListener('click', removeBiometric);
-            }
-            
-            const { data: { session } } = await window.supabaseClient.auth.getSession();
-            
-            if (session && session.user.email === credentialData.userEmail) {
-                biometricBtnText.textContent = 'Masuk Cepat dengan Sidik Jari';
-                biometricBtn.addEventListener('click', loginWithBiometric);
-                
-                if (biometricStatus) {
-                    biometricStatus.textContent = `✓ Sidik jari terdaftar untuk ${credentialData.userEmail}`;
-                    biometricStatus.classList.remove('hidden');
-                }
-            } else {
-                biometricBtnText.textContent = 'Login dengan Sidik Jari';
-                biometricBtn.addEventListener('click', async () => {
-                    showNotification('⚠️ Session expired. Silakan login dengan email dan password terlebih dahulu.', 'warning');
-                    const emailInput = document.getElementById('email');
-                    if (emailInput) {
-                        emailInput.value = credentialData.userEmail;
-                        emailInput.focus();
-                    }
-                });
-                
-                if (biometricStatus) {
-                    biometricStatus.textContent = `⚠️ Session expired. Login ulang untuk mengaktifkan sidik jari.`;
-                    biometricStatus.classList.remove('hidden');
-                    biometricStatus.classList.add('text-amber-400');
-                }
-            }
-        } else {
-            biometricBtnText.textContent = 'Daftarkan Sidik Jari';
-            biometricBtn.addEventListener('click', async () => {
+        if (biometricStatus) {
+            const bioData = JSON.parse(hasBiometric);
+            const email = deobfuscate(bioData.email);
+            biometricStatus.textContent = `✓ Sidik jari terdaftar untuk ${email}`;
+            biometricStatus.classList.remove('hidden');
+        }
+        
+        if (removeBiometricBtn) {
+            removeBiometricBtn.classList.remove('hidden');
+            removeBiometricBtn.addEventListener('click', removeBiometric);
+        }
+        
+        if (registerBiometricBtn) registerBiometricBtn.classList.add('hidden');
+        
+    } else {
+        // ❌ BELUM PUNYA SIDIK JARI - Tampilkan tombol daftar
+        if (registerBiometricBtn) {
+            registerBiometricBtn.classList.remove('hidden');
+            registerBiometricBtn.addEventListener('click', async () => {
                 const email = document.getElementById('email')?.value;
                 const password = document.getElementById('password')?.value;
                 
                 if (!email || !password) {
-                    showNotification('⚠️ Masukkan email dan password terlebih dahulu untuk mendaftar sidik jari.', 'warning');
+                    showNotification('⚠️ Masukkan email dan password terlebih dahulu.', 'warning');
                     return;
                 }
                 
                 const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
                 if (error) {
-                    showNotification('❌ Password salah. Verifikasi gagal.', 'error');
+                    showNotification('❌ Email atau password salah.', 'error');
                     return;
                 }
                 
-                const success = await registerBiometric(data.user.id, email);
+                const success = await registerBiometric(email, password);
                 if (success) {
                     setTimeout(() => window.location.reload(), 1500);
                 }
             });
-            
-            if (biometricStatus) {
-                biometricStatus.textContent = 'Belum ada sidik jari terdaftar';
-                biometricStatus.classList.remove('hidden');
-            }
         }
-    } else {
+        
         if (biometricStatus) {
-            biometricStatus.textContent = '⚠️ Perangkat tidak mendukung sidik jari';
+            biometricStatus.textContent = 'Belum ada sidik jari terdaftar. Login dulu untuk mendaftarkan.';
             biometricStatus.classList.remove('hidden');
         }
+        
+        biometricBtn.classList.add('hidden');
+        if (removeBiometricBtn) removeBiometricBtn.classList.add('hidden');
     }
 }
 
