@@ -433,14 +433,54 @@ async function loadReports() {
 
 function renderReports(reports) {
     const tableBody = document.getElementById('reportsTableBody');
+    const reportCountText = document.getElementById('reportCountText');
+    
     if (!tableBody) return;
-    if (reports.length === 0) { tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-white/50 py-8">Tidak ada laporan</td></tr>`; return; }
+    
+    if (reportCountText) {
+        reportCountText.textContent = `Menampilkan ${reports.length} laporan`;
+    }
+
+    // Enable/Disable tombol export berdasarkan ada/tidaknya data
+    const hasData = reports.length > 0;
+    const pdfBtn = document.getElementById('downloadPdfBtn');
+    const excelBtn = document.getElementById('downloadExcelBtn');
+    if (pdfBtn) pdfBtn.disabled = !hasData;
+    if (excelBtn) excelBtn.disabled = !hasData;
+
+    if (reports.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-white/50 py-8">Tidak ada laporan pada periode ini</td></tr>`;
+        return;
+    }
+
     tableBody.innerHTML = reports.map(r => {
         const date = new Date(r.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
         const time = r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        
+        // Badge Status Checklist
         const statusColor = r.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400';
         const progressColor = r.progress_percentage === 100 ? 'text-green-400' : (r.progress_percentage >= 50 ? 'text-amber-400' : 'text-red-400');
-        return `<tr><td class="px-4 py-3 text-sm">${date}</td><td class="px-4 py-3 text-sm font-mono text-white/70">${time}</td><td class="px-4 py-3 text-sm">${r.user_name || '-'}</td><td class="px-4 py-3 text-sm text-center">${r.total_items || 0}</td><td class="px-4 py-3 text-sm text-center text-green-400 font-medium">${r.completed_items || 0}</td><td class="px-4 py-3 text-sm font-semibold text-center ${progressColor}">${r.progress_percentage || 0}%</td><td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor}">${r.status === 'completed' ? 'Selesai' : 'Proses'}</span></td></tr>`;
+        
+        // ✅ Badge Konfirmasi Supervisor (BARU)
+        let spvStatusBadge = '';
+        if (r.supervisor_status === 'approved') {
+            spvStatusBadge = '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30">✅ Disetujui</span>';
+        } else if (r.supervisor_status === 'rejected') {
+            spvStatusBadge = '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400 border border-red-500/30">❌ Ditolak</span>';
+        } else {
+            spvStatusBadge = '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Menunggu</span>';
+        }
+
+        return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+            <td class="px-4 py-3 text-sm">${date}</td>
+            <td class="px-4 py-3 text-sm font-mono text-white/70">${time}</td>
+            <td class="px-4 py-3 text-sm">${r.user_name || '-'}</td>
+            <td class="px-4 py-3 text-sm text-center">${r.total_items || 0}</td>
+            <td class="px-4 py-3 text-sm text-center text-green-400 font-medium">${r.completed_items || 0}</td>
+            <td class="px-4 py-3 text-sm font-semibold text-center ${progressColor}">${r.progress_percentage || 0}%</td>
+            <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor}">${r.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
+            <td class="px-4 py-3 text-center">${spvStatusBadge}</td>
+        </tr>`;
     }).join('');
 }
 
