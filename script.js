@@ -1123,7 +1123,180 @@ document.addEventListener('click', async function(event) {
         catch (error) { console.error("Error logout:", error); }
     }
 });
+// ==========================================
+// HALAMAN KELOLA USER (HANYA SUPERVISOR)
+// ==========================================
+let allUsersData = [];
+let deleteTargetId = null;
 
+function initKelolaUserPage(session) {
+    // Cek akses supervisor
+    if (!isSupervisor(session)) {
+        showNotification("⛔ Akses Ditolak: Hanya supervisor yang bisa mengakses.", 'error');
+        setTimeout(() => window.location.replace('dashboard.html'), 2000);
+        return;
+    }
+
+    window.currentUser = { 
+        name: session.user.user_metadata?.full_name || 'Supervisor', 
+        email: session.user.email 
+    };
+    
+    loadSidebar();
+    loadAllUsers();
+
+    // Search handler
+    const searchInput = document.getElementById('searchUser');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => filterUsers(e.target.value));
+    }
+
+    // Refresh handler
+    const refreshBtn = document.getElementById('refreshUsersBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadAllUsers);
+    }
+}
+
+async function loadAllUsers() {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
+
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        allUsersData = data || [];
+        updateUsersStats(allUsersData);
+        renderUsersTable(allUsersData);
+
+    } catch (error) {
+        console.error("Error loading users:", error);
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`;
+    }
+}
+
+function updateUsersStats(users) {
+    const total = users.length;
+    const staff = users.filter(u => u.role === 'staff').length;
+    const supervisor = users.filter(u => u.role === 'supervisor').length;
+
+    const elTotal = document.getElementById('statTotalUsers');
+    const elStaff = document.getElementById('statStaffUsers');
+    const elSupervisor = document.getElementById('statSupervisorUsers');
+
+    if (elTotal) elTotal.textContent = total;
+    if (elStaff) elStaff.textContent = staff;
+    if (elSupervisor) elSupervisor.textContent = supervisor;
+}
+
+function renderUsersTable(users) {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+
+    if (users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada user ditemukan</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = users.map(user => {
+        const date = new Date(user.created_at).toLocaleDateString('id-ID', { 
+            day: '2-digit', month: 'short', year: 'numeric' 
+        });
+        
+        const roleBadge = user.role === 'supervisor' 
+            ? '<span class="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30">👑 Supervisor</span>'
+            : '<span class="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30">👷 Staff</span>';
+
+        const isCurrentUser = user.email === window.currentUser.email;
+        const deleteBtn = isCurrentUser 
+            ? '<span class="text-xs text-white/30">Anda</span>'
+            : `<button type="button" onclick="openDeleteModal('${user.id}', '${user.full_name || 'User'}', '${user.email}')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">🗑️ Hapus</button>`;
+
+        const initial = (user.full_name || user.email).charAt(0).toUpperCase();
+
+        return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+            <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${initial}</div>
+                    <div class="text-sm font-medium text-white">${user.full_name || 'User'}</div>
+                </div>
+            </td>
+            <td class="px-4 py-3 text-sm text-white/70">${user.email}</td>
+            <td class="px-4 py-3 text-center">${roleBadge}</td>
+            <td class="px-4 py-3 text-sm text-white/60">${date}</td>
+            <td class="px-4 py-3 text-center">${deleteBtn}</td>
+        </tr>`;
+    }).join('');
+}
+
+function filterUsers(query) {
+    const q = query.toLowerCase().trim();
+    if (!q) {
+        renderUsersTable(allUsersData);
+        return;
+    }
+    const filtered = allUsersData.filter(u => 
+        (u.full_name || '').toLowerCase().includes(q) || 
+        u.email.toLowerCase().includes(q)
+    );
+    renderUsersTable(filtered);
+}
+
+function openDeleteModal(userId, userName, userEmail) {
+    deleteTargetId = userId;
+    document.getElementById('deleteUserName').textContent = userName;
+    document.getElementById('deleteUserEmail').textContent = userEmail;
+    document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    deleteTargetId = null;
+}
+
+document.addEventListener('click', async function(event) {
+    if (event.target.id === 'confirmDeleteBtn') {
+        if (!deleteTargetId) return;
+        
+        const btn = document.getElementById('confirmDeleteBtn');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Menghapus...';
+
+        try {
+            const response = await fetch(DELETE_USER_FUNCTION_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ userId: deleteTargetId })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) throw new Error(result.error || 'Gagal menghapus user');
+
+            showNotification('✅ User berhasil dihapus dari sistem.', 'success');
+            closeDeleteModal();
+            loadAllUsers(); // Refresh tabel
+
+        } catch (error) {
+            console.error("Error deleting user:", error);
+            showNotification('❌ Gagal menghapus: ' + error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+});
 function showNotification(message, type = 'info') {
     const colors = { success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' }, warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' }, error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' }, info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' } };
     const c = colors[type] || colors.info;
