@@ -1,11 +1,11 @@
 // ==========================================
-// SCRIPT.JS - FINAL ALL-IN-ONE (DENGAN ROLE SYSTEM)
+// SCRIPT.JS - VERSI FINAL ALL-IN-ONE (DENGAN EXPORT SPV)
 // ==========================================
 
 let filteredReports = [];
 window.currentUser = window.currentUser || { name: 'User', email: 'user@example.com' };
 
-// Daftar email cadangan untuk supervisor (jika metadata role belum terisi)
+// Daftar email cadangan untuk supervisor
 const SUPERVISOR_EMAILS = ['admin@gudang.com', 'supervisor@gudang.com']; 
 
 function isSupervisor(session) {
@@ -13,6 +13,12 @@ function isSupervisor(session) {
     if (session.user.user_metadata?.role === 'supervisor') return true;
     if (SUPERVISOR_EMAILS.includes(session.user.email)) return true;
     return false;
+}
+
+function getSpvStatusText(status) {
+    if (status === 'approved') return 'Disetujui';
+    if (status === 'rejected') return 'Ditolak';
+    return 'Menunggu';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -34,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (session && (currentPage === 'index.html' || currentPage === 'register.html')) {
-            // ✅ CEK ROLE USER SAAT LOGIN
             const userRole = session.user.user_metadata?.role || 'staff';
             if (userRole === 'supervisor') {
                 window.location.replace('supervisor.html');
@@ -402,7 +407,7 @@ DATA KONTEKS:\n${context}`;
 }
 
 // ==========================================
-// 3. HALAMAN LAPORAN
+// 3. HALAMAN LAPORAN (DENGAN EXPORT SPV)
 // ==========================================
 function initLaporanPage(session) {
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
@@ -421,57 +426,41 @@ async function loadReports() {
     const from = document.getElementById('filterFrom')?.value || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const to = document.getElementById('filterTo')?.value || new Date().toISOString().split('T')[0];
     const tableBody = document.getElementById('reportsTableBody');
-    if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>`;
+    if (tableBody) tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>`;
     try {
         const { data, error } = await supabase.from('checklist_submissions').select('*').gte('created_at', from + 'T00:00:00').lte('created_at', to + 'T23:59:59').order('created_at', { ascending: false });
         if (error) throw error;
         filteredReports = data || [];
         renderReports(filteredReports);
         updateReportStats(filteredReports);
-    } catch (error) { if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-red-400 py-8">Gagal: ${error.message}</td></tr>`; }
+    } catch (error) { if (tableBody) tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-red-400 py-8">Gagal: ${error.message}</td></tr>`; }
 }
 
 function renderReports(reports) {
     const tableBody = document.getElementById('reportsTableBody');
     const reportCountText = document.getElementById('reportCountText');
-    
     if (!tableBody) return;
+    if (reportCountText) reportCountText.textContent = `Menampilkan ${reports.length} laporan`;
     
-    if (reportCountText) {
-        reportCountText.textContent = `Menampilkan ${reports.length} laporan`;
-    }
-
-    // Enable/Disable tombol export berdasarkan ada/tidaknya data
     const hasData = reports.length > 0;
     const pdfBtn = document.getElementById('downloadPdfBtn');
     const excelBtn = document.getElementById('downloadExcelBtn');
     if (pdfBtn) pdfBtn.disabled = !hasData;
     if (excelBtn) excelBtn.disabled = !hasData;
 
-    if (reports.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-white/50 py-8">Tidak ada laporan pada periode ini</td></tr>`;
-        return;
-    }
-
+    if (reports.length === 0) { tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-white/50 py-8">Tidak ada laporan</td></tr>`; return; }
+    
     tableBody.innerHTML = reports.map(r => {
         const date = new Date(r.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
         const time = r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-        
-        // Badge Status Checklist
         const statusColor = r.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400';
         const progressColor = r.progress_percentage === 100 ? 'text-green-400' : (r.progress_percentage >= 50 ? 'text-amber-400' : 'text-red-400');
         
-        // ✅ Badge Konfirmasi Supervisor (BARU)
-        let spvStatusBadge = '';
-        if (r.supervisor_status === 'approved') {
-            spvStatusBadge = '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30">✅ Disetujui</span>';
-        } else if (r.supervisor_status === 'rejected') {
-            spvStatusBadge = '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400 border border-red-500/30">❌ Ditolak</span>';
-        } else {
-            spvStatusBadge = '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Menunggu</span>';
-        }
+        let spvBadge = '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Menunggu</span>';
+        if (r.supervisor_status === 'approved') spvBadge = '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30">✅ Disetujui</span>';
+        if (r.supervisor_status === 'rejected') spvBadge = '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400 border border-red-500/30">❌ Ditolak</span>';
 
-        return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+        return `<tr>
             <td class="px-4 py-3 text-sm">${date}</td>
             <td class="px-4 py-3 text-sm font-mono text-white/70">${time}</td>
             <td class="px-4 py-3 text-sm">${r.user_name || '-'}</td>
@@ -479,7 +468,7 @@ function renderReports(reports) {
             <td class="px-4 py-3 text-sm text-center text-green-400 font-medium">${r.completed_items || 0}</td>
             <td class="px-4 py-3 text-sm font-semibold text-center ${progressColor}">${r.progress_percentage || 0}%</td>
             <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor}">${r.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
-            <td class="px-4 py-3 text-center">${spvStatusBadge}</td>
+            <td class="px-4 py-3 text-center">${spvBadge}</td>
         </tr>`;
     }).join('');
 }
@@ -496,23 +485,76 @@ function updateReportStats(reports) {
 
 function downloadPDF() {
     if (filteredReports.length === 0 || typeof window.jspdf === 'undefined') return;
-    const { jsPDF } = window.jspdf; const doc = new jsPDF();
-    const from = document.getElementById('filterFrom').value; const to = document.getElementById('filterTo').value;
-    doc.setFontSize(18); doc.text('Laporan Kebersihan Gudang', 14, 20); doc.setFontSize(10); doc.text(`Periode: ${from} s/d ${to}`, 14, 28);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
+    
+    doc.setFontSize(18); doc.text('Laporan Kebersihan Gudang', 14, 20);
+    doc.setFontSize(10); doc.text(`Periode: ${from} s/d ${to}`, 14, 28);
+    doc.setFontSize(8); doc.setTextColor(100);
+    doc.text(`Total Data: ${filteredReports.length} laporan | Dicetak: ${new Date().toLocaleString('id-ID')}`, 14, 33);
+    doc.setTextColor(0);
+
     if (typeof doc.autoTable === 'function') {
-        doc.autoTable({ startY: 35, head: [['Tanggal', 'Jam', 'User', 'Total', 'Selesai', 'Progress', 'Status']], body: filteredReports.map(r => [new Date(r.created_at).toLocaleDateString('id-ID'), r.submission_time || '-', r.user_name || '-', r.total_items || 0, r.completed_items || 0, (r.progress_percentage || 0) + '%', r.status === 'completed' ? 'Selesai' : 'Proses']), theme: 'grid', headStyles: { fillColor: [102, 126, 234] } });
-        doc.save(`Laporan-${from}-to-${to}.pdf`);
-        showNotification('PDF diunduh! ✅', 'success');
+        doc.autoTable({
+            startY: 38,
+            head: [['Tanggal', 'Jam', 'User', 'Total', 'Selesai', 'Progress', 'Status', 'Konfirmasi SPV']],
+            body: filteredReports.map(r => [
+                new Date(r.created_at).toLocaleDateString('id-ID'),
+                r.submission_time || '-',
+                r.user_name || '-',
+                r.total_items || 0,
+                r.completed_items || 0,
+                (r.progress_percentage || 0) + '%',
+                r.status === 'completed' ? 'Selesai' : 'Proses',
+                getSpvStatusText(r.supervisor_status)
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [102, 126, 234], fontSize: 8, cellPadding: 2 },
+            bodyStyles: { fontSize: 8, cellPadding: 2 },
+            didParseCell: function(data) {
+                if (data.section === 'body' && data.column.index === 7) {
+                    const val = data.cell.raw;
+                    if (val === 'Disetujui') { data.cell.styles.textColor = [34, 197, 94]; data.cell.styles.fontStyle = 'bold'; } 
+                    else if (val === 'Ditolak') { data.cell.styles.textColor = [239, 68, 68]; data.cell.styles.fontStyle = 'bold'; } 
+                    else { data.cell.styles.textColor = [245, 158, 11]; data.cell.styles.fontStyle = 'bold'; }
+                }
+            }
+        });
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(9); doc.setTextColor(100);
+        doc.text('Catatan: Kolom "Konfirmasi SPV" menunjukkan status validasi oleh Supervisor.', 14, finalY);
+        doc.text('Disetujui = Valid | Ditolak = Perlu Perbaikan | Menunggu = Belum Divalidasi', 14, finalY + 5);
+        doc.save(`Laporan-Kebersihan-${from}-to-${to}.pdf`);
+        showNotification('PDF diunduh dengan kolom SPV! ✅', 'success');
     }
 }
 
 function downloadExcel() {
     if (filteredReports.length === 0 || typeof window.XLSX === 'undefined') return;
-    const from = document.getElementById('filterFrom').value; const to = document.getElementById('filterTo').value;
-    const data = filteredReports.map(r => ({ 'Tanggal': new Date(r.created_at).toLocaleDateString('id-ID'), 'Jam': r.submission_time || '-', 'User': r.user_name || '-', 'Total': r.total_items || 0, 'Selesai': r.completed_items || 0, 'Progress': (r.progress_percentage || 0) + '%', 'Status': r.status === 'completed' ? 'Selesai' : 'Proses' }));
-    const wb = window.XLSX.utils.book_new(); window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.json_to_sheet(data), 'Laporan');
-    window.XLSX.writeFile(wb, `Laporan-${from}-to-${to}.xlsx`);
-    showNotification('Excel diunduh! ✅', 'success');
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
+    
+    const data = filteredReports.map(r => ({
+        'Tanggal': new Date(r.created_at).toLocaleDateString('id-ID'),
+        'Jam': r.submission_time || '-',
+        'User': r.user_name || '-',
+        'Total Item': r.total_items || 0,
+        'Selesai': r.completed_items || 0,
+        'Progress': (r.progress_percentage || 0) + '%',
+        'Status Checklist': r.status === 'completed' ? 'Selesai' : 'Proses',
+        'Konfirmasi SPV': getSpvStatusText(r.supervisor_status),
+        'Catatan SPV': r.supervisor_notes || '-'
+    }));
+    
+    const wb = window.XLSX.utils.book_new();
+    const ws = window.XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 30 }];
+    
+    window.XLSX.utils.book_append_sheet(wb, ws, 'Laporan');
+    window.XLSX.writeFile(wb, `Laporan-Kebersihan-${from}-to-${to}.xlsx`);
+    showNotification('Excel diunduh dengan kolom SPV! ✅', 'success');
 }
 
 // ==========================================
@@ -677,20 +719,13 @@ function filterSupervisorReports(status) {
 async function loadSupervisorReports(status) {
     const tbody = document.getElementById('supervisorTableBody');
     if (!tbody) return;
-    
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
-
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>`;
     try {
-        // Ambil semua data sekaligus untuk update counter
-        const { data: allData, error: allError } = await window.supabaseClient
-            .from('checklist_submissions')
-            .select('id, supervisor_status');
-        
+        const { data: allData, error: allError } = await window.supabaseClient.from('checklist_submissions').select('id, supervisor_status');
         if (!allError && allData) {
             const pending = allData.filter(r => r.supervisor_status === 'pending').length;
             const approved = allData.filter(r => r.supervisor_status === 'approved').length;
             const rejected = allData.filter(r => r.supervisor_status === 'rejected').length;
-            
             const elPending = document.getElementById('countPending');
             const elApproved = document.getElementById('countApproved');
             const elRejected = document.getElementById('countRejected');
@@ -699,54 +734,23 @@ async function loadSupervisorReports(status) {
             if (elRejected) elRejected.textContent = rejected;
         }
 
-        // Ambil data untuk filter yang aktif
-        const { data, error } = await window.supabaseClient
-            .from('checklist_submissions')
-            .select('id, user_name, user_email, progress_percentage, status, supervisor_status, supervisor_notes, created_at, submission_time')
-            .eq('supervisor_status', status)
-            .order('created_at', { ascending: false });
-
+        const { data, error } = await window.supabaseClient.from('checklist_submissions').select('id, user_name, user_email, progress_percentage, status, supervisor_status, supervisor_notes, created_at, submission_time').eq('supervisor_status', status).order('created_at', { ascending: false });
         if (error) throw error;
-
-        if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada laporan dengan status "${status}"</td></tr>`;
-            return;
-        }
-
+        if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada laporan dengan status "${status}"</td></tr>`; return; }
+        
         tbody.innerHTML = data.map(row => {
             const date = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
             const time = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            
             let actionButtons = '';
             if (status === 'pending') {
-                actionButtons = `
-                    <button type="button" onclick="openActionModal('${row.id}', 'approved')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button>
-                    <button type="button" onclick="openActionModal('${row.id}', 'rejected')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>
-                `;
+                actionButtons = `<button type="button" onclick="openActionModal('${row.id}', 'approved')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button><button type="button" onclick="openActionModal('${row.id}', 'rejected')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>`;
             } else {
                 actionButtons = `<span class="text-white/40 text-xs">-${row.supervisor_notes || 'Tidak ada catatan'}-</span>`;
             }
-
-            const statusBadge = row.supervisor_status === 'approved' 
-                ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">Disetujui</span>'
-                : (row.supervisor_status === 'rejected' ? '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">Ditolak</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400">Pending</span>');
-
-            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
-                <td class="px-4 py-3">
-                    <div class="text-sm font-medium text-white">${row.user_name || 'User'}</div>
-                    <div class="text-xs text-white/50">${date} • ${time}</div>
-                </td>
-                <td class="px-4 py-3 text-center text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td>
-                <td class="px-4 py-3 text-sm text-white/60 max-w-xs truncate">${row.supervisor_notes || '-'}</td>
-                <td class="px-4 py-3 text-center">${statusBadge}</td>
-                <td class="px-4 py-3 text-center">${actionButtons}</td>
-            </tr>`;
+            const statusBadge = row.supervisor_status === 'approved' ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">Disetujui</span>' : (row.supervisor_status === 'rejected' ? '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">Ditolak</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400">Pending</span>');
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition"><td class="px-4 py-3"><div class="text-sm font-medium text-white">${row.user_name || 'User'}</div><div class="text-xs text-white/50">${date} • ${time}</div></td><td class="px-4 py-3 text-center text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td><td class="px-4 py-3 text-sm text-white/60 max-w-xs truncate">${row.supervisor_notes || '-'}</td><td class="px-4 py-3 text-center">${statusBadge}</td><td class="px-4 py-3 text-center">${actionButtons}</td></tr>`;
         }).join('');
-
-    } catch (error) {
-        console.error("Error loading supervisor reports:", error);
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`;
-    }
+    } catch (error) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`; }
 }
 
 function openActionModal(id, type) {
@@ -810,7 +814,7 @@ function initRegisterPage() {
             const fullName = document.getElementById('fullName').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const role = document.getElementById('userRole') ? document.getElementById('userRole').value : 'staff'; // ✅ AMBIL ROLE
+            const role = document.getElementById('userRole') ? document.getElementById('userRole').value : 'staff';
             
             const submitBtn = document.getElementById('submitBtn');
             const btnText = document.getElementById('btnText');
@@ -818,7 +822,7 @@ function initRegisterPage() {
             
             const { error } = await window.supabaseClient.auth.signUp({ 
                 email, password, 
-                options: { data: { full_name: fullName, role: role } } // ✅ SIMPAN ROLE
+                options: { data: { full_name: fullName, role: role } }
             });
             
             if (error) { showNotification("Registrasi gagal: " + error.message, 'error'); submitBtn.disabled = false; btnText.textContent = 'Daftar Sekarang'; }
