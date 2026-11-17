@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rekap Publik - Gudang Clean</title>
+    <link rel="icon" type="image/png" href="https://companieslogo.com/img/orig/UVRBF-fdcd1dc7.png?t=1720244494">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="font-['Inter'] min-h-screen relative bg-[#0a0a1f] text-white">
+    
+    <!-- BACKGROUND ELEMENTS -->
+    <div class="background-mesh"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
+    <div class="noise-overlay"></div>
+
+    <!-- MAIN CONTENT -->
+    <div class="flex min-h-screen">
+        <main class="flex-1 w-full overflow-y-auto">
+            
+            <!-- HEADER -->
+            <header class="sticky top-0 z-20 glass-header px-4 sm:px-6 py-4 flex items-center justify-between border-b border-white/10">
+                <div class="flex items-center gap-3">
+                    <div class="glass-icon p-2 flex items-center justify-center bg-white/10">
+                        <img src="https://companieslogo.com/img/orig/UVRBF-fdcd1dc7.png?t=1720244494" alt="Logo" class="h-6 w-auto object-contain">
+                    </div>
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-bold text-white">Rekap Publik Gudang Clean</h2>
+                        <p class="text-white/50 text-xs sm:text-sm">Data hanya baca (Read-Only) • Tanpa Login</p>
+                    </div>
+                </div>
+                <a href="index.html" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition flex items-center gap-2">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+                    Kembali ke Login
+                </a>
+            </header>
+
+            <div class="px-4 sm:px-6 py-6 max-w-7xl mx-auto space-y-6">
+                
+                <!-- 1. FILTER LAPORAN -->
+                <div class="glass-card p-5">
+                    <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
+                        <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                        Filter Periode Data
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-white/70 mb-2 uppercase tracking-wider">Dari Tanggal</label>
+                            <input type="date" id="filterFrom" class="glass-input w-full px-4 py-2.5 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-white/70 mb-2 uppercase tracking-wider">Sampai Tanggal</label>
+                            <input type="date" id="filterTo" class="glass-input w-full px-4 py-2.5 text-white">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="applyFilterBtn" class="glass-button w-full py-2.5">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                <span>Terapkan Filter</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. TABEL CHECKLIST KEBERSIHAN -->
+                <div class="glass-card p-0 overflow-hidden">
+                    <div class="p-5 border-b border-white/10 flex items-center justify-between">
+                        <h3 class="text-white font-semibold flex items-center gap-2">
+                            <svg class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                            Riwayat Checklist Kebersihan
+                        </h3>
+                        <span id="countKebersihan" class="text-xs bg-white/10 px-2 py-1 rounded text-white/70">0 data</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full report-table">
+                            <thead>
+                                <tr class="border-b border-white/10 bg-white/5">
+                                    <th class="px-4 py-3 text-left">Tanggal</th>
+                                    <th class="px-4 py-3 text-left">Jam</th>
+                                    <th class="px-4 py-3 text-left">User</th>
+                                    <th class="px-4 py-3 text-center">Progress</th>
+                                    <th class="px-4 py-3 text-center">Status Checklist</th>
+                                    <th class="px-4 py-3 text-center">Konfirmasi SPV</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableKebersihan">
+                                <tr><td colspan="6" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. TABEL CHECKLIST LINGKUNGAN -->
+                <div class="glass-card p-0 overflow-hidden">
+                    <div class="p-5 border-b border-white/10 flex items-center justify-between">
+                        <h3 class="text-white font-semibold flex items-center gap-2">
+                            <svg class="h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                            Riwayat Pengukuran Lingkungan
+                        </h3>
+                        <span id="countLingkungan" class="text-xs bg-white/10 px-2 py-1 rounded text-white/70">0 data</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full report-table">
+                            <thead>
+                                <tr class="border-b border-white/10 bg-white/5">
+                                    <th class="px-4 py-3 text-left">Tanggal</th>
+                                    <th class="px-4 py-3 text-left">Jam</th>
+                                    <th class="px-4 py-3 text-left">User</th>
+                                    <th class="px-4 py-3 text-center">Suhu (°C)</th>
+                                    <th class="px-4 py-3 text-center">Kelembapan (%)</th>
+                                    <th class="px-4 py-3 text-left">Catatan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableLingkungan">
+                                <tr><td colspan="6" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- SCRIPT KHUSUS HALAMAN PUBLIK -->
+    <script>
+        // 1. Inisialisasi Supabase (Gunakan URL dan Anon Key yang sama dengan config.js Anda)
+        const SUPABASE_URL = 'https://nluyhswnrhbuwahwromq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sdXloc3ducmhidXdhaHdyb21xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNDI4NTYsImV4cCI6MjEwODYxODg1Nn0.4RlSNdAnT2DK4__L7YPF091dnUZgZa1LrddR8G2j0Z0';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // 2. Set Default Tanggal: 1 Bulan Berjalan (Hari pertama bulan ini s/d hari ini)
+        function setDefaultDates() {
+            const today = new Date();
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            
+            document.getElementById('filterFrom').value = firstDayOfMonth.toISOString().split('T')[0];
+            document.getElementById('filterTo').value = today.toISOString().split('T')[0];
+        }
+
+        // 3. Fungsi Load Data
+        async function loadPublicData() {
+            const from = document.getElementById('filterFrom').value + 'T00:00:00';
+            const to = document.getElementById('filterTo').value + 'T23:59:59';
+
+            const tbodyKebersihan = document.getElementById('tableKebersihan');
+            const tbodyLingkungan = document.getElementById('tableLingkungan');
+            
+            tbodyKebersihan.innerHTML = `<tr><td colspan="6" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
+            tbodyLingkungan.innerHTML = `<tr><td colspan="6" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
+
+            try {
+                // Ambil Data Kebersihan
+                const { data: dataKebersihan, error: err1 } = await supabase
+                    .from('checklist_submissions')
+                    .select('created_at, user_name, progress_percentage, status, supervisor_status, submission_time')
+                    .gte('created_at', from)
+                    .lte('created_at', to)
+                    .order('created_at', { ascending: false });
+
+                // Ambil Data Lingkungan
+                const { data: dataLingkungan, error: err2 } = await supabase
+                    .from('environment_readings')
+                    .select('created_at, user_name, temperature, humidity, notes, submission_time')
+                    .gte('created_at', from)
+                    .lte('created_at', to)
+                    .order('created_at', { ascending: false });
+
+                if (err1 || err2) throw err1 || err2;
+
+                // Render Tabel Kebersihan
+                document.getElementById('countKebersihan').textContent = `${dataKebersihan?.length || 0} data`;
+                if (!dataKebersihan || dataKebersihan.length === 0) {
+                    tbodyKebersihan.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-white/50">Tidak ada data pada periode ini</td></tr>`;
+                } else {
+                    tbodyKebersihan.innerHTML = dataKebersihan.map(r => {
+                        const date = new Date(r.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                        const time = r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                        const progressColor = r.progress_percentage === 100 ? 'text-green-400' : (r.progress_percentage >= 50 ? 'text-amber-400' : 'text-red-400');
+                        
+                        let spvBadge = '<span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded">⏳ Menunggu</span>';
+                        if (r.supervisor_status === 'approved') spvBadge = '<span class="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">✅ Disetujui</span>';
+                        if (r.supervisor_status === 'rejected') spvBadge = '<span class="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">❌ Ditolak</span>';
+
+                        return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                            <td class="px-4 py-3 text-sm">${date}</td>
+                            <td class="px-4 py-3 text-sm font-mono text-white/70">${time}</td>
+                            <td class="px-4 py-3 text-sm">${r.user_name || 'Anonim'}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-center ${progressColor}">${r.progress_percentage}%</td>
+                            <td class="px-4 py-3 text-center"><span class="text-xs px-2 py-1 rounded ${r.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}">${r.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
+                            <td class="px-4 py-3 text-center">${spvBadge}</td>
+                        </tr>`;
+                    }).join('');
+                }
+
+                // Render Tabel Lingkungan
+                document.getElementById('countLingkungan').textContent = `${dataLingkungan?.length || 0} data`;
+                if (!dataLingkungan || dataLingkungan.length === 0) {
+                    tbodyLingkungan.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-white/50">Tidak ada data pada periode ini</td></tr>`;
+                } else {
+                    tbodyLingkungan.innerHTML = dataLingkungan.map(r => {
+                        const date = new Date(r.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                        const time = r.submission_time || new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                        const tempStatus = (r.temperature >= 20 && r.temperature <= 27) ? 'text-green-400' : 'text-amber-400';
+                        const humStatus = (r.humidity >= 50 && r.humidity <= 70) ? 'text-green-400' : 'text-amber-400';
+                        
+                        return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                            <td class="px-4 py-3 text-sm">${date}</td>
+                            <td class="px-4 py-3 text-sm font-mono text-white/70">${time}</td>
+                            <td class="px-4 py-3 text-sm">${r.user_name || 'Anonim'}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-center ${tempStatus}">${r.temperature}°C</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-center ${humStatus}">${r.humidity}%</td>
+                            <td class="px-4 py-3 text-sm text-white/60 truncate max-w-xs">${r.notes || '-'}</td>
+                        </tr>`;
+                    }).join('');
+                }
+
+            } catch (error) {
+                console.error("Error loading public data:", error);
+                tbodyKebersihan.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">Gagal memuat data. Periksa koneksi atau RLS database.</td></tr>`;
+                tbodyLingkungan.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">Gagal memuat data. Periksa koneksi atau RLS database.</td></tr>`;
+            }
+        }
+
+        // 4. Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            setDefaultDates();
+            loadPublicData();
+            
+            document.getElementById('applyFilterBtn').addEventListener('click', loadPublicData);
+        });
+    </script>
+</body>
+</html>
