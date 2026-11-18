@@ -1052,7 +1052,6 @@ async function loadAllUsers() {
         const { data: { session } } = await window.supabaseClient.auth.getSession();
         if (!session) throw new Error("Session tidak ditemukan");
 
-        // Panggil Edge Function list-users
         const response = await fetch(LIST_USERS_FUNCTION_URL, {
             method: 'GET',
             headers: {
@@ -1061,7 +1060,15 @@ async function loadAllUsers() {
             }
         });
 
-        const result = await response.json();
+        // Baca sebagai text dulu untuk mencegah crash jika server return HTML error
+        const responseText = await response.text();
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (e) {
+            throw new Error(`Server tidak mengembalikan JSON. Raw response: ${responseText.substring(0, 150)}`);
+        }
+
         if (!response.ok) throw new Error(result.error || 'Gagal memuat user');
 
         allUsersData = result.users || [];
@@ -1069,8 +1076,12 @@ async function loadAllUsers() {
         renderUsersTable(allUsersData);
 
     } catch (error) {
-        console.error("Error loading users:", error);
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`;
+        console.error("❌ Error loading users:", error);
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">
+            Gagal memuat data.<br>
+            <span style="font-size: 0.8em; opacity: 0.8;">${error.message}</span><br>
+            <small>Cek Console (F12) untuk detail lengkap.</small>
+        </td></tr>`;
     }
 }
 
