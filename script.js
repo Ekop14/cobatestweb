@@ -1050,26 +1050,31 @@ async function loadAllUsers() {
 
     try {
         const { data: { session } } = await window.supabaseClient.auth.getSession();
-        if (!session) throw new Error("Session tidak ditemukan");
+        if (!session || !session.access_token) {
+            throw new Error("Sesi tidak ditemukan. Silakan logout dan login ulang.");
+        }
 
         const response = await fetch(LIST_USERS_FUNCTION_URL, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${session.access_token}`,
+                'apikey': SUPABASE_ANON_KEY, // ✅ Tambahan penting agar Supabase mengenali project
                 'Content-Type': 'application/json'
             }
         });
 
-        // Baca sebagai text dulu untuk mencegah crash jika server return HTML error
         const responseText = await response.text();
         let result;
         try {
             result = JSON.parse(responseText);
         } catch (e) {
-            throw new Error(`Server tidak mengembalikan JSON. Raw response: ${responseText.substring(0, 150)}`);
+            throw new Error(`Server tidak mengembalikan JSON. Response: ${responseText.substring(0, 150)}`);
         }
 
-        if (!response.ok) throw new Error(result.error || 'Gagal memuat user');
+        if (!response.ok) {
+            // Tampilkan detail error dari edge function
+            throw new Error(result.details || result.error || `HTTP Error ${response.status}`);
+        }
 
         allUsersData = result.users || [];
         updateUsersStats(allUsersData);
@@ -1079,8 +1084,8 @@ async function loadAllUsers() {
         console.error("❌ Error loading users:", error);
         tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">
             Gagal memuat data.<br>
-            <span style="font-size: 0.8em; opacity: 0.8;">${error.message}</span><br>
-            <small>Cek Console (F12) untuk detail lengkap.</small>
+            <span style="font-size: 0.9em; font-weight: bold;">${error.message}</span><br>
+            <small style="opacity: 0.8;">💡 Solusi: Coba <b>Logout</b> lalu <b>Login ulang</b>.</small>
         </td></tr>`;
     }
 }
