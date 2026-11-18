@@ -1049,21 +1049,35 @@ async function loadAllUsers() {
     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
 
     try {
-        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        // 1. Cek sesi secara eksplisit
+        const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
+        
+        console.log("🔍 [DEBUG] Session Data:", session);
+        console.log("🔍 [DEBUG] Session Error:", sessionError);
+
+        if (sessionError) {
+            throw new Error("Gagal membaca sesi: " + sessionError.message);
+        }
         if (!session || !session.access_token) {
-            throw new Error("Sesi tidak ditemukan. Silakan logout dan login ulang.");
+            throw new Error("Sesi tidak ditemukan (Auth session missing). Anda belum login atau sesi kadaluarsa.");
         }
 
+        console.log("🚀 [DEBUG] Mengirim request ke Edge Function...");
+
+        // 2. Kirim request dengan header yang lengkap
         const response = await fetch(LIST_USERS_FUNCTION_URL, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${session.access_token}`,
-                'apikey': SUPABASE_ANON_KEY, // ✅ Tambahan penting agar Supabase mengenali project
+                'apikey': SUPABASE_ANON_KEY, // Wajib ada agar Supabase mengenali project
                 'Content-Type': 'application/json'
             }
         });
 
         const responseText = await response.text();
+        console.log("📥 [DEBUG] Response Status:", response.status);
+        console.log("📥 [DEBUG] Response Body:", responseText);
+
         let result;
         try {
             result = JSON.parse(responseText);
@@ -1072,8 +1086,7 @@ async function loadAllUsers() {
         }
 
         if (!response.ok) {
-            // Tampilkan detail error dari edge function
-            throw new Error(result.details || result.error || `HTTP Error ${response.status}`);
+            throw new Error(result.details || result.error || result.hint || `HTTP Error ${response.status}`);
         }
 
         allUsersData = result.users || [];
@@ -1085,7 +1098,7 @@ async function loadAllUsers() {
         tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">
             Gagal memuat data.<br>
             <span style="font-size: 0.9em; font-weight: bold;">${error.message}</span><br>
-            <small style="opacity: 0.8;">💡 Solusi: Coba <b>Logout</b> lalu <b>Login ulang</b>.</small>
+            <small style="opacity: 0.8;">💡 Solusi: Klik tombol <b>Logout</b> di pojok kanan atas, lalu Login ulang.</small>
         </td></tr>`;
     }
 }
