@@ -14,7 +14,7 @@ window.GROQ_MODEL = 'llama3-70b-8192'; // Model gratis Groq yang paling cerdas &
 // 3. URL Edge Functions (Sesuaikan dengan fungsi yang kamu deploy)
 // ⚠️ PENTING: Pastikan URL di bawah ini sesuai dengan fungsi masing-masing!
 // Jika tertukar, silakan swap (tukar) URL-nya.
-const LIST_USERS_FUNCTION_URL = 'https://nluyhswnrhbuwahwromq.supabase.co/functions/v1/swift-function'; 
+const LIST_USERS_FUNCTION_URL = 'https://nluyhswnrhbuwahwromq.supabase.co/functions/v1/clever-action'; 
 const LIST_USERS_FUNCTION_URL = 'https://nluyhswnrhbuwahwromq.supabase.co/functions/v1/list-users-v2'; 
 
 /* ============================================
