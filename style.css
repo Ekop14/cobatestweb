@@ -38,19 +38,15 @@ body {
     filter: blur(90px); opacity: 0.85;
     animation: floatGlow 26s infinite ease-in-out;
 }
-/* Blob 1: UNGU besar kiri-atas */
 .blob-1 { width: 420px; height: 420px;
     background: radial-gradient(circle, var(--purple) 0%, rgba(139,92,246,0.6) 45%, transparent 72%);
     top: -60px; left: -40px; }
-/* Blob 2: ORANYE besar kanan-bawah */
 .blob-2 { width: 380px; height: 380px;
     background: radial-gradient(circle, var(--orange-warm) 0%, rgba(249,115,22,0.6) 45%, transparent 72%);
     bottom: -40px; right: -30px; animation-delay: -10s; }
-/* Blob 3: UNGU kecil kanan-atas */
 .blob-3 { width: 110px; height: 110px;
     background: radial-gradient(circle, var(--purple) 0%, transparent 70%);
     top: 18%; right: 12%; filter: blur(40px); animation-delay: -5s; }
-/* Dot kecil tambahan via mesh (tanpa ubah HTML) */
 .background-mesh::before {
     content:''; position:absolute; width:22px; height:22px; border-radius:50%;
     background: var(--purple); top: 30%; right: 22%; filter: blur(2px);
@@ -82,10 +78,7 @@ body {
     border-left: 1px solid rgba(255,255,255,0.14);
     border-radius: 28px;
     padding: 2rem;
-    box-shadow:
-        inset 1px 1px 4px rgba(255,255,255,0.10),
-        inset -1px -1px 4px rgba(0,0,0,0.30),
-        0 20px 50px rgba(0,0,0,0.55);
+    box-shadow: inset 1px 1px 4px rgba(255,255,255,0.10), inset -1px -1px 4px rgba(0,0,0,0.30), 0 20px 50px rgba(0,0,0,0.55);
     transition: all .4s cubic-bezier(.2,.8,.2,1);
     position: relative; overflow: hidden;
 }
@@ -329,15 +322,44 @@ textarea.glass-input { resize: vertical; min-height: 80px; }
 }
 
 /* ============================================
-   LAYOUT DESKTOP / MOBILE (TETAP SAMA)
+   LAYOUT DESKTOP / MOBILE (DIPERBAIKI UNTUK SCROLL)
    ============================================ */
 @media (min-width: 1025px) {
-    body { display:flex; flex-direction:row; min-height:100vh; overflow:hidden; }
-    #sidebar { position:relative !important; transform:none !important; width:280px; flex-shrink:0; height:100vh; z-index:10; display:flex; flex-direction:column; }
-    .flex.min-h-screen { display:flex; flex:1; min-width:0; width:calc(100% - 280px); }
-    main { flex:1; width:100%; height:100vh; overflow-y:auto; overflow-x:hidden; }
-    #sidebarOverlay, #sidebarToggle { display:none !important; }
+    body { 
+        display: flex; 
+        flex-direction: row; 
+        height: 100vh; 
+        overflow: hidden; 
+    }
+    #sidebar { 
+        position: relative !important; 
+        transform: none !important; 
+        width: 280px; 
+        flex-shrink: 0; 
+        height: 100vh; 
+        z-index: 10; 
+        display: flex; 
+        flex-direction: column; 
+    }
+    .flex.min-h-screen { 
+        display: flex; 
+        flex: 1; 
+        min-width: 0; 
+        width: calc(100% - 280px); 
+    }
+    main { 
+        flex: 1; 
+        width: 100%; 
+        height: 100vh; 
+        overflow-y: auto; /* ⚠️ INI KUNCI AGAR BISA DI-SCROLL DI DESKTOP */
+        overflow-x: hidden;
+        scroll-behavior: smooth; 
+    }
+    #sidebarOverlay, #sidebarToggle { 
+        display: none !important; 
+    }
 }
+
 @media (max-width: 1024px) {
     body { display:block; min-height:100vh; overflow-x:hidden; }
     #sidebar { position:fixed !important; left:0; top:0; transform:translateX(-100%); width:280px; height:100vh; z-index:99999 !important; box-shadow:4px 0 24px rgba(0,0,0,0.6); }
@@ -355,14 +377,12 @@ textarea.glass-input { resize: vertical; min-height: 80px; }
 .spinner { width:24px; height:24px; border:3px solid rgba(255,255,255,0.22); border-top-color:var(--purple); border-radius:50%; animation:spin .8s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 
-/* Menu disabled (dipertahankan) */
 .nav-item.menu-disabled, .category-btn.menu-disabled, a.menu-disabled, button.menu-disabled {
     opacity:.25 !important; pointer-events:none !important; cursor:not-allowed !important;
     background:transparent !important; border:none !important; box-shadow:none !important;
     color:rgba(255,255,255,0.25) !important; text-decoration:none !important;
 }
 
-/* Biometric button (dipertahankan, accent ungu) */
 #biometricLoginBtn { position:relative; overflow:hidden; }
 #biometricLoginBtn::before { content:''; position:absolute; top:50%; left:50%; width:0; height:0; border-radius:50%; background:rgba(168,85,247,0.3); transform:translate(-50%,-50%); transition:width .6s, height .6s; }
 #biometricLoginBtn:hover::before { width:300px; height:300px; }
