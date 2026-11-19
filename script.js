@@ -693,6 +693,9 @@ async function loadEnvironmentHistory() {
 // ==========================================
 // 6. HALAMAN APD CEKLIST (BARU)
 // ==========================================
+// ==========================================
+// 6. HALAMAN APD CEKLIST (DENGAN CATATAN)
+// ==========================================
 function initApdPage(session) {
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
     
@@ -702,7 +705,7 @@ function initApdPage(session) {
     loadSidebar();
 
     const checkboxes = document.querySelectorAll('.apd-checkbox');
-    const totalItems = 5; // ✅ Fixed 5 item APD
+    const totalItems = 5;
     const totalCountEl = document.getElementById('apdTotalCount');
     const completedCountEl = document.getElementById('apdCompletedCount');
     const progressTextEl = document.getElementById('apdProgressText');
@@ -746,11 +749,14 @@ function initApdPage(session) {
             const completed = document.querySelectorAll('.apd-checkbox:checked').length;
             const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
             
-            // ✅ Validasi: harus 5/5 untuk submit
             if (completed < totalItems) {
                 showNotification(`⚠️ Lengkapi semua APD dulu ya! (${completed}/${totalItems})`, 'warning');
                 return;
             }
+
+            // ✅ Ambil nilai catatan (opsional)
+            const notesEl = document.getElementById('apdNotes');
+            const notes = notesEl ? notesEl.value.trim() : null;
 
             const originalBtnText = submitBtn.innerHTML;
             submitBtn.disabled = true;
@@ -763,6 +769,7 @@ function initApdPage(session) {
                 completed_items: completed,
                 progress_percentage: percentage,
                 status: percentage === 100 ? 'completed' : 'in_progress',
+                notes: notes || null, // ✅ Simpan catatan
                 submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                 created_at: new Date().toISOString()
             };
@@ -784,6 +791,7 @@ function initApdPage(session) {
                             listItem.style.borderColor = 'transparent';
                         }
                     });
+                    if (notesEl) notesEl.value = ''; // ✅ Reset catatan
                     updateProgress();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }, 1500);
@@ -794,6 +802,8 @@ function initApdPage(session) {
                 submitBtn.innerHTML = originalBtnText;
             }
         });
+    } else {
+        console.warn("⚠️ Tombol submitApdBtn tidak ditemukan di HTML!");
     }
 }
 
