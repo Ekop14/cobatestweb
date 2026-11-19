@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - FINAL (APD SELF-HEALING + KELOLA USER)
+// SCRIPT.JS - FINAL (APD SELF-HEALING + SCROLL FIX)
 // ==========================================
 
 let filteredReports = [];
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'register.html') initRegisterPage();
         else if (currentPage === 'dashboard.html') initDashboardPage(session);
         else if (currentPage === 'checklist.html') initChecklistPage(session);
-        else if (currentPage === 'apd.html') initApdPage(session); // ✅ ROUTING APD
+        else if (currentPage === 'apd.html') initApdPage(session);
         else if (currentPage === 'lingkungan.html') initEnvironmentPage(session);
         else if (currentPage === 'supervisor.html') initSupervisorPage(session);
         else if (currentPage === 'kelola-user.html') initKelolaUserPage(session);
@@ -689,22 +689,19 @@ async function loadEnvironmentHistory() {
 }
 
 // ==========================================
-// 6. HALAMAN APD CEKLIST (SELF-HEALING)
+// 6. HALAMAN APD CEKLIST (SELF-HEALING + SCROLL FIX)
 // ==========================================
-
-// Fungsi penyelamat: jika tombol/notes TIDAK ADA di HTML, JS akan MEMBUATNYA
 function ensureApdUI() {
-    const container = document.querySelector('.max-w-4xl')
-        || document.querySelector('main .px-4')
-        || document.querySelector('main');
+    const container = document.querySelector('.max-w-4xl') 
+        || document.querySelector('main .px-4') 
+        || document.querySelector('main > div');
+        
     if (!container) { console.error('❌ APD: container konten tidak ditemukan'); return; }
 
-    // Paksa overflow visible agar tidak ada yang ter-clip
+    // ⚠️ PERBAIKAN SCROLL: HANYA ubah overflow container dalam, JANGAN sentuh tag <main>
     container.style.overflow = 'visible';
-    const mainEl = document.querySelector('main');
-    if (mainEl) mainEl.style.overflow = 'visible';
 
-    // 1. TEXTAREA CATATAN — pastikan ada & di posisi akhir
+    // 1. TEXTAREA CATATAN
     let notesEl = document.getElementById('apdNotes');
     if (!notesEl) {
         const notesCard = document.createElement('div');
@@ -724,7 +721,7 @@ function ensureApdUI() {
         }
     }
 
-    // 2. TOMBOL SUBMIT — ambil/buat, PINDAH ke akhir, PAKSA style gradient
+    // 2. TOMBOL SUBMIT
     let btn = document.getElementById('submitApdBtn');
     if (!btn) {
         btn = document.createElement('button');
@@ -734,7 +731,9 @@ function ensureApdUI() {
         btn.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Kirim Laporan APD</span>';
         console.log('✅ APD: Tombol di-INJECT');
     }
-    container.appendChild(btn); // pindah ke akhir (setelah catatan)
+    
+    container.appendChild(btn); 
+    
     btn.style.cssText = `
         display:flex !important; visibility:visible !important; opacity:1 !important;
         height:auto !important; min-height:52px !important;
@@ -769,9 +768,7 @@ function initApdPage(session) {
     if (dateDisplay) dateDisplay.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     
     loadSidebar();
-
-    // ⭐ JALANKAN SELF-HEALING DULU
-    ensureApdUI();
+    ensureApdUI(); // Jalankan self-healing
 
     const checkboxes = document.querySelectorAll('.apd-checkbox');
     const totalItems = 5;
