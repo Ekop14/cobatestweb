@@ -694,11 +694,19 @@ async function loadEnvironmentHistory() {
 
 // Fungsi penyelamat: jika tombol/notes TIDAK ADA di HTML, JS akan MEMBUATNYA
 function ensureApdUI() {
-    const container = document.querySelector('.max-w-4xl') || document.querySelector('main .px-4') || document.querySelector('main');
+    const container = document.querySelector('.max-w-4xl')
+        || document.querySelector('main .px-4')
+        || document.querySelector('main');
     if (!container) { console.error('❌ APD: container konten tidak ditemukan'); return; }
 
-    // Pastikan textarea catatan ada
-    if (!document.getElementById('apdNotes')) {
+    // Paksa overflow visible agar tidak ada yang ter-clip
+    container.style.overflow = 'visible';
+    const mainEl = document.querySelector('main');
+    if (mainEl) mainEl.style.overflow = 'visible';
+
+    // 1. TEXTAREA CATATAN — pastikan ada & di posisi akhir
+    let notesEl = document.getElementById('apdNotes');
+    if (!notesEl) {
         const notesCard = document.createElement('div');
         notesCard.className = 'glass-card !p-5 mb-6';
         notesCard.innerHTML = `
@@ -706,32 +714,51 @@ function ensureApdUI() {
             <textarea id="apdNotes" class="glass-input w-full px-4 py-3 text-white placeholder-white/30" rows="4" placeholder="Tulis catatan jika ada kondisi khusus, kerusakan APD, atau hal yang perlu dilaporkan (opsional)..."></textarea>
             <p class="text-white/40 text-xs mt-2">💡 Opsional — isi jika ada hal yang perlu dilaporkan ke supervisor.</p>`;
         container.appendChild(notesCard);
-        console.log('✅ APD: Kolom catatan di-INJECT (self-healing)');
+        notesEl = document.getElementById('apdNotes');
+        console.log('✅ APD: Catatan di-INJECT');
+    } else {
+        const card = notesEl.closest('.glass-card');
+        if (card && card.parentElement !== container) {
+            container.appendChild(card);
+            console.log('✅ APD: Card catatan dipindah ke posisi akhir');
+        }
     }
 
-    // Pastikan tombol submit ada
-    if (!document.getElementById('submitApdBtn')) {
-        const btn = document.createElement('button');
+    // 2. TOMBOL SUBMIT — ambil/buat, PINDAH ke akhir, PAKSA style gradient
+    let btn = document.getElementById('submitApdBtn');
+    if (!btn) {
+        btn = document.createElement('button');
         btn.type = 'button';
         btn.id = 'submitApdBtn';
         btn.className = 'glass-button w-full !py-4 text-base font-semibold mb-4';
-        btn.style.cssText = 'display:flex !important;visibility:visible !important;opacity:1 !important;align-items:center;justify-content:center;gap:.5rem;width:100%;padding:1rem;margin:1rem 0;background:linear-gradient(135deg,#a855f7 0%,#f97316 100%)!important;color:#fff!important;font-weight:700;font-size:17px;border-radius:14px;border:none;box-shadow:0 6px 22px rgba(168,85,247,.4),0 4px 14px rgba(249,115,22,.35);cursor:pointer;';
-        btn.innerHTML = '<svg style="width:20px;height:20px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Kirim Laporan APD</span>';
-        container.appendChild(btn);
-        console.log('✅ APD: Tombol submit di-INJECT (self-healing) — tombol dijamin muncul!');
-    } else {
-        console.log('✅ APD: Tombol submit SUDAH ADA di HTML');
+        btn.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Kirim Laporan APD</span>';
+        console.log('✅ APD: Tombol di-INJECT');
     }
+    container.appendChild(btn); // pindah ke akhir (setelah catatan)
+    btn.style.cssText = `
+        display:flex !important; visibility:visible !important; opacity:1 !important;
+        height:auto !important; min-height:52px !important;
+        position:relative !important; z-index:9999 !important; overflow:visible !important;
+        align-items:center !important; justify-content:center !important; gap:8px !important;
+        width:100% !important; margin:16px 0 !important; padding:16px 24px !important;
+        background:linear-gradient(135deg,#a855f7 0%,#f97316 100%) !important;
+        color:#fff !important; font-weight:700 !important; font-size:17px !important;
+        border-radius:14px !important; border:none !important; cursor:pointer !important;
+        box-shadow:0 6px 22px rgba(168,85,247,.45),0 4px 14px rgba(249,115,22,.4) !important;
+    `;
+    console.log('✅ APD: Tombol dipaksa terlihat di posisi akhir');
 
-    // Pastikan info box ada
-    if (!document.getElementById('dailyApdInfo')) {
-        const info = document.createElement('div');
+    // 3. INFO BOX
+    let info = document.getElementById('dailyApdInfo');
+    if (!info) {
+        info = document.createElement('div');
         info.id = 'dailyApdInfo';
-        info.className = 'hidden glass-card !p-4 mb-6 text-center';
-        info.style.cssText = 'display:none;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:16px;padding:1rem;margin-bottom:1rem;';
+        info.className = 'glass-card !p-4 mb-6 text-center';
+        info.style.display = 'none';
         info.innerHTML = '<p class="text-green-400 font-semibold">✅ Sudah Submit APD Hari Ini</p><p class="text-white/60 text-xs mt-1">Waktu: <span id="apdSubmissionTime">-</span></p>';
         container.appendChild(info);
     }
+    info.style.overflow = 'visible';
 }
 
 function initApdPage(session) {
