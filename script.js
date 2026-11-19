@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - FINAL ALL-IN-ONE (DENGAN APD CEKLIST)
+// SCRIPT.JS - FINAL (APD SELF-HEALING + KELOLA USER)
 // ==========================================
 
 let filteredReports = [];
@@ -40,20 +40,18 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (session && (currentPage === 'index.html' || currentPage === 'register.html')) {
             const userRole = session.user.user_metadata?.role || 'staff';
-            if (userRole === 'supervisor') {
-                window.location.replace('supervisor.html');
-            } else {
-                window.location.replace('checklist.html');
-            }
+            window.location.replace(userRole === 'supervisor' ? 'supervisor.html' : 'checklist.html');
             return;
         }
+
+        console.log("📄 Halaman aktif:", currentPage);
 
         if (currentPage === 'laporan.html') initLaporanPage(session);
         else if (currentPage === 'index.html') initLoginPage();
         else if (currentPage === 'register.html') initRegisterPage();
         else if (currentPage === 'dashboard.html') initDashboardPage(session);
         else if (currentPage === 'checklist.html') initChecklistPage(session);
-        else if (currentPage === 'apd.html') initApdPage(session); // ✅ ROUTING APD BARU
+        else if (currentPage === 'apd.html') initApdPage(session); // ✅ ROUTING APD
         else if (currentPage === 'lingkungan.html') initEnvironmentPage(session);
         else if (currentPage === 'supervisor.html') initSupervisorPage(session);
         else if (currentPage === 'kelola-user.html') initKelolaUserPage(session);
@@ -691,12 +689,53 @@ async function loadEnvironmentHistory() {
 }
 
 // ==========================================
-// 6. HALAMAN APD CEKLIST (BARU)
+// 6. HALAMAN APD CEKLIST (SELF-HEALING)
 // ==========================================
-// ==========================================
-// 6. HALAMAN APD CEKLIST (DENGAN CATATAN)
-// ==========================================
+
+// Fungsi penyelamat: jika tombol/notes TIDAK ADA di HTML, JS akan MEMBUATNYA
+function ensureApdUI() {
+    const container = document.querySelector('.max-w-4xl') || document.querySelector('main .px-4') || document.querySelector('main');
+    if (!container) { console.error('❌ APD: container konten tidak ditemukan'); return; }
+
+    // Pastikan textarea catatan ada
+    if (!document.getElementById('apdNotes')) {
+        const notesCard = document.createElement('div');
+        notesCard.className = 'glass-card !p-5 mb-6';
+        notesCard.innerHTML = `
+            <h3 class="text-white font-semibold mb-3">Catatan Tambahan</h3>
+            <textarea id="apdNotes" class="glass-input w-full px-4 py-3 text-white placeholder-white/30" rows="4" placeholder="Tulis catatan jika ada kondisi khusus, kerusakan APD, atau hal yang perlu dilaporkan (opsional)..."></textarea>
+            <p class="text-white/40 text-xs mt-2">💡 Opsional — isi jika ada hal yang perlu dilaporkan ke supervisor.</p>`;
+        container.appendChild(notesCard);
+        console.log('✅ APD: Kolom catatan di-INJECT (self-healing)');
+    }
+
+    // Pastikan tombol submit ada
+    if (!document.getElementById('submitApdBtn')) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'submitApdBtn';
+        btn.className = 'glass-button w-full !py-4 text-base font-semibold mb-4';
+        btn.style.cssText = 'display:flex !important;visibility:visible !important;opacity:1 !important;align-items:center;justify-content:center;gap:.5rem;width:100%;padding:1rem;margin:1rem 0;background:linear-gradient(135deg,#a855f7 0%,#f97316 100%)!important;color:#fff!important;font-weight:700;font-size:17px;border-radius:14px;border:none;box-shadow:0 6px 22px rgba(168,85,247,.4),0 4px 14px rgba(249,115,22,.35);cursor:pointer;';
+        btn.innerHTML = '<svg style="width:20px;height:20px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Kirim Laporan APD</span>';
+        container.appendChild(btn);
+        console.log('✅ APD: Tombol submit di-INJECT (self-healing) — tombol dijamin muncul!');
+    } else {
+        console.log('✅ APD: Tombol submit SUDAH ADA di HTML');
+    }
+
+    // Pastikan info box ada
+    if (!document.getElementById('dailyApdInfo')) {
+        const info = document.createElement('div');
+        info.id = 'dailyApdInfo';
+        info.className = 'hidden glass-card !p-4 mb-6 text-center';
+        info.style.cssText = 'display:none;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:16px;padding:1rem;margin-bottom:1rem;';
+        info.innerHTML = '<p class="text-green-400 font-semibold">✅ Sudah Submit APD Hari Ini</p><p class="text-white/60 text-xs mt-1">Waktu: <span id="apdSubmissionTime">-</span></p>';
+        container.appendChild(info);
+    }
+}
+
 function initApdPage(session) {
+    console.log('🦺 initApdPage DIPANGGIL');
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
     
     const dateDisplay = document.getElementById('currentDate');
@@ -704,8 +743,13 @@ function initApdPage(session) {
     
     loadSidebar();
 
+    // ⭐ JALANKAN SELF-HEALING DULU
+    ensureApdUI();
+
     const checkboxes = document.querySelectorAll('.apd-checkbox');
     const totalItems = 5;
+    console.log('🦺 Checkbox APD ditemukan:', checkboxes.length, 'item');
+
     const totalCountEl = document.getElementById('apdTotalCount');
     const completedCountEl = document.getElementById('apdCompletedCount');
     const progressTextEl = document.getElementById('apdProgressText');
@@ -754,7 +798,6 @@ function initApdPage(session) {
                 return;
             }
 
-            // ✅ Ambil nilai catatan (opsional)
             const notesEl = document.getElementById('apdNotes');
             const notes = notesEl ? notesEl.value.trim() : null;
 
@@ -769,7 +812,7 @@ function initApdPage(session) {
                 completed_items: completed,
                 progress_percentage: percentage,
                 status: percentage === 100 ? 'completed' : 'in_progress',
-                notes: notes || null, // ✅ Simpan catatan
+                notes: notes || null,
                 submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                 created_at: new Date().toISOString()
             };
@@ -791,7 +834,7 @@ function initApdPage(session) {
                             listItem.style.borderColor = 'transparent';
                         }
                     });
-                    if (notesEl) notesEl.value = ''; // ✅ Reset catatan
+                    if (notesEl) notesEl.value = '';
                     updateProgress();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }, 1500);
@@ -802,8 +845,9 @@ function initApdPage(session) {
                 submitBtn.innerHTML = originalBtnText;
             }
         });
+        console.log('✅ APD: Event listener submit TERPASANG');
     } else {
-        console.warn("⚠️ Tombol submitApdBtn tidak ditemukan di HTML!");
+        console.error('❌ APD: Tombol submit TIDAK TERPASANG (self-healing gagal?)');
     }
 }
 
@@ -835,7 +879,7 @@ function disableApdSubmitButtonUI(submission) {
         btn.classList.add('opacity-50', 'cursor-not-allowed');
         btn.innerHTML = '<span>✅ Sudah Submit APD Hari Ini</span>';
     }
-    if (infoBox) infoBox.classList.remove('hidden');
+    if (infoBox) { infoBox.classList.remove('hidden'); infoBox.style.display = 'block'; }
     if (timeDisplay) timeDisplay.textContent = submission.submission_time || new Date(submission.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -1200,18 +1244,9 @@ async function loadAllUsers() {
 
     try {
         const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
-        
-        console.log("🔍 [DEBUG] Session Data:", session);
-        console.log("🔍 [DEBUG] Session Error:", sessionError);
 
-        if (sessionError) {
-            throw new Error("Gagal membaca sesi: " + sessionError.message);
-        }
-        if (!session || !session.access_token) {
-            throw new Error("Sesi tidak ditemukan (Auth session missing). Anda belum login atau sesi kadaluarsa.");
-        }
-
-        console.log("🚀 [DEBUG] Mengirim request ke Edge Function...");
+        if (sessionError) throw new Error("Gagal membaca sesi: " + sessionError.message);
+        if (!session || !session.access_token) throw new Error("Sesi tidak ditemukan. Silakan logout dan login ulang.");
 
         const response = await fetch(LIST_USERS_FUNCTION_URL, {
             method: 'GET',
@@ -1223,19 +1258,11 @@ async function loadAllUsers() {
         });
 
         const responseText = await response.text();
-        console.log("📥 [DEBUG] Response Status:", response.status);
-        console.log("📥 [DEBUG] Response Body:", responseText);
-
         let result;
-        try {
-            result = JSON.parse(responseText);
-        } catch (e) {
-            throw new Error(`Server tidak mengembalikan JSON. Response: ${responseText.substring(0, 150)}`);
-        }
+        try { result = JSON.parse(responseText); }
+        catch (e) { throw new Error(`Server tidak mengembalikan JSON. Response: ${responseText.substring(0, 150)}`); }
 
-        if (!response.ok) {
-            throw new Error(result.details || result.error || result.hint || `HTTP Error ${response.status}`);
-        }
+        if (!response.ok) throw new Error(result.details || result.error || result.hint || `HTTP Error ${response.status}`);
 
         allUsersData = result.users || [];
         updateUsersStats(allUsersData);
@@ -1278,7 +1305,7 @@ function renderUsersTable(users) {
         const isCurrentUser = user.email === window.currentUser.email;
         const deleteBtn = isCurrentUser 
             ? '<span class="text-xs text-white/30 italic">Anda</span>'
-            : `<button type="button" onclick="openDeleteModal('${user.id}', '${user.full_name || 'User'}', '${user.email}')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">🗑️ Hapus</button>`;
+            : `<button type="button" onclick="openDeleteModal('${user.id}', '${(user.full_name || 'User').replace(/'/g, "")}', '${user.email}')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">🗑️ Hapus</button>`;
 
         const initial = (user.full_name || user.email).charAt(0).toUpperCase();
 
