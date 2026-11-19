@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - FINAL (APD SELF-HEALING + SCROLL FIX)
+// SCRIPT.JS - FINAL ALL-IN-ONE (APD SCROLL FIX + SUPERVISOR APD CONFIRMATION)
 // ==========================================
 
 let filteredReports = [];
@@ -908,11 +908,13 @@ function disableApdSubmitButtonUI(submission) {
 }
 
 // ==========================================
-// 7. HALAMAN SUPERVISOR
+// 7. HALAMAN SUPERVISOR (KEBERSIHAN + APD)
 // ==========================================
 let currentSupervisorFilter = 'pending';
+let currentReportType = 'kebersihan'; // 'kebersihan' atau 'apd'
 let currentActionId = null;
 let currentActionType = null;
+let currentActionTable = 'checklist_submissions';
 
 function initSupervisorPage(session) {
     if (!isSupervisor(session)) {
@@ -922,7 +924,24 @@ function initSupervisorPage(session) {
     }
     window.currentUser = { name: session.user.user_metadata?.full_name || 'Supervisor', email: session.user.email };
     loadSidebar();
-    loadSupervisorReports('pending');
+    switchReportType('kebersihan'); // Muat default
+}
+
+function switchReportType(type) {
+    currentReportType = type;
+    document.querySelectorAll('.type-tab').forEach(tab => {
+        if (tab.dataset.type === type) {
+            tab.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/30');
+            tab.classList.remove('bg-white/5', 'text-white/60');
+        } else {
+            tab.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/30');
+            tab.classList.add('bg-white/5', 'text-white/60');
+        }
+    });
+    const titleEl = document.getElementById('tableTitleText');
+    if (titleEl) titleEl.textContent = type === 'apd' ? 'Daftar Laporan APD' : 'Daftar Laporan Kebersihan';
+    
+    loadSupervisorReports(currentSupervisorFilter);
 }
 
 function filterSupervisorReports(status) {
@@ -935,53 +954,123 @@ function filterSupervisorReports(status) {
 }
 
 async function loadSupervisorReports(status) {
+    if (currentReportType === 'apd') {
+        await loadApdReports(status);
+    } else {
+        await loadKebersihanReports(status);
+    }
+}
+
+async function loadKebersihanReports(status) {
     const tbody = document.getElementById('supervisorTableBody');
     if (!tbody) return;
     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>`;
     try {
         const { data: allData, error: allError } = await window.supabaseClient.from('checklist_submissions').select('id, supervisor_status');
-        if (!allError && allData) {
-            const pending = allData.filter(r => r.supervisor_status === 'pending').length;
-            const approved = allData.filter(r => r.supervisor_status === 'approved').length;
-            const rejected = allData.filter(r => r.supervisor_status === 'rejected').length;
-            const elPending = document.getElementById('countPending');
-            const elApproved = document.getElementById('countApproved');
-            const elRejected = document.getElementById('countRejected');
-            if (elPending) elPending.textContent = pending;
-            if (elApproved) elApproved.textContent = approved;
-            if (elRejected) elRejected.textContent = rejected;
-        }
+        if (!allError && allData) updateSupervisorCounts(allData);
 
-        const { data, error } = await window.supabaseClient.from('checklist_submissions').select('id, user_name, user_email, progress_percentage, status, supervisor_status, supervisor_notes, created_at, submission_time').eq('supervisor_status', status).order('created_at', { ascending: false });
+        const { data, error } = await window.supabaseClient.from('checklist_submissions')
+            .select('id, user_name, user_email, progress_percentage, status, supervisor_status, supervisor_notes, supervisor_name, created_at, submission_time')
+            .eq('supervisor_status', status).order('created_at', { ascending: false });
         if (error) throw error;
-        if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada laporan dengan status "${status}"</td></tr>`; return; }
-        
+        if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada laporan "${status}"</td></tr>`; return; }
+
         tbody.innerHTML = data.map(row => {
             const date = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
             const time = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            let actionButtons = '';
-            if (status === 'pending') {
-                actionButtons = `<button type="button" onclick="openActionModal('${row.id}', 'approved')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button><button type="button" onclick="openActionModal('${row.id}', 'rejected')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>`;
-            } else {
-                actionButtons = `<span class="text-white/40 text-xs">-${row.supervisor_notes || 'Tidak ada catatan'}-</span>`;
-            }
+            const actionButtons = status === 'pending'
+                ? `<button type="button" onclick="openActionModal('${row.id}', 'approved', 'checklist_submissions')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button><button type="button" onclick="openActionModal('${row.id}', 'rejected', 'checklist_submissions')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>`
+                : `<span class="text-white/40 text-xs">${row.supervisor_name ? 'oleh ' + row.supervisor_name : 'Diproses'}</span>`;
             const statusBadge = row.supervisor_status === 'approved' ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">Disetujui</span>' : (row.supervisor_status === 'rejected' ? '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">Ditolak</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400">Pending</span>');
-            return `<tr class="border-b border-white/5 hover:bg-white/5 transition"><td class="px-4 py-3"><div class="text-sm font-medium text-white">${row.user_name || 'User'}</div><div class="text-xs text-white/50">${date} • ${time}</div></td><td class="px-4 py-3 text-center text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td><td class="px-4 py-3 text-sm text-white/60 max-w-xs truncate">${row.supervisor_notes || '-'}</td><td class="px-4 py-3 text-center">${statusBadge}</td><td class="px-4 py-3 text-center">${actionButtons}</td></tr>`;
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                <td class="px-4 py-3"><div class="text-sm font-medium text-white">${row.user_name || 'User'}</div><div class="text-xs text-white/50">${date} • ${time}</div></td>
+                <td class="px-4 py-3 text-center text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td>
+                <td class="px-4 py-3 text-sm text-white/60 max-w-xs truncate">${row.supervisor_notes || '-'}</td>
+                <td class="px-4 py-3 text-center">${statusBadge}</td>
+                <td class="px-4 py-3 text-center">${actionButtons}</td>
+            </tr>`;
         }).join('');
     } catch (error) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`; }
 }
 
-function openActionModal(id, type) {
-    currentActionId = id; currentActionType = type;
-    const modal = document.getElementById('actionModal'); const title = document.getElementById('modalTitle');
-    const btn = document.getElementById('confirmActionBtn'); const noteInput = document.getElementById('supervisorNoteInput');
+async function loadApdReports(status) {
+    const tbody = document.getElementById('supervisorTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>`;
+    try {
+        const { data: allData, error: allError } = await window.supabaseClient.from('apd_checklist').select('id, supervisor_status');
+        if (!allError && allData) updateSupervisorCounts(allData);
+
+        const { data, error } = await window.supabaseClient.from('apd_checklist')
+            .select('id, user_name, user_email, total_items, completed_items, progress_percentage, notes, supervisor_status, supervisor_notes, supervisor_name, created_at, submission_time')
+            .eq('supervisor_status', status).order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada laporan APD "${status}"</td></tr>`; return; }
+
+        tbody.innerHTML = data.map(row => {
+            const date = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            const time = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            const itemBadge = `<span class="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-300">${row.completed_items}/${row.total_items} item</span>`;
+            const catatanUser = row.notes ? `<div class="text-xs text-white/70 mb-1">👤 ${row.notes}</div>` : '';
+            const catatanSpv = row.supervisor_notes ? `<div class="text-xs text-amber-300">👑 ${row.supervisor_notes}</div>` : (row.supervisor_status === 'pending' ? `<div class="text-xs text-white/40">Belum ada catatan</div>` : '');
+            const actionButtons = status === 'pending'
+                ? `<button type="button" onclick="openActionModal('${row.id}', 'approved', 'apd_checklist')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button><button type="button" onclick="openActionModal('${row.id}', 'rejected', 'apd_checklist')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>`
+                : `<span class="text-white/40 text-xs">${row.supervisor_name ? 'oleh ' + row.supervisor_name : 'Diproses'}</span>`;
+            const statusBadge = row.supervisor_status === 'approved' ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">Disetujui</span>' : (row.supervisor_status === 'rejected' ? '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">Ditolak</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400">Pending</span>');
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                <td class="px-4 py-3"><div class="text-sm font-medium text-white">${row.user_name || 'User'}</div><div class="text-xs text-white/50">${date} • ${time}</div></td>
+                <td class="px-4 py-3 text-center text-sm font-semibold text-purple-300">${itemBadge}</td>
+                <td class="px-4 py-3 text-sm max-w-xs">${catatanUser}${catatanSpv}</td>
+                <td class="px-4 py-3 text-center">${statusBadge}</td>
+                <td class="px-4 py-3 text-center">${actionButtons}</td>
+            </tr>`;
+        }).join('');
+    } catch (error) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`; }
+}
+
+function updateSupervisorCounts(allData) {
+    const pending = allData.filter(r => (r.supervisor_status || 'pending') === 'pending').length;
+    const approved = allData.filter(r => r.supervisor_status === 'approved').length;
+    const rejected = allData.filter(r => r.supervisor_status === 'rejected').length;
+    const elPending = document.getElementById('countPending');
+    const elApproved = document.getElementById('countApproved');
+    const elRejected = document.getElementById('countRejected');
+    if (elPending) elPending.textContent = pending;
+    if (elApproved) elApproved.textContent = approved;
+    if (elRejected) elRejected.textContent = rejected;
+}
+
+function openActionModal(id, type, table) {
+    currentActionId = id; 
+    currentActionType = type;
+    currentActionTable = table || 'checklist_submissions';
+    
+    const modal = document.getElementById('actionModal'); 
+    const title = document.getElementById('modalTitle');
+    const btn = document.getElementById('confirmActionBtn'); 
+    const noteInput = document.getElementById('supervisorNoteInput');
     noteInput.value = '';
-    if (type === 'approved') { title.textContent = 'Setujui Laporan Ini?'; title.className = 'text-xl font-bold text-green-400 mb-2'; btn.className = 'px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition'; btn.textContent = 'Setujui'; }
-    else { title.textContent = 'Tolak Laporan Ini?'; title.className = 'text-xl font-bold text-red-400 mb-2'; btn.className = 'px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition'; btn.textContent = 'Tolak'; }
+    
+    if (type === 'approved') { 
+        title.textContent = 'Setujui Laporan Ini?'; 
+        title.className = 'text-xl font-bold text-green-400 mb-2'; 
+        btn.className = 'px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition'; 
+        btn.textContent = 'Setujui'; 
+    } else { 
+        title.textContent = 'Tolak Laporan Ini?'; 
+        title.className = 'text-xl font-bold text-red-400 mb-2'; 
+        btn.className = 'px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition'; 
+        btn.textContent = 'Tolak'; 
+    }
     modal.classList.remove('hidden');
 }
 
-function closeActionModal() { document.getElementById('actionModal').classList.add('hidden'); currentActionId = null; currentActionType = null; }
+function closeActionModal() { 
+    document.getElementById('actionModal').classList.add('hidden'); 
+    currentActionId = null; 
+    currentActionType = null; 
+    currentActionTable = 'checklist_submissions'; 
+}
 
 document.addEventListener('click', async function(event) {
     if (event.target.id === 'confirmActionBtn') {
@@ -991,12 +1080,24 @@ document.addEventListener('click', async function(event) {
         const originalText = btn.textContent;
         btn.disabled = true; btn.textContent = 'Menyimpan...';
         try {
-            const { error } = await window.supabaseClient.from('checklist_submissions').update({ supervisor_status: currentActionType, supervisor_notes: notes }).eq('id', currentActionId);
+            const { error } = await window.supabaseClient.from(currentActionTable).update({
+                supervisor_status: currentActionType,
+                supervisor_notes: notes,
+                supervisor_name: window.currentUser?.name || 'Supervisor',
+                supervisor_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            }).eq('id', currentActionId);
             if (error) throw error;
-            showNotification(`Laporan berhasil ${currentActionType === 'approved' ? 'disetujui' : 'ditolak'}!`, 'success');
-            closeActionModal(); loadSupervisorReports(currentSupervisorFilter);
-        } catch (error) { showNotification("Gagal menyimpan: " + error.message, 'error'); }
-        finally { btn.disabled = false; btn.textContent = originalText; }
+            
+            const typeName = currentReportType === 'apd' ? 'APD ' : '';
+            showNotification(`Laporan ${typeName}berhasil ${currentActionType === 'approved' ? 'disetujui' : 'ditolak'}!`, 'success');
+            closeActionModal(); 
+            loadSupervisorReports(currentSupervisorFilter);
+        } catch (error) { 
+            showNotification("Gagal menyimpan: " + error.message, 'error'); 
+        } finally { 
+            btn.disabled = false; 
+            btn.textContent = originalText; 
+        }
     }
 });
 
