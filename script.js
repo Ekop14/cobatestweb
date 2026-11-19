@@ -1,5 +1,5 @@
 // ==========================================
-// SCRIPT.JS - FINAL ALL-IN-ONE (DENGAN KELOLA USER VIA EDGE FUNCTION)
+// SCRIPT.JS - FINAL ALL-IN-ONE (DENGAN APD CEKLIST)
 // ==========================================
 
 let filteredReports = [];
@@ -53,9 +53,10 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'register.html') initRegisterPage();
         else if (currentPage === 'dashboard.html') initDashboardPage(session);
         else if (currentPage === 'checklist.html') initChecklistPage(session);
+        else if (currentPage === 'apd.html') initApdPage(session); // ✅ ROUTING APD BARU
         else if (currentPage === 'lingkungan.html') initEnvironmentPage(session);
         else if (currentPage === 'supervisor.html') initSupervisorPage(session);
-        else if (currentPage === 'kelola-user.html') initKelolaUserPage(session); // ✅ ROUTING KELOLA USER
+        else if (currentPage === 'kelola-user.html') initKelolaUserPage(session);
     });
 
     setTimeout(() => {
@@ -690,7 +691,146 @@ async function loadEnvironmentHistory() {
 }
 
 // ==========================================
-// 6. HALAMAN SUPERVISOR
+// 6. HALAMAN APD CEKLIST (BARU)
+// ==========================================
+function initApdPage(session) {
+    window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
+    
+    const dateDisplay = document.getElementById('currentDate');
+    if (dateDisplay) dateDisplay.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    
+    loadSidebar();
+
+    const checkboxes = document.querySelectorAll('.apd-checkbox');
+    const totalItems = 5; // ✅ Fixed 5 item APD
+    const totalCountEl = document.getElementById('apdTotalCount');
+    const completedCountEl = document.getElementById('apdCompletedCount');
+    const progressTextEl = document.getElementById('apdProgressText');
+    const progressBarEl = document.getElementById('apdProgressBar');
+
+    if (totalCountEl) totalCountEl.textContent = totalItems;
+
+    function updateProgress() {
+        const completed = document.querySelectorAll('.apd-checkbox:checked').length;
+        const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
+        if (completedCountEl) completedCountEl.textContent = completed;
+        if (progressTextEl) progressTextEl.textContent = percentage + '%';
+        if (progressBarEl) progressBarEl.style.width = percentage + '%';
+    }
+
+    checkboxes.forEach(cb => cb.addEventListener('change', () => {
+        const listItem = cb.closest('.checklist-item');
+        if (listItem) {
+            if (cb.checked) {
+                listItem.classList.add('completed');
+                listItem.style.background = 'rgba(34, 197, 94, 0.1)';
+                listItem.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+            } else {
+                listItem.classList.remove('completed');
+                listItem.style.background = 'rgba(255, 255, 255, 0.05)';
+                listItem.style.borderColor = 'transparent';
+            }
+        }
+        updateProgress();
+    }));
+    
+    updateProgress();
+    checkDailyApdSubmission(session.user.email);
+
+    const submitBtn = document.getElementById('submitApdBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (submitBtn.disabled) return;
+            
+            const completed = document.querySelectorAll('.apd-checkbox:checked').length;
+            const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
+            
+            // ✅ Validasi: harus 5/5 untuk submit
+            if (completed < totalItems) {
+                showNotification(`⚠️ Lengkapi semua APD dulu ya! (${completed}/${totalItems})`, 'warning');
+                return;
+            }
+
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Mengirim...';
+
+            const submissionData = {
+                user_name: window.currentUser.name,
+                user_email: window.currentUser.email,
+                total_items: totalItems,
+                completed_items: completed,
+                progress_percentage: percentage,
+                status: percentage === 100 ? 'completed' : 'in_progress',
+                submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                created_at: new Date().toISOString()
+            };
+
+            try {
+                const { error } = await window.supabaseClient.from('apd_checklist').insert([submissionData]);
+                if (error) throw error;
+                
+                showNotification('✅ Laporan APD berhasil dikirim!', 'success');
+                disableApdSubmitButtonUI(submissionData);
+                
+                setTimeout(() => {
+                    checkboxes.forEach(cb => {
+                        cb.checked = false;
+                        const listItem = cb.closest('.checklist-item');
+                        if (listItem) {
+                            listItem.classList.remove('completed');
+                            listItem.style.background = 'rgba(255, 255, 255, 0.05)';
+                            listItem.style.borderColor = 'transparent';
+                        }
+                    });
+                    updateProgress();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 1500);
+            } catch (error) {
+                console.error("❌ Gagal mengirim APD:", error);
+                showNotification('❌ Gagal: ' + error.message, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+        });
+    }
+}
+
+async function checkDailyApdSubmission(userEmail) {
+    const today = new Date().toISOString().split('T')[0];
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('apd_checklist')
+            .select('id, submission_time, created_at')
+            .eq('user_email', userEmail)
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`)
+            .limit(1);
+        
+        if (error) throw error;
+        if (data && data.length > 0) disableApdSubmitButtonUI(data[0]);
+    } catch (error) {
+        console.error("Gagal cek submission APD harian:", error);
+    }
+}
+
+function disableApdSubmitButtonUI(submission) {
+    const btn = document.getElementById('submitApdBtn');
+    const infoBox = document.getElementById('dailyApdInfo');
+    const timeDisplay = document.getElementById('apdSubmissionTime');
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.innerHTML = '<span>✅ Sudah Submit APD Hari Ini</span>';
+    }
+    if (infoBox) infoBox.classList.remove('hidden');
+    if (timeDisplay) timeDisplay.textContent = submission.submission_time || new Date(submission.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ==========================================
+// 7. HALAMAN SUPERVISOR
 // ==========================================
 let currentSupervisorFilter = 'pending';
 let currentActionId = null;
@@ -783,7 +923,7 @@ document.addEventListener('click', async function(event) {
 });
 
 // ==========================================
-// 7. LOGIN & REGISTER
+// 8. LOGIN & REGISTER
 // ==========================================
 function initLoginPage() {
     const loginForm = document.getElementById('loginForm');
@@ -845,7 +985,7 @@ function initRegisterPage() {
 }
 
 // ==========================================
-// 8. BIOMETRIC AUTHENTICATION (AUTO-LOGIN)
+// 9. BIOMETRIC AUTHENTICATION (AUTO-LOGIN)
 // ==========================================
 function obfuscate(text) {
     let result = '';
@@ -1020,7 +1160,7 @@ async function initBiometricLogin() {
 }
 
 // ==========================================
-// 9. HALAMAN KELOLA USER (HANYA SUPERVISOR)
+// 10. HALAMAN KELOLA USER (HANYA SUPERVISOR)
 // ==========================================
 let allUsersData = [];
 let deleteTargetId = null;
@@ -1049,7 +1189,6 @@ async function loadAllUsers() {
     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
 
     try {
-        // 1. Cek sesi secara eksplisit
         const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
         
         console.log("🔍 [DEBUG] Session Data:", session);
@@ -1064,12 +1203,11 @@ async function loadAllUsers() {
 
         console.log("🚀 [DEBUG] Mengirim request ke Edge Function...");
 
-        // 2. Kirim request dengan header yang lengkap
         const response = await fetch(LIST_USERS_FUNCTION_URL, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${session.access_token}`,
-                'apikey': SUPABASE_ANON_KEY, // Wajib ada agar Supabase mengenali project
+                'apikey': SUPABASE_ANON_KEY,
                 'Content-Type': 'application/json'
             }
         });
@@ -1168,9 +1306,7 @@ function closeDeleteModal() {
     deleteTargetId = null;
 }
 
-// Event listener global untuk tombol hapus user & logout
 document.addEventListener('click', async function(event) {
-    // 1. Handle Delete User
     if (event.target.id === 'confirmDeleteBtn') {
         if (!deleteTargetId) return;
         const btn = document.getElementById('confirmDeleteBtn');
@@ -1199,7 +1335,6 @@ document.addEventListener('click', async function(event) {
         }
     }
 
-    // 2. Handle Global Logout
     const logoutBtn = event.target.closest('#logoutBtn');
     if (logoutBtn) {
         event.preventDefault();
@@ -1213,7 +1348,7 @@ document.addEventListener('click', async function(event) {
 });
 
 // ==========================================
-// 10. UTILS
+// 11. UTILS
 // ==========================================
 function showNotification(message, type = 'info') {
     const colors = { 
