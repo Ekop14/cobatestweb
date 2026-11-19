@@ -906,12 +906,11 @@ function disableApdSubmitButtonUI(submission) {
     if (infoBox) { infoBox.classList.remove('hidden'); infoBox.style.display = 'block'; }
     if (timeDisplay) timeDisplay.textContent = submission.submission_time || new Date(submission.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
-
 // ==========================================
-// 7. HALAMAN SUPERVISOR (KEBERSIHAN + APD)
+// 7. HALAMAN SUPERVISOR (KEBERSIHAN + APD) — VERSI AMAN TANPA ALTER
 // ==========================================
 let currentSupervisorFilter = 'pending';
-let currentReportType = 'kebersihan'; // 'kebersihan' atau 'apd'
+let currentReportType = 'kebersihan';
 let currentActionId = null;
 let currentActionType = null;
 let currentActionTable = 'checklist_submissions';
@@ -924,7 +923,7 @@ function initSupervisorPage(session) {
     }
     window.currentUser = { name: session.user.user_metadata?.full_name || 'Supervisor', email: session.user.email };
     loadSidebar();
-    switchReportType('kebersihan'); // Muat default
+    switchReportType('kebersihan');
 }
 
 function switchReportType(type) {
@@ -940,7 +939,6 @@ function switchReportType(type) {
     });
     const titleEl = document.getElementById('tableTitleText');
     if (titleEl) titleEl.textContent = type === 'apd' ? 'Daftar Laporan APD' : 'Daftar Laporan Kebersihan';
-    
     loadSupervisorReports(currentSupervisorFilter);
 }
 
@@ -954,13 +952,11 @@ function filterSupervisorReports(status) {
 }
 
 async function loadSupervisorReports(status) {
-    if (currentReportType === 'apd') {
-        await loadApdReports(status);
-    } else {
-        await loadKebersihanReports(status);
-    }
+    if (currentReportType === 'apd') await loadApdReports(status);
+    else await loadKebersihanReports(status);
 }
 
+// ====== KEBERSIHAN: TIDAK select supervisor_name (kolom belum ada) ======
 async function loadKebersihanReports(status) {
     const tbody = document.getElementById('supervisorTableBody');
     if (!tbody) return;
@@ -970,7 +966,7 @@ async function loadKebersihanReports(status) {
         if (!allError && allData) updateSupervisorCounts(allData);
 
         const { data, error } = await window.supabaseClient.from('checklist_submissions')
-            .select('id, user_name, user_email, progress_percentage, status, supervisor_status, supervisor_notes, supervisor_name, created_at, submission_time')
+            .select('id, user_name, user_email, progress_percentage, status, supervisor_status, supervisor_notes, created_at, submission_time')
             .eq('supervisor_status', status).order('created_at', { ascending: false });
         if (error) throw error;
         if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada laporan "${status}"</td></tr>`; return; }
@@ -980,7 +976,7 @@ async function loadKebersihanReports(status) {
             const time = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
             const actionButtons = status === 'pending'
                 ? `<button type="button" onclick="openActionModal('${row.id}', 'approved', 'checklist_submissions')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button><button type="button" onclick="openActionModal('${row.id}', 'rejected', 'checklist_submissions')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>`
-                : `<span class="text-white/40 text-xs">${row.supervisor_name ? 'oleh ' + row.supervisor_name : 'Diproses'}</span>`;
+                : `<span class="text-white/40 text-xs">Diproses</span>`;
             const statusBadge = row.supervisor_status === 'approved' ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">Disetujui</span>' : (row.supervisor_status === 'rejected' ? '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">Ditolak</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400">Pending</span>');
             return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
                 <td class="px-4 py-3"><div class="text-sm font-medium text-white">${row.user_name || 'User'}</div><div class="text-xs text-white/50">${date} • ${time}</div></td>
@@ -993,6 +989,7 @@ async function loadKebersihanReports(status) {
     } catch (error) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`; }
 }
 
+// ====== APD: boleh select supervisor_name (kolom sudah ada) ======
 async function loadApdReports(status) {
     const tbody = document.getElementById('supervisorTableBody');
     if (!tbody) return;
@@ -1044,32 +1041,24 @@ function openActionModal(id, type, table) {
     currentActionId = id; 
     currentActionType = type;
     currentActionTable = table || 'checklist_submissions';
-    
     const modal = document.getElementById('actionModal'); 
     const title = document.getElementById('modalTitle');
     const btn = document.getElementById('confirmActionBtn'); 
     const noteInput = document.getElementById('supervisorNoteInput');
     noteInput.value = '';
-    
     if (type === 'approved') { 
-        title.textContent = 'Setujui Laporan Ini?'; 
-        title.className = 'text-xl font-bold text-green-400 mb-2'; 
-        btn.className = 'px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition'; 
-        btn.textContent = 'Setujui'; 
+        title.textContent = 'Setujui Laporan Ini?'; title.className = 'text-xl font-bold text-green-400 mb-2'; 
+        btn.className = 'px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition'; btn.textContent = 'Setujui'; 
     } else { 
-        title.textContent = 'Tolak Laporan Ini?'; 
-        title.className = 'text-xl font-bold text-red-400 mb-2'; 
-        btn.className = 'px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition'; 
-        btn.textContent = 'Tolak'; 
+        title.textContent = 'Tolak Laporan Ini?'; title.className = 'text-xl font-bold text-red-400 mb-2'; 
+        btn.className = 'px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition'; btn.textContent = 'Tolak'; 
     }
     modal.classList.remove('hidden');
 }
 
 function closeActionModal() { 
     document.getElementById('actionModal').classList.add('hidden'); 
-    currentActionId = null; 
-    currentActionType = null; 
-    currentActionTable = 'checklist_submissions'; 
+    currentActionId = null; currentActionType = null; currentActionTable = 'checklist_submissions'; 
 }
 
 document.addEventListener('click', async function(event) {
@@ -1080,27 +1069,21 @@ document.addEventListener('click', async function(event) {
         const originalText = btn.textContent;
         btn.disabled = true; btn.textContent = 'Menyimpan...';
         try {
-            const { error } = await window.supabaseClient.from(currentActionTable).update({
-                supervisor_status: currentActionType,
-                supervisor_notes: notes,
-                supervisor_name: window.currentUser?.name || 'Supervisor',
-                supervisor_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-            }).eq('id', currentActionId);
+            // ⭐ PAYLOAD DIBEDAKAN PER TABEL agar tidak error kolom tidak ada
+            let payload = { supervisor_status: currentActionType, supervisor_notes: notes };
+            if (currentActionTable === 'apd_checklist') {
+                payload.supervisor_name = window.currentUser?.name || 'Supervisor';
+                payload.supervisor_time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            }
+            const { error } = await window.supabaseClient.from(currentActionTable).update(payload).eq('id', currentActionId);
             if (error) throw error;
-            
             const typeName = currentReportType === 'apd' ? 'APD ' : '';
             showNotification(`Laporan ${typeName}berhasil ${currentActionType === 'approved' ? 'disetujui' : 'ditolak'}!`, 'success');
-            closeActionModal(); 
-            loadSupervisorReports(currentSupervisorFilter);
-        } catch (error) { 
-            showNotification("Gagal menyimpan: " + error.message, 'error'); 
-        } finally { 
-            btn.disabled = false; 
-            btn.textContent = originalText; 
-        }
+            closeActionModal(); loadSupervisorReports(currentSupervisorFilter);
+        } catch (error) { showNotification("Gagal menyimpan: " + error.message, 'error'); }
+        finally { btn.disabled = false; btn.textContent = originalText; }
     }
 });
-
 // ==========================================
 // 8. LOGIN & REGISTER
 // ==========================================
