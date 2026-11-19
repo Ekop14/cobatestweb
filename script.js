@@ -1,6 +1,6 @@
 // ==========================================
 // SCRIPT.JS - FINAL ALL-IN-ONE
-// (APD Self-Healing + Scroll Fix + Supervisor APD Confirmation + Detail Modal)
+// (APD Self-Healing + Scroll Fix + Supervisor APD Confirmation + Detail Modal + Dashboard APD)
 // ==========================================
 
 let filteredReports = [];
@@ -564,7 +564,11 @@ async function initDashboardPage(session) {
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
     const nameEl = document.getElementById('dashboardUserName');
     if (nameEl) nameEl.textContent = session.user.user_metadata?.full_name || session.user.email.split('@')[0] || 'User';
-    loadSidebar(); updateDashboardStats(); loadDashboardEnvironmentHistory();
+    
+    loadSidebar(); 
+    updateDashboardStats(); 
+    loadDashboardEnvironmentHistory();
+    loadDashboardApdHistory(); // ✅ Memuat data APD di dashboard
     
     const tbody = document.getElementById('recentActivityBody');
     if (!tbody) return;
@@ -616,6 +620,44 @@ async function loadDashboardEnvironmentHistory() {
             return `<tr class="border-b border-white/5 hover:bg-white/5 transition"><td class="px-4 py-3 text-sm text-white/60">${dateStr}<br><span class="text-xs">${timeStr}</span></td><td class="px-4 py-3 text-sm text-center font-semibold ${tempStatus}">${row.temperature}°C</td><td class="px-4 py-3 text-sm text-center font-semibold ${humStatus}">${row.humidity}%</td></tr>`;
         }).join('');
     } catch (error) { tbody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-red-400 text-sm">Gagal memuat</td></tr>`; }
+}
+
+// ✅ FUNGSI BARU: Memuat riwayat APD di Dashboard
+async function loadDashboardApdHistory() {
+    const tbody = document.getElementById('recentApdActivityBody');
+    if (!tbody) return;
+    
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('apd_checklist')
+            .select('user_name, progress_percentage, status, submission_time, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5);
+            
+        if (error) throw error;
+        
+        if (!data || data.length === 0) { 
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-white/50 text-sm">Belum ada data APD</td></tr>'; 
+            return; 
+        }
+        
+        tbody.innerHTML = data.map(row => {
+            const timeStr = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            const dateStr = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+            const statusColor = row.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400';
+            const progressColor = row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400';
+            
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                <td class="px-4 py-3 text-sm text-white">${row.user_name || 'User'}</td>
+                <td class="px-4 py-3 text-sm text-white/60">${dateStr} <span class="text-xs">${timeStr}</span></td>
+                <td class="px-4 py-3 text-sm font-semibold text-center ${progressColor}">${row.progress_percentage}%</td>
+                <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor}">${row.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
+            </tr>`;
+        }).join('');
+        
+    } catch (error) { 
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-red-400 text-sm">Gagal memuat data APD</td></tr>`; 
+    }
 }
 
 // ==========================================
@@ -844,7 +886,7 @@ function initApdPage(session) {
                 completed_items: completed,
                 progress_percentage: percentage,
                 status: percentage === 100 ? 'completed' : 'in_progress',
-                checked_items: checkedItems, // ✅ KIRIM DETAIL ITEM
+                checked_items: checkedItems, // ✅ KIRIM DETAIL ITEM KE DATABASE
                 notes: notes || null,
                 submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                 created_at: new Date().toISOString()
