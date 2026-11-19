@@ -33,7 +33,7 @@
                     </button>
                     <div>
                         <h2 class="text-lg sm:text-xl font-bold text-white">Dashboard</h2>
-                        <p class="text-white/50 text-xs sm:text-sm">Ringkasan Data Kebersihan Gudang</p>
+                        <p class="text-white/50 text-xs sm:text-sm">Ringkasan Data Kebersihan & APD Gudang</p>
                     </div>
                 </div>
                 <button type="button" id="logoutBtn" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 hover:text-red-200 transition">
@@ -48,7 +48,7 @@
                 <!-- WELCOME BANNER -->
                 <div class="glass-card !p-6 mb-6 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-blue-500/30">
                     <h3 class="text-xl font-bold text-white mb-1">Selamat Datang, <span id="dashboardUserName">User</span>! 👋</h3>
-                    <p class="text-white/70 text-sm">Berikut adalah ringkasan performa kebersihan dan lingkungan gudang Anda.</p>
+                    <p class="text-white/70 text-sm">Berikut adalah ringkasan performa kebersihan, APD, dan lingkungan gudang Anda.</p>
                 </div>
 
                 <!-- STAT CARDS -->
@@ -134,18 +134,49 @@
                                 Lihat Selengkapnya 
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                             </a>
-                        </div.>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 3. Catatan Penting (Full Width) -->
+                <!-- 3. Aktivitas APD Terbaru (BARU - Full Width) -->
+                <div class="glass-card !p-0 overflow-hidden mb-6">
+                    <div class="p-5 border-b border-white/10 flex items-center justify-between">
+                        <h3 class="text-white font-semibold flex items-center gap-2">
+                            <svg class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            Aktivitas APD Terbaru
+                        </h3>
+                        <a href="apd.html" class="text-purple-400 text-sm font-medium hover:text-purple-300 transition flex items-center gap-1">
+                            Lihat Selengkapnya 
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full report-table">
+                            <thead>
+                                <tr class="border-b border-white/10 bg-white/5">
+                                    <th class="px-4 py-3">User</th>
+                                    <th class="px-4 py-3">Waktu</th>
+                                    <th class="px-4 py-3 text-center">Progress</th>
+                                    <th class="px-4 py-3 text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentApdActivityBody">
+                                <tr><td colspan="4" class="text-center py-8"><div class="spinner mx-auto"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. Catatan Penting (Full Width) -->
                 <div class="glass-card !p-5">
                     <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
                         <svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         Catatan Penting
                     </h3>
                     <ul class="space-y-3 text-sm text-white/70">
-                        <li class="flex gap-3"><span class="text-blue-400 mt-0.5">•</span><span>Pastikan semua zona checklist diisi sebelum mengirim laporan akhir.</span></li>
+                        <li class="flex gap-3"><span class="text-blue-400 mt-0.5">•</span><span>Pastikan semua zona checklist dan APD diisi sebelum mengirim laporan akhir.</span></li>
                         <li class="flex gap-3"><span class="text-blue-400 mt-0.5">•</span><span>APAR harus diperiksa kondisinya minimal 1x seminggu.</span></li>
                         <li class="flex gap-3"><span class="text-blue-400 mt-0.5">•</span><span>Jalur evakuasi wajib bebas dari hambatan barang setiap saat.</span></li>
                     </ul>
@@ -158,7 +189,6 @@
     <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <script src="sidebar-loader.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
