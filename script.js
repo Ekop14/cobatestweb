@@ -8,7 +8,7 @@ window.currentUser = window.currentUser || { name: 'User', email: 'user@example.
 
 const SUPERVISOR_EMAILS = ['admin@gudang.com', 'supervisor@gudang.com']; 
 const BIO_KEY = 'GudangClean2024!BioKey';
-let currentVehicleHeaderId = null; // Untuk Ceklist Kendaraan
+let currentVehicleHeaderId = null;
 
 function isSupervisor(session) {
     if (!session) return false;
@@ -1250,7 +1250,11 @@ function openDeleteModal(userId, userName, userEmail) {
 
 function closeDeleteModal() { document.getElementById('deleteModal').classList.add('hidden'); deleteTargetId = null; }
 
+// ==========================================
+// 11. GLOBAL EVENT HANDLERS (Logout, Delete, Kendaraan)
+// ==========================================
 document.addEventListener('click', async function(event) {
+    // === DELETE USER ===
     if (event.target.id === 'confirmDeleteBtn') {
         if (!deleteTargetId) return;
         const btn = document.getElementById('confirmDeleteBtn');
@@ -1266,49 +1270,73 @@ document.addEventListener('click', async function(event) {
         } catch (error) { console.error("Error deleting user:", error); showNotification('❌ Gagal: ' + error.message, 'error'); }
         finally { btn.disabled = false; btn.textContent = originalText; }
     }
+    
+    // === LOGOUT ===
     const logoutBtn = event.target.closest('#logoutBtn');
     if (logoutBtn) {
         event.preventDefault();
         if (!confirm('Yakin ingin keluar?')) return;
         try { await window.supabaseClient.auth.signOut(); localStorage.removeItem('gudang_clean_state'); window.location.replace('index.html'); } catch (error) { console.error("Error logout:", error); }
     }
+
+    // === SIMPAN DETAIL KENDARAAN ===
+    if (event.target.id === 'saveVehicleDetailBtn') {
+        const headerId = document.getElementById('detail_header_id').value;
+        const btn = document.getElementById('saveVehicleDetailBtn');
+        if (!headerId) return;
+
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Menyimpan...';
+
+        const detailData = {
+            header_id: headerId,
+            item_luar_bersih: document.getElementById('d_luar').value,
+            item_lantai_bersih: document.getElementById('d_lantai').value,
+            item_hama: document.getElementById('d_hama').value,
+            item_paku_baut: document.getElementById('d_paku').value,
+            item_lubang_bocor: document.getElementById('d_bocor').value,
+            item_bau: document.getElementById('d_bau').value,
+            item_kering: document.getElementById('d_kering').value,
+            item_barang_utuh: document.getElementById('d_utuh').value,
+            item_pemisahan_bahan: document.getElementById('d_pisah').value,
+            item_pintu_seal: document.getElementById('d_pintu').value,
+            jenis_barang: document.getElementById('d_jenis_barang').value,
+            item_lampu_kaca: document.getElementById('d_lampu').value
+        };
+
+        try {
+            const { data: existing } = await window.supabaseClient.from('vehicle_checklist_detail').select('id').eq('header_id', headerId).single();
+            let error;
+            if (existing) {
+                const res = await window.supabaseClient.from('vehicle_checklist_detail').update(detailData).eq('id', existing.id);
+                error = res.error;
+            } else {
+                const res = await window.supabaseClient.from('vehicle_checklist_detail').insert([detailData]);
+                error = res.error;
+            }
+            if (error) throw error;
+
+            showNotification('✅ Checklist detail kendaraan berhasil disimpan!', 'success');
+            closeVehicleDetailModal();
+            loadVehicleHistory();
+        } catch (err) {
+            console.error("Gagal simpan detail:", err);
+            showNotification('❌ Gagal: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg> Simpan Checklist Detail`;
+        }
+    }
+
+    // === TUTUP MODAL KENDARAAN KLIK DI LUAR ===
+    const vehicleModal = document.getElementById('vehicleDetailModal');
+    if (vehicleModal && !vehicleModal.classList.contains('hidden') && event.target === vehicleModal) {
+        closeVehicleDetailModal();
+    }
 });
 
 // ==========================================
-// 11. UTILS
-// ==========================================
-function showNotification(message, type = 'info') {
-    const colors = { success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' }, warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' }, error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' }, info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' } };
-    const c = colors[type] || colors.info;
-    const el = document.createElement('div');
-    el.className = 'fixed top-6 right-6 z-[100] px-6 py-4 rounded-xl text-white font-medium';
-    el.style.cssText = `background: ${c.bg}; backdrop-filter: blur(20px); border: 1px solid ${c.border}; box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: slideIn 0.4s ease;`;
-    el.innerHTML = `<div class="flex items-center gap-3"><svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" /></svg><span>${message}</span></div>`;
-    document.body.appendChild(el);
-    setTimeout(() => { el.style.animation = 'slideOut 0.4s ease forwards'; setTimeout(() => el.remove(), 400); }, 3000);
-}
-
-if (!document.getElementById('notif-styles')) {
-    const s = document.createElement('style'); s.id = 'notif-styles';
-    s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
-    document.head.appendChild(s);
-}
-
-
-
-async function getNextVehicleNo() {
-    try {
-        const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').select('no_urut').order('no_urut', { ascending: false }).limit(1);
-        if (error) throw error;
-        const nextNo = data && data.length > 0 ? data[0].no_urut + 1 : 1;
-        document.getElementById('v_no').value = nextNo;
-    } catch (error) {
-        console.error("Gagal get next no:", error);
-        document.getElementById('v_no').value = 1;
-    }
-}
-// ==========================================
-// 12. HALAMAN CEKLIST KENDARAAN (UPDATED)
+// 12. HALAMAN CEKLIST KENDARAAN
 // ==========================================
 function initKendaraanPage(session) {
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
@@ -1324,8 +1352,6 @@ function initKendaraanPage(session) {
     const now = new Date();
     const timeString = now.toTimeString().split(' ')[0].substring(0, 5);
     document.getElementById('v_jam').value = timeString;
-    
-    // ✅ AUTO-FILL: Checker dan Dibuat Oleh
     document.getElementById('v_checker').value = window.currentUser.name;
     document.getElementById('v_dibuat_oleh').value = window.currentUser.name;
 
@@ -1343,22 +1369,23 @@ function initKendaraanPage(session) {
         btn.disabled = true;
         btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Menyimpan...';
 
+        // ✅ Semua field teks di-UPPERCASE saat disimpan ke database
         const headerData = {
             no_urut: parseInt(document.getElementById('v_no').value) || 1,
             hari: document.getElementById('v_hari').value,
             tanggal: today.toISOString().split('T')[0],
             jam: document.getElementById('v_jam').value,
-            supplier: document.getElementById('v_supplier').value,
+            supplier: document.getElementById('v_supplier').value.toUpperCase(),
             nomor_kendaraan: nopol.toUpperCase(),
             jenis_kendaraan: document.getElementById('v_jenis').value,
-            no_coa: document.getElementById('v_coa').value,
-            no_do: document.getElementById('v_do').value,
-            nomor_container: document.getElementById('v_container').value,
-            nomor_seal: document.getElementById('v_seal').value,
-            ttd_checker: document.getElementById('v_checker').value,
-            keputusan: keputusan, // ✅ SIMPAN KEPUTUSAN
-            dibuat_oleh: document.getElementById('v_dibuat_oleh').value, // ✅ SIMPAN DIBUAT OLEH
-            keterangan: document.getElementById('v_keterangan').value,
+            no_coa: document.getElementById('v_coa').value.toUpperCase(),
+            no_do: document.getElementById('v_do').value.toUpperCase(),
+            nomor_container: document.getElementById('v_container').value.toUpperCase(),
+            nomor_seal: document.getElementById('v_seal').value.toUpperCase(),
+            ttd_checker: document.getElementById('v_checker').value.toUpperCase(),
+            keputusan: keputusan,
+            dibuat_oleh: document.getElementById('v_dibuat_oleh').value.toUpperCase(),
+            keterangan: document.getElementById('v_keterangan').value.toUpperCase(),
             user_email: window.currentUser.email
         };
 
@@ -1374,7 +1401,7 @@ function initKendaraanPage(session) {
             document.getElementById('v_tanggal').value = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
             document.getElementById('v_jam').value = new Date().toTimeString().split(' ')[0].substring(0, 5);
             document.getElementById('v_checker').value = window.currentUser.name;
-            document.getElementById('v_dibuat_oleh').value = window.currentUser.name; // ✅ RESET TAPI ISI LAGI
+            document.getElementById('v_dibuat_oleh').value = window.currentUser.name;
             
             getNextVehicleNo();
             openVehicleDetailModal(data[0].id, data[0].nomor_kendaraan);
@@ -1389,13 +1416,29 @@ function initKendaraanPage(session) {
         }
     });
 }
+
+async function getNextVehicleNo() {
+    try {
+        const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').select('no_urut').order('no_urut', { ascending: false }).limit(1);
+        if (error) throw error;
+        const nextNo = data && data.length > 0 ? data[0].no_urut + 1 : 1;
+        document.getElementById('v_no').value = nextNo;
+    } catch (error) {
+        console.error("Gagal get next no:", error);
+        document.getElementById('v_no').value = 1;
+    }
+}
+
 async function loadVehicleHistory() {
     const tbody = document.getElementById('vehicleHistoryBody');
     if (!tbody) return;
     tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
 
     try {
-        const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').select(`id, no_urut, tanggal, jam, supplier, nomor_kendaraan, jenis_kendaraan, ttd_checker, vehicle_checklist_detail (id)`).order('created_at', { ascending: false });
+        const { data, error } = await window.supabaseClient
+            .from('vehicle_checklist_header')
+            .select(`id, no_urut, tanggal, jam, supplier, nomor_kendaraan, jenis_kendaraan, ttd_checker, vehicle_checklist_detail (id)`)
+            .order('created_at', { ascending: false });
         if (error) throw error;
         if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-white/50">Belum ada riwayat ceklist kendaraan.</td></tr>`; return; }
 
@@ -1403,7 +1446,9 @@ async function loadVehicleHistory() {
             const dateStr = row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
             const timeStr = row.jam ? row.jam.substring(0, 5) : '-';
             const isDetailFilled = row.vehicle_checklist_detail && row.vehicle_checklist_detail.length > 0;
-            const statusBadge = isDetailFilled ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30">✅ Lengkap</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Pending</span>';
+            const statusBadge = isDetailFilled 
+                ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30">✅ Lengkap</span>'
+                : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Pending</span>';
 
             return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
                 <td class="px-4 py-3 text-sm text-white/80">${row.no_urut || '-'}</td>
@@ -1458,59 +1503,27 @@ function closeVehicleDetailModal() {
     currentVehicleHeaderId = null;
 }
 
-document.addEventListener('click', async function(event) {
-    if (event.target.id === 'saveVehicleDetailBtn') {
-        const headerId = document.getElementById('detail_header_id').value;
-        const btn = document.getElementById('saveVehicleDetailBtn');
-        if (!headerId) return;
+// ==========================================
+// 13. UTILS
+// ==========================================
+function showNotification(message, type = 'info') {
+    const colors = { 
+        success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' }, 
+        warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' }, 
+        error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' }, 
+        info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' } 
+    };
+    const c = colors[type] || colors.info;
+    const el = document.createElement('div');
+    el.className = 'fixed top-6 right-6 z-[100] px-6 py-4 rounded-xl text-white font-medium';
+    el.style.cssText = `background: ${c.bg}; backdrop-filter: blur(20px); border: 1px solid ${c.border}; box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: slideIn 0.4s ease;`;
+    el.innerHTML = `<div class="flex items-center gap-3"><svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" /></svg><span>${message}</span></div>`;
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.animation = 'slideOut 0.4s ease forwards'; setTimeout(() => el.remove(), 400); }, 3000);
+}
 
-        btn.disabled = true;
-        btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Menyimpan...';
-
-        const detailData = {
-            header_id: headerId,
-            item_luar_bersih: document.getElementById('d_luar').value,
-            item_lantai_bersih: document.getElementById('d_lantai').value,
-            item_hama: document.getElementById('d_hama').value,
-            item_paku_baut: document.getElementById('d_paku').value,
-            item_lubang_bocor: document.getElementById('d_bocor').value,
-            item_bau: document.getElementById('d_bau').value,
-            item_kering: document.getElementById('d_kering').value,
-            item_barang_utuh: document.getElementById('d_utuh').value,
-            item_pemisahan_bahan: document.getElementById('d_pisah').value,
-            item_pintu_seal: document.getElementById('d_pintu').value,
-            jenis_barang: document.getElementById('d_jenis_barang').value,
-            item_lampu_kaca: document.getElementById('d_lampu').value
-        };
-
-        try {
-            const { data: existing } = await window.supabaseClient.from('vehicle_checklist_detail').select('id').eq('header_id', headerId).single();
-            let error;
-            if (existing) {
-                const res = await window.supabaseClient.from('vehicle_checklist_detail').update(detailData).eq('id', existing.id);
-                error = res.error;
-            } else {
-                const res = await window.supabaseClient.from('vehicle_checklist_detail').insert([detailData]);
-                error = res.error;
-            }
-            if (error) throw error;
-
-            showNotification('✅ Checklist detail kendaraan berhasil disimpan!', 'success');
-            closeVehicleDetailModal();
-            loadVehicleHistory();
-        } catch (err) {
-            console.error("Gagal simpan detail:", err);
-            showNotification('❌ Gagal: ' + err.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg> Simpan Checklist Detail`;
-        }
-    }
-});
-
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('vehicleDetailModal');
-    if (modal && !modal.classList.contains('hidden') && event.target === modal) {
-        closeVehicleDetailModal();
-    }
-});
+if (!document.getElementById('notif-styles')) {
+    const s = document.createElement('style'); s.id = 'notif-styles';
+    s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
+    document.head.appendChild(s);
+}
