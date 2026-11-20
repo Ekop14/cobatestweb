@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("📄 Halaman aktif:", currentPage);
 
         if (currentPage === 'laporan.html') initLaporanPage(session);
-        else if (currentPage === 'laporan-kendaraan.html') initLaporanKendaraanPage(session); // ✅ BARU
+        else if (currentPage === 'laporan-kendaraan.html') initLaporanKendaraanPage(session);
         else if (currentPage === 'index.html') initLoginPage();
         else if (currentPage === 'register.html') initRegisterPage();
         else if (currentPage === 'dashboard.html') initDashboardPage(session);
@@ -183,8 +183,47 @@ function setupCategoryFilter() {
 }
 
 // ==========================================
-// 1. HALAMAN CHECKLIST
+// 1. HALAMAN CHECKLIST (DENGAN STAT REAL-TIME DATABASE)
 // ==========================================
+
+// ✅ FUNGSI BARU: Ambil statistik real dari database (per user, hari ini)
+async function loadChecklistStats(userEmail) {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+
+        const { data: submissions, error } = await window.supabaseClient
+            .from('checklist_submissions')
+            .select('status, progress_percentage, created_at')
+            .eq('user_email', userEmail)
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`);
+
+        if (error) throw error;
+
+        const list = submissions || [];
+        const total = list.length;
+        const selesai = list.filter(s => s.status === 'completed').length;
+        const pending = total - selesai;
+        const avgProgress = total > 0
+            ? Math.round(list.reduce((sum, s) => sum + (s.progress_percentage || 0), 0) / total)
+            : 0;
+
+        const elTotal = document.getElementById('statTotalChecklist');
+        const elSelesai = document.getElementById('statSelesaiChecklist');
+        const elPending = document.getElementById('statPendingChecklist');
+        const elProgress = document.getElementById('statProgressChecklist');
+
+        if (elTotal) elTotal.textContent = total;
+        if (elSelesai) elSelesai.textContent = selesai;
+        if (elPending) elPending.textContent = pending;
+        if (elProgress) elProgress.textContent = avgProgress + '%';
+
+        console.log(`📊 Checklist Stats: Total=${total}, Selesai=${selesai}, Pending=${pending}, Progress=${avgProgress}%`);
+    } catch (error) {
+        console.error("❌ Gagal load checklist stats:", error);
+    }
+}
+
 function initChecklistPage(session) {
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
     const dateDisplay = document.getElementById('currentDate');
@@ -218,6 +257,9 @@ function initChecklistPage(session) {
     updateProgress();
     checkDailySubmission(session.user.email);
 
+    // ✅ PANGGIL STAT DARI DATABASE SAAT HALAMAN DIBUKA
+    loadChecklistStats(session.user.email);
+
     const submitBtn = document.getElementById('submitChecklistBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', async (e) => {
@@ -244,6 +286,10 @@ function initChecklistPage(session) {
                 if (error) throw error;
                 showNotification('✅ Laporan berhasil dikirim!', 'success');
                 disableSubmitButtonUI(submissionData);
+
+                // ✅ REFRESH STAT SETELAH SUBMIT BERHASIL
+                loadChecklistStats(session.user.email);
+
                 setTimeout(() => {
                     checkboxes.forEach(cb => { cb.checked = false; const listItem = cb.closest('.checklist-item'); if (listItem) listItem.classList.remove('completed'); });
                     updateProgress();
@@ -1624,7 +1670,6 @@ async function generateReport() {
             return;
         }
         
-        // Group by user
         const groupedByUser = {};
         filteredData.forEach(row => {
             const checker = row.ttd_checker || 'Unknown';
@@ -1637,7 +1682,6 @@ async function generateReport() {
         document.getElementById('infoTotalUser').textContent = uniqueUsers.length;
         document.getElementById('reportInfo').classList.remove('hidden');
         
-        // Generate pages: 1 user = minimal 1 halaman, max 9 kendaraan per halaman
         let allPagesHTML = '';
         let globalPageNum = 1;
         const totalPages = uniqueUsers.reduce((sum, usr) => {
@@ -1671,7 +1715,6 @@ function buildFormPage(vehicles, checkerName, currentPage, totalPages, pageOfUse
     const today = new Date();
     const dateStr = today.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     
-    // Build header rows
     let headerRows = '';
     vehicles.forEach((v, idx) => {
         const no = idx + 1;
@@ -1705,7 +1748,6 @@ function buildFormPage(vehicles, checkerName, currentPage, totalPages, pageOfUse
         </tr>`;
     });
     
-    // Fill empty rows to make it 9 rows
     for (let i = vehicles.length; i < VEHICLES_PER_PAGE; i++) {
         headerRows += `<tr>
             <td style="text-align:center">${i + 1}</td>
@@ -1713,7 +1755,6 @@ function buildFormPage(vehicles, checkerName, currentPage, totalPages, pageOfUse
         </tr>`;
     }
     
-    // Build inspection rows
     let inspectionRows = '';
     INSPECTION_ITEMS.forEach((item, itemIdx) => {
         let cells = `<td style="font-weight:500">${item}</td>`;
