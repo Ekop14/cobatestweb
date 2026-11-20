@@ -67,11 +67,11 @@
                         </div>
                         <div>
                             <label class="block text-white/60 text-xs mb-1">Nama Supplier / Expedisi</label>
-                            <input type="text" id="v_supplier" class="glass-input w-full px-3 py-2 text-sm" required>
+                            <input type="text" id="v_supplier" class="glass-input w-full px-3 py-2 text-sm" oninput="this.value = this.value.toUpperCase()" required>
                         </div>
                         <div>
                             <label class="block text-white/60 text-xs mb-1">Nomor Kendaraan</label>
-                            <input type="text" id="v_nopol" class="glass-input w-full px-3 py-2 text-sm font-bold text-purple-300" placeholder="Contoh: B 1234 CD" required>
+                            <input type="text" id="v_nopol" class="glass-input w-full px-3 py-2 text-sm font-bold text-purple-300" placeholder="Contoh: B 1234 CD" oninput="this.value = this.value.toUpperCase()" required>
                         </div>
                         <div>
                             <label class="block text-white/60 text-xs mb-1">Jenis Kendaraan</label>
@@ -85,24 +85,25 @@
                         </div>
                         <div>
                             <label class="block text-white/60 text-xs mb-1">No. CoA</label>
-                            <input type="text" id="v_coa" class="glass-input w-full px-3 py-2 text-sm">
+                            <input type="text" id="v_coa" class="glass-input w-full px-3 py-2 text-sm" oninput="this.value = this.value.toUpperCase()">
                         </div>
                         <div>
                             <label class="block text-white/60 text-xs mb-1">No. DO (Delivery Order)</label>
-                            <input type="text" id="v_do" class="glass-input w-full px-3 py-2 text-sm">
+                            <input type="text" id="v_do" class="glass-input w-full px-3 py-2 text-sm" oninput="this.value = this.value.toUpperCase()">
                         </div>
                         <div>
                             <label class="block text-white/60 text-xs mb-1">Nomor Container (Khusus Container)</label>
-                            <input type="text" id="v_container" class="glass-input w-full px-3 py-2 text-sm" placeholder="Kosongkan jika bukan container">
+                            <input type="text" id="v_container" class="glass-input w-full px-3 py-2 text-sm" placeholder="Kosongkan jika bukan container" oninput="this.value = this.value.toUpperCase()">
                         </div>
                         <div>
                             <label class="block text-white/60 text-xs mb-1">Nomor Seal</label>
-                            <input type="text" id="v_seal" class="glass-input w-full px-3 py-2 text-sm">
+                            <input type="text" id="v_seal" class="glass-input w-full px-3 py-2 text-sm" oninput="this.value = this.value.toUpperCase()">
                         </div>
                         <div>
                             <label class="block text-white/60 text-xs mb-1">Ttd Checker</label>
-                            <input type="text" id="v_checker" class="glass-input w-full px-3 py-2 text-sm" required>
+                            <input type="text" id="v_checker" class="glass-input w-full px-3 py-2 text-sm" oninput="this.value = this.value.toUpperCase()" required>
                         </div>
+                        
                         <!-- ✅ TAMBAHAN BARU: Keputusan -->
                         <div>
                             <label class="block text-white/60 text-xs mb-1">Keputusan</label>
@@ -121,7 +122,7 @@
 
                         <div class="md:col-span-2 lg:col-span-3">
                             <label class="block text-white/60 text-xs mb-1">Keterangan</label>
-                            <textarea id="v_keterangan" class="glass-input w-full px-3 py-2 text-sm" rows="2" placeholder="Catatan khusus jika ada..."></textarea>
+                            <textarea id="v_keterangan" class="glass-input w-full px-3 py-2 text-sm" rows="2" placeholder="Catatan khusus jika ada..." oninput="this.value = this.value.toUpperCase()"></textarea>
                         </div>
                        
                     </form>
