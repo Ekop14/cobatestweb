@@ -30,7 +30,7 @@
                     </button>
                     <div>
                         <h2 class="text-lg sm:text-xl font-bold text-white">Ceklist Kendaraan</h2>
-                        <p class="text-white/50 text-xs sm:text-sm">Pemeriksaan kondisi kendaraan & barang masuk/keluar</p>
+                        <p class="text-white/50 text-xs sm:text-sm">Pemeriksaan kondisi kendaraan & barang</p>
                     </div>
                 </div>
                 <button type="button" id="logoutBtn" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 hover:text-red-200 transition">
@@ -46,20 +46,20 @@
                 <div class="glass-card !p-6 mb-6">
                     <h3 class="text-white font-semibold mb-4 flex items-center gap-2 text-lg">
                         <svg class="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        Data Utama Pemeriksaan
+                        Form Data Pemeriksaan Kendaraan
                     </h3>
                     <form id="vehicleHeaderForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-white/60 text-xs mb-1">No. Urut</label>
-                            <input type="text" id="v_no" class="glass-input w-full px-3 py-2 text-sm" placeholder="Otomatis / Manual">
+                            <label class="block text-white/60 text-xs mb-1">No</label>
+                            <input type="text" id="v_no" class="glass-input w-full px-3 py-2 text-sm bg-white/10" readonly placeholder="Otomatis">
                         </div>
                         <div>
                             <label class="block text-white/60 text-xs mb-1">Hari</label>
-                            <input type="text" id="v_hari" class="glass-input w-full px-3 py-2 text-sm" readonly>
+                            <input type="text" id="v_hari" class="glass-input w-full px-3 py-2 text-sm bg-white/10" readonly>
                         </div>
                         <div>
                             <label class="block text-white/60 text-xs mb-1">Tanggal Pemeriksaan</label>
-                            <input type="date" id="v_tanggal" class="glass-input w-full px-3 py-2 text-sm" required>
+                            <input type="text" id="v_tanggal" class="glass-input w-full px-3 py-2 text-sm bg-white/10" readonly>
                         </div>
                         <div>
                             <label class="block text-white/60 text-xs mb-1">Jam Kedatangan / Pemeriksaan</label>
@@ -100,19 +100,19 @@
                             <input type="text" id="v_seal" class="glass-input w-full px-3 py-2 text-sm">
                         </div>
                         <div>
-                            <label class="block text-white/60 text-xs mb-1">Nama Checker (Ttd)</label>
+                            <label class="block text-white/60 text-xs mb-1">Ttd Checker</label>
                             <input type="text" id="v_checker" class="glass-input w-full px-3 py-2 text-sm" required>
                         </div>
                         <div class="md:col-span-2 lg:col-span-3">
-                            <label class="block text-white/60 text-xs mb-1">Keterangan Tambahan</label>
+                            <label class="block text-white/60 text-xs mb-1">Keterangan</label>
                             <textarea id="v_keterangan" class="glass-input w-full px-3 py-2 text-sm" rows="2" placeholder="Catatan khusus jika ada..."></textarea>
                         </div>
                     </form>
                     <div class="mt-6 flex justify-end">
                         <button type="button" id="saveVehicleHeaderBtn" class="glass-button px-6 py-2.5 text-sm font-semibold">
                             <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-                            Simpan Data & Lanjut ke Checklist Detail
-                        </button
+                            Simpan Data Kendaraan
+                        </button>
                     </div>
                 </div>
 
@@ -132,6 +132,7 @@
                         <table class="w-full report-table">
                             <thead>
                                 <tr class="border-b border-white/10 bg-white/5">
+                                    <th class="px-4 py-3 text-left">No</th>
                                     <th class="px-4 py-3 text-left">Tanggal & Jam</th>
                                     <th class="px-4 py-3 text-left">Supplier</th>
                                     <th class="px-4 py-3 text-center">No. Kendaraan</th>
@@ -141,7 +142,7 @@
                                 </tr>
                             </thead>
                             <tbody id="vehicleHistoryBody">
-                                <tr><td colspan="6" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>
+                                <tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -151,9 +152,7 @@
         </main>
     </div>
 
-    <!-- ========================================== -->
-    <!-- POPUP MODAL CHECKLIST DETAIL KENDARAAN     -->
-    <!-- ========================================== -->
+    <!-- POPUP MODAL CHECKLIST DETAIL -->
     <div id="vehicleDetailModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="glass-card w-full max-w-3xl !p-6 max-h-[90vh] overflow-y-auto relative">
             <button type="button" onclick="closeVehicleDetailModal()" class="absolute top-4 right-4 text-white/60 hover:text-white transition">
@@ -168,9 +167,7 @@
             <form id="vehicleDetailForm" class="space-y-4">
                 <input type="hidden" id="detail_header_id">
                 
-                <!-- Grid untuk Checklist -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Item 1 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">1. Secara Umum Bagian Luar Kendaraan Dalam Kondisi Bersih</label>
                         <select id="d_luar" class="glass-input w-full px-3 py-2 text-sm">
@@ -179,7 +176,6 @@
                             <option value="Kotor">Kotor</option>
                         </select>
                     </div>
-                    <!-- Item 2 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">2. Lantai Dan Dinding Bak/Box/Container Harus Bersih Dari Kotoran</label>
                         <select id="d_lantai" class="glass-input w-full px-3 py-2 text-sm">
@@ -188,7 +184,6 @@
                             <option value="Kotor">Kotor</option>
                         </select>
                     </div>
-                    <!-- Item 3 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">3. Tidak Ada Tanda Keberadaan Tikus Dan Serangga (Kecoa, Kutu Dll)</label>
                         <select id="d_hama" class="glass-input w-full px-3 py-2 text-sm">
@@ -197,7 +192,6 @@
                             <option value="Not OK">Not OK</option>
                         </select>
                     </div>
-                    <!-- Item 4 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">4. Tidak Ada Paku Atau Baut Dari Bak/Box/Container Yang Keluar/Lepas</label>
                         <select id="d_paku" class="glass-input w-full px-3 py-2 text-sm">
@@ -206,7 +200,6 @@
                             <option value="Not OK">Not OK</option>
                         </select>
                     </div>
-                    <!-- Item 5 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">5. Bak / Box Mobil / Container Tidak Berlubang Atau Bocor</label>
                         <select id="d_bocor" class="glass-input w-full px-3 py-2 text-sm">
@@ -215,7 +208,6 @@
                             <option value="Not OK">Not OK</option>
                         </select>
                     </div>
-                    <!-- Item 6 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">6. Bak / Box Mobil / Container Tidak Berbau Asing (Bau Harus Normal)</label>
                         <select id="d_bau" class="glass-input w-full px-3 py-2 text-sm">
@@ -224,7 +216,6 @@
                             <option value="Tidak Bau">Tidak Bau</option>
                         </select>
                     </div>
-                    <!-- Item 7 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">7. Bak / Box Mobil / Container Harus Dalam Keadaan Kering (Tidak Basah/Berminyak)</label>
                         <select id="d_kering" class="glass-input w-full px-3 py-2 text-sm">
@@ -233,7 +224,6 @@
                             <option value="Kering">Kering</option>
                         </select>
                     </div>
-                    <!-- Item 8 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">8. Semua Barang Utuh, Kemasan Tidak Rusak/Penyok, Berlabel Jelas</label>
                         <select id="d_utuh" class="glass-input w-full px-3 py-2 text-sm">
@@ -242,7 +232,6 @@
                             <option value="Not OK">Not OK</option>
                         </select>
                     </div>
-                    <!-- Item 9 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">9. Produk Tidak Disatukan Dengan Bahan Kimia / Gelas / Bahan Diragukan Halal / Berbau Tajam</label>
                         <select id="d_pisah" class="glass-input w-full px-3 py-2 text-sm">
@@ -251,7 +240,6 @@
                             <option value="Not OK">Not OK</option>
                         </select>
                     </div>
-                    <!-- Item 10 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">10. Kondisi Pintu Bak/Box (Terkunci, seal tidak rusak, nomor seal sesuai surat jalan)</label>
                         <select id="d_pintu" class="glass-input w-full px-3 py-2 text-sm">
@@ -260,7 +248,6 @@
                             <option value="Not OK">Not OK</option>
                         </select>
                     </div>
-                    <!-- Item 11 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">11. Jenis Barang</label>
                         <select id="d_jenis_barang" class="glass-input w-full px-3 py-2 text-sm">
@@ -270,7 +257,6 @@
                             <option value="Produk">Produk (Material)</option>
                         </select>
                     </div>
-                    <!-- Item 12 -->
                     <div class="bg-white/5 p-3 rounded-lg border border-white/10">
                         <label class="block text-white/80 text-xs mb-2 font-medium">12. Apabila ada lampu/kaca di bagian dalam, pastikan dalam kondisi baik (tidak retak/pecah)</label>
                         <select id="d_lampu" class="glass-input w-full px-3 py-2 text-sm">
@@ -290,10 +276,9 @@
                     </button>
                 </div>
             </form>
-        </div
+        </div>
     </div>
 
-    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="script.js"></script>
