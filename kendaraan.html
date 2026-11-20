@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ceklist Kendaraan - Gudang Clean</title>
+    <link rel="icon" type="image/png" href="https://companieslogo.com/img/orig/UVRBF-fdcd1dc7.png?t=1720244494">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="font-['Inter'] min-h-screen relative bg-[#0a0a1f] text-white">
+    
+    <div class="background-mesh"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
+    <div class="noise-overlay"></div>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+    <aside id="sidebar" class="sidebar flex flex-col h-screen">
+        <div id="sidebar-slot"></div>
+    </aside>
+
+    <div class="flex min-h-screen">
+        <main class="flex-1 w-full overflow-y-auto h-screen">
+            
+            <!-- HEADER -->
+            <header class="sticky top-0 z-20 glass-header px-4 sm:px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <button id="sidebarToggle" class="lg:hidden text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    </button>
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-bold text-white">Ceklist Kendaraan</h2>
+                        <p class="text-white/50 text-xs sm:text-sm">Pemeriksaan kondisi kendaraan & barang masuk/keluar</p>
+                    </div>
+                </div>
+                <button type="button" id="logoutBtn" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 hover:text-red-200 transition">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    <span class="hidden sm:inline text-sm font-medium">Logout</span>
+                </button>
+            </header>
+
+            <!-- CONTENT -->
+            <div class="px-4 sm:px-6 py-6 max-w-7xl mx-auto">
+                
+                <!-- FORM DATA UTAMA -->
+                <div class="glass-card !p-6 mb-6">
+                    <h3 class="text-white font-semibold mb-4 flex items-center gap-2 text-lg">
+                        <svg class="h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Data Utama Pemeriksaan
+                    </h3>
+                    <form id="vehicleHeaderForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">No. Urut</label>
+                            <input type="text" id="v_no" class="glass-input w-full px-3 py-2 text-sm" placeholder="Otomatis / Manual">
+                        </div>
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">Hari</label>
+                            <input type="text" id="v_hari" class="glass-input w-full px-3 py-2 text-sm" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">Tanggal Pemeriksaan</label>
+                            <input type="date" id="v_tanggal" class="glass-input w-full px-3 py-2 text-sm" required>
+                        </div>
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">Jam Kedatangan / Pemeriksaan</label>
+                            <input type="time" id="v_jam" class="glass-input w-full px-3 py-2 text-sm" required>
+                        </div>
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">Nama Supplier / Expedisi</label>
+                            <input type="text" id="v_supplier" class="glass-input w-full px-3 py-2 text-sm" required>
+                        </div>
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">Nomor Kendaraan</label>
+                            <input type="text" id="v_nopol" class="glass-input w-full px-3 py-2 text-sm font-bold text-purple-300" placeholder="Contoh: B 1234 CD" required>
+                        </div>
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">Jenis Kendaraan</label>
+                            <select id="v_jenis" class="glass-input w-full px-3 py-2 text-sm">
+                                <option value="Truck Box">Truck Box</option>
+                                <option value="Truck Bak Terbuka">Truck Bak Terbuka</option>
+                                <option value="Container">Container</option>
+                                <option value="Pickup">Pickup</option>
+                                <option value="Lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">No. CoA</label>
+                            <input type="text" id="v_coa" class="glass-input w-full px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">No. DO (Delivery Order)</label>
+                            <input type="text" id="v_do" class="glass-input w-full px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">Nomor Container (Khusus Container)</label>
+                            <input type="text" id="v_container" class="glass-input w-full px-3 py-2 text-sm" placeholder="Kosongkan jika bukan container">
+                        </div>
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">Nomor Seal</label>
+                            <input type="text" id="v_seal" class="glass-input w-full px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">Nama Checker (Ttd)</label>
+                            <input type="text" id="v_checker" class="glass-input w-full px-3 py-2 text-sm" required>
+                        </div>
+                        <div class="md:col-span-2 lg:col-span-3">
+                            <label class="block text-white/60 text-xs mb-1">Keterangan Tambahan</label>
+                            <textarea id="v_keterangan" class="glass-input w-full px-3 py-2 text-sm" rows="2" placeholder="Catatan khusus jika ada..."></textarea>
+                        </div>
+                    </form>
+                    <div class="mt-6 flex justify-end">
+                        <button type="button" id="saveVehicleHeaderBtn" class="glass-button px-6 py-2.5 text-sm font-semibold">
+                            <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                            Simpan Data & Lanjut ke Checklist Detail
+                        </button
+                    </div>
+                </div>
+
+                <!-- TABEL RIWAYAT -->
+                <div class="glass-card !p-0 overflow-hidden">
+                    <div class="p-5 border-b border-white/10 flex items-center justify-between">
+                        <h3 class="text-white font-semibold flex items-center gap-2">
+                            <svg class="h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                            Riwayat Ceklist Kendaraan
+                        </h3>
+                        <button type="button" onclick="loadVehicleHistory()" class="text-white/60 hover:text-white text-sm flex items-center gap-1 transition">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            Refresh
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full report-table">
+                            <thead>
+                                <tr class="border-b border-white/10 bg-white/5">
+                                    <th class="px-4 py-3 text-left">Tanggal & Jam</th>
+                                    <th class="px-4 py-3 text-left">Supplier</th>
+                                    <th class="px-4 py-3 text-center">No. Kendaraan</th>
+                                    <th class="px-4 py-3 text-center">Jenis</th>
+                                    <th class="px-4 py-3 text-center">Checker</th>
+                                    <th class="px-4 py-3 text-center">Status Detail</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vehicleHistoryBody">
+                                <tr><td colspan="6" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- POPUP MODAL CHECKLIST DETAIL KENDARAAN     -->
+    <!-- ========================================== -->
+    <div id="vehicleDetailModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="glass-card w-full max-w-3xl !p-6 max-h-[90vh] overflow-y-auto relative">
+            <button type="button" onclick="closeVehicleDetailModal()" class="absolute top-4 right-4 text-white/60 hover:text-white transition">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+
+            <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                <span class="text-purple-400">🚛</span> Detail Ceklist: <span id="modalVehicleNo" class="text-purple-300">-</span>
+            </h3>
+            <p class="text-white/50 text-sm mb-6">Lengkapi pemeriksaan kondisi kendaraan dan barang di bawah ini.</p>
+
+            <form id="vehicleDetailForm" class="space-y-4">
+                <input type="hidden" id="detail_header_id">
+                
+                <!-- Grid untuk Checklist -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Item 1 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">1. Secara Umum Bagian Luar Kendaraan Dalam Kondisi Bersih</label>
+                        <select id="d_luar" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="Bersih">Bersih</option>
+                            <option value="Kotor">Kotor</option>
+                        </select>
+                    </div>
+                    <!-- Item 2 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">2. Lantai Dan Dinding Bak/Box/Container Harus Bersih Dari Kotoran</label>
+                        <select id="d_lantai" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="Bersih">Bersih</option>
+                            <option value="Kotor">Kotor</option>
+                        </select>
+                    </div>
+                    <!-- Item 3 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">3. Tidak Ada Tanda Keberadaan Tikus Dan Serangga (Kecoa, Kutu Dll)</label>
+                        <select id="d_hama" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="OK">OK</option>
+                            <option value="Not OK">Not OK</option>
+                        </select>
+                    </div>
+                    <!-- Item 4 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">4. Tidak Ada Paku Atau Baut Dari Bak/Box/Container Yang Keluar/Lepas</label>
+                        <select id="d_paku" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="OK">OK</option>
+                            <option value="Not OK">Not OK</option>
+                        </select>
+                    </div>
+                    <!-- Item 5 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">5. Bak / Box Mobil / Container Tidak Berlubang Atau Bocor</label>
+                        <select id="d_bocor" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="OK">OK</option>
+                            <option value="Not OK">Not OK</option>
+                        </select>
+                    </div>
+                    <!-- Item 6 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">6. Bak / Box Mobil / Container Tidak Berbau Asing (Bau Harus Normal)</label>
+                        <select id="d_bau" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="Bau">Bau</option>
+                            <option value="Tidak Bau">Tidak Bau</option>
+                        </select>
+                    </div>
+                    <!-- Item 7 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">7. Bak / Box Mobil / Container Harus Dalam Keadaan Kering (Tidak Basah/Berminyak)</label>
+                        <select id="d_kering" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="Basah">Basah</option>
+                            <option value="Kering">Kering</option>
+                        </select>
+                    </div>
+                    <!-- Item 8 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">8. Semua Barang Utuh, Kemasan Tidak Rusak/Penyok, Berlabel Jelas</label>
+                        <select id="d_utuh" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="OK">OK</option>
+                            <option value="Not OK">Not OK</option>
+                        </select>
+                    </div>
+                    <!-- Item 9 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">9. Produk Tidak Disatukan Dengan Bahan Kimia / Gelas / Bahan Diragukan Halal / Berbau Tajam</label>
+                        <select id="d_pisah" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="OK">OK</option>
+                            <option value="Not OK">Not OK</option>
+                        </select>
+                    </div>
+                    <!-- Item 10 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">10. Kondisi Pintu Bak/Box (Terkunci, seal tidak rusak, nomor seal sesuai surat jalan)</label>
+                        <select id="d_pintu" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="OK">OK</option>
+                            <option value="Not OK">Not OK</option>
+                        </select>
+                    </div>
+                    <!-- Item 11 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">11. Jenis Barang</label>
+                        <select id="d_jenis_barang" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="FG">FG (Finished Goods)</option>
+                            <option value="Kemasan">Kemasan</option>
+                            <option value="Produk">Produk (Material)</option>
+                        </select>
+                    </div>
+                    <!-- Item 12 -->
+                    <div class="bg-white/5 p-3 rounded-lg border border-white/10">
+                        <label class="block text-white/80 text-xs mb-2 font-medium">12. Apabila ada lampu/kaca di bagian dalam, pastikan dalam kondisi baik (tidak retak/pecah)</label>
+                        <select id="d_lampu" class="glass-input w-full px-3 py-2 text-sm">
+                            <option value="">-- Pilih --</option>
+                            <option value="OK">OK</option>
+                            <option value="Not OK">Not OK</option>
+                            <option value="Tidak Ada">Tidak Ada Lampu/Kaca</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 justify-end pt-4 border-t border-white/10 mt-6">
+                    <button type="button" onclick="closeVehicleDetailModal()" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm transition">Batal</button>
+                    <button type="button" id="saveVehicleDetailBtn" class="glass-button px-6 py-2 text-sm font-semibold">
+                        <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        Simpan Checklist Detail
+                    </button>
+                </div>
+            </form>
+        </div
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
