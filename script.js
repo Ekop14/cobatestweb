@@ -1,6 +1,6 @@
 // ==========================================
 // SCRIPT.JS - FINAL ALL-IN-ONE
-// (APD Self-Healing + Scroll Fix + Supervisor APD Confirmation + Detail Modal + Dashboard APD)
+// (Checklist + APD + Dashboard + Lingkungan + Supervisor + Kelola User + Biometric + AI + CEKLIST KENDARAAN)
 // ==========================================
 
 let filteredReports = [];
@@ -8,6 +8,7 @@ window.currentUser = window.currentUser || { name: 'User', email: 'user@example.
 
 const SUPERVISOR_EMAILS = ['admin@gudang.com', 'supervisor@gudang.com']; 
 const BIO_KEY = 'GudangClean2024!BioKey';
+let currentVehicleHeaderId = null; // Untuk Ceklist Kendaraan
 
 function isSupervisor(session) {
     if (!session) return false;
@@ -56,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'lingkungan.html') initEnvironmentPage(session);
         else if (currentPage === 'supervisor.html') initSupervisorPage(session);
         else if (currentPage === 'kelola-user.html') initKelolaUserPage(session);
+        else if (currentPage === 'kendaraan.html') initKendaraanPage(session); // ✅ ROUTING KENDARAAN
     });
 
     setTimeout(() => {
@@ -568,7 +570,7 @@ async function initDashboardPage(session) {
     loadSidebar(); 
     updateDashboardStats(); 
     loadDashboardEnvironmentHistory();
-    loadDashboardApdHistory(); // ✅ Memuat data APD di dashboard
+    loadDashboardApdHistory();
     
     const tbody = document.getElementById('recentActivityBody');
     if (!tbody) return;
@@ -622,31 +624,25 @@ async function loadDashboardEnvironmentHistory() {
     } catch (error) { tbody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-red-400 text-sm">Gagal memuat</td></tr>`; }
 }
 
-// ✅ FUNGSI BARU: Memuat riwayat APD di Dashboard
 async function loadDashboardApdHistory() {
     const tbody = document.getElementById('recentApdActivityBody');
     if (!tbody) return;
-    
     try {
         const { data, error } = await window.supabaseClient
             .from('apd_checklist')
             .select('user_name, progress_percentage, status, submission_time, created_at')
             .order('created_at', { ascending: false })
             .limit(5);
-            
         if (error) throw error;
-        
         if (!data || data.length === 0) { 
             tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-white/50 text-sm">Belum ada data APD</td></tr>'; 
             return; 
         }
-        
         tbody.innerHTML = data.map(row => {
             const timeStr = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
             const dateStr = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
             const statusColor = row.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400';
             const progressColor = row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400';
-            
             return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
                 <td class="px-4 py-3 text-sm text-white">${row.user_name || 'User'}</td>
                 <td class="px-4 py-3 text-sm text-white/60">${dateStr} <span class="text-xs">${timeStr}</span></td>
@@ -654,7 +650,6 @@ async function loadDashboardApdHistory() {
                 <td class="px-4 py-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColor}">${row.status === 'completed' ? 'Selesai' : 'Proses'}</span></td>
             </tr>`;
         }).join('');
-        
     } catch (error) { 
         tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-red-400 text-sm">Gagal memuat data APD</td></tr>`; 
     }
@@ -732,71 +727,37 @@ async function loadEnvironmentHistory() {
 }
 
 // ==========================================
-// 6. HALAMAN APD CEKLIST (SELF-HEALING + SCROLL FIX + SIMPAN CHECKED_ITEMS)
+// 6. HALAMAN APD CEKLIST
 // ==========================================
 function ensureApdUI() {
-    const container = document.querySelector('.max-w-4xl') 
-        || document.querySelector('main .px-4') 
-        || document.querySelector('main > div');
-        
+    const container = document.querySelector('.max-w-4xl') || document.querySelector('main .px-4') || document.querySelector('main > div');
     if (!container) { console.error('❌ APD: container konten tidak ditemukan'); return; }
-
-    // ⚠️ PERBAIKAN SCROLL: HANYA ubah overflow container dalam, JANGAN sentuh tag <main>
     container.style.overflow = 'visible';
 
-    // 1. TEXTAREA CATATAN
     let notesEl = document.getElementById('apdNotes');
     if (!notesEl) {
         const notesCard = document.createElement('div');
         notesCard.className = 'glass-card !p-5 mb-6';
-        notesCard.innerHTML = `
-            <h3 class="text-white font-semibold mb-3">Catatan Tambahan</h3>
-            <textarea id="apdNotes" class="glass-input w-full px-4 py-3 text-white placeholder-white/30" rows="4" placeholder="Tulis catatan jika ada kondisi khusus, kerusakan APD, atau hal yang perlu dilaporkan (opsional)..."></textarea>
-            <p class="text-white/40 text-xs mt-2">💡 Opsional — isi jika ada hal yang perlu dilaporkan ke supervisor.</p>`;
+        notesCard.innerHTML = `<h3 class="text-white font-semibold mb-3">Catatan Tambahan</h3><textarea id="apdNotes" class="glass-input w-full px-4 py-3 text-white placeholder-white/30" rows="4" placeholder="Tulis catatan jika ada kondisi khusus..."></textarea><p class="text-white/40 text-xs mt-2">💡 Opsional</p>`;
         container.appendChild(notesCard);
         notesEl = document.getElementById('apdNotes');
-        console.log('✅ APD: Catatan di-INJECT');
     } else {
         const card = notesEl.closest('.glass-card');
-        if (card && card.parentElement !== container) {
-            container.appendChild(card);
-            console.log('✅ APD: Card catatan dipindah ke posisi akhir');
-        }
+        if (card && card.parentElement !== container) container.appendChild(card);
     }
 
-    // 2. TOMBOL SUBMIT
     let btn = document.getElementById('submitApdBtn');
     if (!btn) {
         btn = document.createElement('button');
-        btn.type = 'button';
-        btn.id = 'submitApdBtn';
-        btn.className = 'glass-button w-full !py-4 text-base font-semibold mb-4';
+        btn.type = 'button'; btn.id = 'submitApdBtn'; btn.className = 'glass-button w-full !py-4 text-base font-semibold mb-4';
         btn.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Kirim Laporan APD</span>';
-        console.log('✅ APD: Tombol di-INJECT');
+        container.appendChild(btn);
+        btn.style.cssText = `display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; min-height:52px !important; position:relative !important; z-index:9999 !important; overflow:visible !important; align-items:center !important; justify-content:center !important; gap:8px !important; width:100% !important; margin:16px 0 !important; padding:16px 24px !important; background:linear-gradient(135deg,#a855f7 0%,#f97316 100%) !important; color:#fff !important; font-weight:700 !important; font-size:17px !important; border-radius:14px !important; border:none !important; cursor:pointer !important; box-shadow:0 6px 22px rgba(168,85,247,.45),0 4px 14px rgba(249,115,22,.4) !important;`;
     }
-    
-    container.appendChild(btn); 
-    
-    btn.style.cssText = `
-        display:flex !important; visibility:visible !important; opacity:1 !important;
-        height:auto !important; min-height:52px !important;
-        position:relative !important; z-index:9999 !important; overflow:visible !important;
-        align-items:center !important; justify-content:center !important; gap:8px !important;
-        width:100% !important; margin:16px 0 !important; padding:16px 24px !important;
-        background:linear-gradient(135deg,#a855f7 0%,#f97316 100%) !important;
-        color:#fff !important; font-weight:700 !important; font-size:17px !important;
-        border-radius:14px !important; border:none !important; cursor:pointer !important;
-        box-shadow:0 6px 22px rgba(168,85,247,.45),0 4px 14px rgba(249,115,22,.4) !important;
-    `;
-    console.log('✅ APD: Tombol dipaksa terlihat di posisi akhir');
 
-    // 3. INFO BOX
     let info = document.getElementById('dailyApdInfo');
     if (!info) {
-        info = document.createElement('div');
-        info.id = 'dailyApdInfo';
-        info.className = 'glass-card !p-4 mb-6 text-center';
-        info.style.display = 'none';
+        info = document.createElement('div'); info.id = 'dailyApdInfo'; info.className = 'glass-card !p-4 mb-6 text-center'; info.style.display = 'none';
         info.innerHTML = '<p class="text-green-400 font-semibold">✅ Sudah Submit APD Hari Ini</p><p class="text-white/60 text-xs mt-1">Waktu: <span id="apdSubmissionTime">-</span></p>';
         container.appendChild(info);
     }
@@ -804,24 +765,18 @@ function ensureApdUI() {
 }
 
 function initApdPage(session) {
-    console.log('🦺 initApdPage DIPANGGIL');
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
-    
     const dateDisplay = document.getElementById('currentDate');
     if (dateDisplay) dateDisplay.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    
     loadSidebar();
-    ensureApdUI(); // Jalankan self-healing
+    ensureApdUI();
 
     const checkboxes = document.querySelectorAll('.apd-checkbox');
     const totalItems = 5;
-    console.log('🦺 Checkbox APD ditemukan:', checkboxes.length, 'item');
-
     const totalCountEl = document.getElementById('apdTotalCount');
     const completedCountEl = document.getElementById('apdCompletedCount');
     const progressTextEl = document.getElementById('apdProgressText');
     const progressBarEl = document.getElementById('apdProgressBar');
-
     if (totalCountEl) totalCountEl.textContent = totalItems;
 
     function updateProgress() {
@@ -835,15 +790,8 @@ function initApdPage(session) {
     checkboxes.forEach(cb => cb.addEventListener('change', () => {
         const listItem = cb.closest('.checklist-item');
         if (listItem) {
-            if (cb.checked) {
-                listItem.classList.add('completed');
-                listItem.style.background = 'rgba(34, 197, 94, 0.1)';
-                listItem.style.borderColor = 'rgba(34, 197, 94, 0.3)';
-            } else {
-                listItem.classList.remove('completed');
-                listItem.style.background = 'rgba(255, 255, 255, 0.05)';
-                listItem.style.borderColor = 'transparent';
-            }
+            if (cb.checked) { listItem.classList.add('completed'); listItem.style.background = 'rgba(34, 197, 94, 0.1)'; listItem.style.borderColor = 'rgba(34, 197, 94, 0.3)'; } 
+            else { listItem.classList.remove('completed'); listItem.style.background = 'rgba(255, 255, 255, 0.05)'; listItem.style.borderColor = 'transparent'; }
         }
         updateProgress();
     }));
@@ -856,16 +804,10 @@ function initApdPage(session) {
         submitBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             if (submitBtn.disabled) return;
-            
             const completed = document.querySelectorAll('.apd-checkbox:checked').length;
             const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
-            
-            if (completed < totalItems) {
-                showNotification(`⚠️ Lengkapi semua APD dulu ya! (${completed}/${totalItems})`, 'warning');
-                return;
-            }
+            if (completed < totalItems) { showNotification(`⚠️ Lengkapi semua APD dulu ya! (${completed}/${totalItems})`, 'warning'); return; }
 
-            // ✅ KUMPULKAN ITEM YANG DICENTANG (dari data-item)
             const checkedItems = [];
             document.querySelectorAll('.apd-checkbox:checked').forEach(cb => {
                 const itemName = cb.getAttribute('data-item') || (cb.closest('.checklist-item')?.querySelector('.checklist-text')?.textContent.trim()) || 'Item';
@@ -874,40 +816,26 @@ function initApdPage(session) {
 
             const notesEl = document.getElementById('apdNotes');
             const notes = notesEl ? notesEl.value.trim() : null;
-
             const originalBtnText = submitBtn.innerHTML;
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Mengirim...';
 
             const submissionData = {
-                user_name: window.currentUser.name,
-                user_email: window.currentUser.email,
-                total_items: totalItems,
-                completed_items: completed,
-                progress_percentage: percentage,
-                status: percentage === 100 ? 'completed' : 'in_progress',
-                checked_items: checkedItems, // ✅ KIRIM DETAIL ITEM KE DATABASE
-                notes: notes || null,
-                submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                created_at: new Date().toISOString()
+                user_name: window.currentUser.name, user_email: window.currentUser.email, total_items: totalItems, completed_items: completed,
+                progress_percentage: percentage, status: percentage === 100 ? 'completed' : 'in_progress', checked_items: checkedItems,
+                notes: notes || null, submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }), created_at: new Date().toISOString()
             };
 
             try {
                 const { error } = await window.supabaseClient.from('apd_checklist').insert([submissionData]);
                 if (error) throw error;
-                
                 showNotification('✅ Laporan APD berhasil dikirim!', 'success');
                 disableApdSubmitButtonUI(submissionData);
-                
                 setTimeout(() => {
                     checkboxes.forEach(cb => {
                         cb.checked = false;
                         const listItem = cb.closest('.checklist-item');
-                        if (listItem) {
-                            listItem.classList.remove('completed');
-                            listItem.style.background = 'rgba(255, 255, 255, 0.05)';
-                            listItem.style.borderColor = 'transparent';
-                        }
+                        if (listItem) { listItem.classList.remove('completed'); listItem.style.background = 'rgba(255, 255, 255, 0.05)'; listItem.style.borderColor = 'transparent'; }
                     });
                     if (notesEl) notesEl.value = '';
                     updateProgress();
@@ -920,46 +848,29 @@ function initApdPage(session) {
                 submitBtn.innerHTML = originalBtnText;
             }
         });
-        console.log('✅ APD: Event listener submit TERPASANG');
-    } else {
-        console.error('❌ APD: Tombol submit TIDAK TERPASANG (self-healing gagal?)');
     }
 }
 
 async function checkDailyApdSubmission(userEmail) {
     const today = new Date().toISOString().split('T')[0];
     try {
-        const { data, error } = await window.supabaseClient
-            .from('apd_checklist')
-            .select('id, submission_time, created_at')
-            .eq('user_email', userEmail)
-            .gte('created_at', `${today}T00:00:00`)
-            .lte('created_at', `${today}T23:59:59`)
-            .limit(1);
-        
+        const { data, error } = await window.supabaseClient.from('apd_checklist').select('id, submission_time, created_at').eq('user_email', userEmail).gte('created_at', `${today}T00:00:00`).lte('created_at', `${today}T23:59:59`).limit(1);
         if (error) throw error;
         if (data && data.length > 0) disableApdSubmitButtonUI(data[0]);
-    } catch (error) {
-        console.error("Gagal cek submission APD harian:", error);
-    }
+    } catch (error) { console.error("Gagal cek submission APD harian:", error); }
 }
 
 function disableApdSubmitButtonUI(submission) {
     const btn = document.getElementById('submitApdBtn');
     const infoBox = document.getElementById('dailyApdInfo');
     const timeDisplay = document.getElementById('apdSubmissionTime');
-    
-    if (btn) {
-        btn.disabled = true;
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
-        btn.innerHTML = '<span>✅ Sudah Submit APD Hari Ini</span>';
-    }
+    if (btn) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.innerHTML = '<span>✅ Sudah Submit APD Hari Ini</span>'; }
     if (infoBox) { infoBox.classList.remove('hidden'); infoBox.style.display = 'block'; }
     if (timeDisplay) timeDisplay.textContent = submission.submission_time || new Date(submission.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
 
 // ==========================================
-// 7. HALAMAN SUPERVISOR (KEBERSIHAN + APD + DETAIL MODAL)
+// 7. HALAMAN SUPERVISOR
 // ==========================================
 let currentSupervisorFilter = 'pending';
 let currentReportType = 'kebersihan';
@@ -967,20 +878,10 @@ let currentActionId = null;
 let currentActionType = null;
 let currentActionTable = 'checklist_submissions';
 
-const ALL_APD_ITEMS = [
-    '1. Menggunakan Seragam Sesuai Peraturan',
-    '2. Menggunakan Sepatu Safety',
-    '3. Menggunakan Topi Pelindung Kepala',
-    '4. Tidak Memakai Aksesories yang Dilarang',
-    '5. Kondisi Sehat dan Fit Saat Bertugas'
-];
+const ALL_APD_ITEMS = ['1. Menggunakan Seragam Sesuai Peraturan', '2. Menggunakan Sepatu Safety', '3. Menggunakan Topi Pelindung Kepala', '4. Tidak Memakai Aksesories yang Dilarang', '5. Kondisi Sehat dan Fit Saat Bertugas'];
 
 function initSupervisorPage(session) {
-    if (!isSupervisor(session)) {
-        showNotification("⛔ Akses Ditolak: Halaman ini hanya untuk Supervisor.", 'error');
-        setTimeout(() => window.location.replace('dashboard.html'), 2000);
-        return;
-    }
+    if (!isSupervisor(session)) { showNotification("⛔ Akses Ditolak: Halaman ini hanya untuk Supervisor.", 'error'); setTimeout(() => window.location.replace('dashboard.html'), 2000); return; }
     window.currentUser = { name: session.user.user_metadata?.full_name || 'Supervisor', email: session.user.email };
     loadSidebar();
     switchReportType('kebersihan');
@@ -989,13 +890,8 @@ function initSupervisorPage(session) {
 function switchReportType(type) {
     currentReportType = type;
     document.querySelectorAll('.type-tab').forEach(tab => {
-        if (tab.dataset.type === type) {
-            tab.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/30');
-            tab.classList.remove('bg-white/5', 'text-white/60');
-        } else {
-            tab.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/30');
-            tab.classList.add('bg-white/5', 'text-white/60');
-        }
+        if (tab.dataset.type === type) { tab.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/30'); tab.classList.remove('bg-white/5', 'text-white/60'); } 
+        else { tab.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/30'); tab.classList.add('bg-white/5', 'text-white/60'); }
     });
     const titleEl = document.getElementById('tableTitleText');
     if (titleEl) titleEl.textContent = type === 'apd' ? 'Daftar Laporan APD' : 'Daftar Laporan Kebersihan';
@@ -1012,8 +908,7 @@ function filterSupervisorReports(status) {
 }
 
 async function loadSupervisorReports(status) {
-    if (currentReportType === 'apd') await loadApdReports(status);
-    else await loadKebersihanReports(status);
+    if (currentReportType === 'apd') await loadApdReports(status); else await loadKebersihanReports(status);
 }
 
 async function loadKebersihanReports(status) {
@@ -1023,27 +918,15 @@ async function loadKebersihanReports(status) {
     try {
         const { data: allData, error: allError } = await window.supabaseClient.from('checklist_submissions').select('id, supervisor_status');
         if (!allError && allData) updateSupervisorCounts(allData);
-
-        const { data, error } = await window.supabaseClient.from('checklist_submissions')
-            .select('id, user_name, user_email, progress_percentage, status, supervisor_status, supervisor_notes, created_at, submission_time')
-            .eq('supervisor_status', status).order('created_at', { ascending: false });
+        const { data, error } = await window.supabaseClient.from('checklist_submissions').select('id, user_name, user_email, progress_percentage, status, supervisor_status, supervisor_notes, created_at, submission_time').eq('supervisor_status', status).order('created_at', { ascending: false });
         if (error) throw error;
         if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada laporan "${status}"</td></tr>`; return; }
-
         tbody.innerHTML = data.map(row => {
             const date = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
             const time = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            const actionButtons = status === 'pending'
-                ? `<button type="button" onclick="openActionModal('${row.id}', 'approved', 'checklist_submissions')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button><button type="button" onclick="openActionModal('${row.id}', 'rejected', 'checklist_submissions')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>`
-                : `<span class="text-white/40 text-xs">Diproses</span>`;
+            const actionButtons = status === 'pending' ? `<button type="button" onclick="openActionModal('${row.id}', 'approved', 'checklist_submissions')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button><button type="button" onclick="openActionModal('${row.id}', 'rejected', 'checklist_submissions')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>` : `<span class="text-white/40 text-xs">Diproses</span>`;
             const statusBadge = row.supervisor_status === 'approved' ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">Disetujui</span>' : (row.supervisor_status === 'rejected' ? '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">Ditolak</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400">Pending</span>');
-            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
-                <td class="px-4 py-3"><div class="text-sm font-medium text-white">${row.user_name || 'User'}</div><div class="text-xs text-white/50">${date} • ${time}</div></td>
-                <td class="px-4 py-3 text-center text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td>
-                <td class="px-4 py-3 text-sm text-white/60 max-w-xs truncate">${row.supervisor_notes || '-'}</td>
-                <td class="px-4 py-3 text-center">${statusBadge}</td>
-                <td class="px-4 py-3 text-center">${actionButtons}</td>
-            </tr>`;
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition"><td class="px-4 py-3"><div class="text-sm font-medium text-white">${row.user_name || 'User'}</div><div class="text-xs text-white/50">${date} • ${time}</div></td><td class="px-4 py-3 text-center text-sm font-semibold ${row.progress_percentage === 100 ? 'text-green-400' : 'text-amber-400'}">${row.progress_percentage}%</td><td class="px-4 py-3 text-sm text-white/60 max-w-xs truncate">${row.supervisor_notes || '-'}</td><td class="px-4 py-3 text-center">${statusBadge}</td><td class="px-4 py-3 text-center">${actionButtons}</td></tr>`;
         }).join('');
     } catch (error) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`; }
 }
@@ -1055,31 +938,18 @@ async function loadApdReports(status) {
     try {
         const { data: allData, error: allError } = await window.supabaseClient.from('apd_checklist').select('id, supervisor_status');
         if (!allError && allData) updateSupervisorCounts(allData);
-
-        const { data, error } = await window.supabaseClient.from('apd_checklist')
-            .select('id, user_name, user_email, total_items, completed_items, progress_percentage, notes, checked_items, supervisor_status, supervisor_notes, supervisor_name, created_at, submission_time')
-            .eq('supervisor_status', status).order('created_at', { ascending: false });
+        const { data, error } = await window.supabaseClient.from('apd_checklist').select('id, user_name, user_email, total_items, completed_items, progress_percentage, notes, checked_items, supervisor_status, supervisor_notes, supervisor_name, created_at, submission_time').eq('supervisor_status', status).order('created_at', { ascending: false });
         if (error) throw error;
         if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada laporan APD "${status}"</td></tr>`; return; }
-
         tbody.innerHTML = data.map(row => {
             const date = new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
             const time = row.submission_time || new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            // ✅ Progress jadi tombol klikable untuk lihat detail
             const itemBadge = `<button type="button" onclick='showApdDetail(${JSON.stringify(row.id)}, ${JSON.stringify(row.checked_items || [])}, ${row.progress_percentage}, ${JSON.stringify(row.user_name || 'User')}, ${JSON.stringify(row.submission_time || '')}, ${JSON.stringify(row.notes || '')})' class="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition cursor-pointer" title="Klik untuk lihat detail">👁️ ${row.completed_items}/${row.total_items} item</button>`;
             const catatanUser = row.notes ? `<div class="text-xs text-white/70 mb-1">👤 ${row.notes}</div>` : '';
             const catatanSpv = row.supervisor_notes ? `<div class="text-xs text-amber-300">👑 ${row.supervisor_notes}</div>` : (row.supervisor_status === 'pending' ? `<div class="text-xs text-white/40">Belum ada catatan</div>` : '');
-            const actionButtons = status === 'pending'
-                ? `<button type="button" onclick="openActionModal('${row.id}', 'approved', 'apd_checklist')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button><button type="button" onclick="openActionModal('${row.id}', 'rejected', 'apd_checklist')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>`
-                : `<span class="text-white/40 text-xs">${row.supervisor_name ? 'oleh ' + row.supervisor_name : 'Diproses'}</span>`;
+            const actionButtons = status === 'pending' ? `<button type="button" onclick="openActionModal('${row.id}', 'approved', 'apd_checklist')" class="px-3 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium mr-1 transition">✓ Setuju</button><button type="button" onclick="openActionModal('${row.id}', 'rejected', 'apd_checklist')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">✕ Tolak</button>` : `<span class="text-white/40 text-xs">${row.supervisor_name ? 'oleh ' + row.supervisor_name : 'Diproses'}</span>`;
             const statusBadge = row.supervisor_status === 'approved' ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">Disetujui</span>' : (row.supervisor_status === 'rejected' ? '<span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">Ditolak</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400">Pending</span>');
-            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
-                <td class="px-4 py-3"><div class="text-sm font-medium text-white">${row.user_name || 'User'}</div><div class="text-xs text-white/50">${date} • ${time}</div></td>
-                <td class="px-4 py-3 text-center">${itemBadge}</td>
-                <td class="px-4 py-3 text-sm max-w-xs">${catatanUser}${catatanSpv}</td>
-                <td class="px-4 py-3 text-center">${statusBadge}</td>
-                <td class="px-4 py-3 text-center">${actionButtons}</td>
-            </tr>`;
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition"><td class="px-4 py-3"><div class="text-sm font-medium text-white">${row.user_name || 'User'}</div><div class="text-xs text-white/50">${date} • ${time}</div></td><td class="px-4 py-3 text-center">${itemBadge}</td><td class="px-4 py-3 text-sm max-w-xs">${catatanUser}${catatanSpv}</td><td class="px-4 py-3 text-center">${statusBadge}</td><td class="px-4 py-3 text-center">${actionButtons}</td></tr>`;
         }).join('');
     } catch (error) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat: ${error.message}</td></tr>`; }
 }
@@ -1096,82 +966,41 @@ function updateSupervisorCounts(allData) {
     if (elRejected) elRejected.textContent = rejected;
 }
 
-// ====== MODAL DETAIL APD ======
 function showApdDetail(id, checkedItems, progress, userName, submissionTime, notes) {
     const modal = document.getElementById('apdDetailModal');
     if (!modal) return;
-
     document.getElementById('apdDetailUserName').textContent = userName;
     document.getElementById('apdDetailProgress').textContent = progress + '%';
     document.getElementById('apdDetailTime').textContent = submissionTime ? `Diajukan pada ${submissionTime}` : '-';
-
-    // Render daftar item dengan status ✅ / ❌
     const listEl = document.getElementById('apdDetailItemsList');
     listEl.innerHTML = '';
-    
     ALL_APD_ITEMS.forEach(itemName => {
         const isChecked = checkedItems.some(ci => ci.includes(itemName) || itemName.includes(ci));
         const row = document.createElement('div');
         row.className = 'flex items-center gap-3 p-3 rounded-lg ' + (isChecked ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30');
-        row.innerHTML = `
-            <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${isChecked ? 'bg-green-500/30 text-green-400' : 'bg-red-500/30 text-red-400'}">
-                ${isChecked ? '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>' : '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>'}
-            </div>
-            <span class="text-sm text-white flex-1">${itemName}</span>
-        `;
+        row.innerHTML = `<div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${isChecked ? 'bg-green-500/30 text-green-400' : 'bg-red-500/30 text-red-400'}">${isChecked ? '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>' : '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>'}</div><span class="text-sm text-white flex-1">${itemName}</span>`;
         listEl.appendChild(row);
     });
-
-    // Catatan staff
     const notesBox = document.getElementById('apdDetailNotesBox');
     const notesEl = document.getElementById('apdDetailNotes');
-    if (notes && notes.trim()) {
-        notesEl.textContent = notes;
-        notesBox.classList.remove('hidden');
-    } else {
-        notesBox.classList.add('hidden');
-    }
-
+    if (notes && notes.trim()) { notesEl.textContent = notes; notesBox.classList.remove('hidden'); } else { notesBox.classList.add('hidden'); }
     modal.classList.remove('hidden');
 }
 
-function closeApdDetailModal() {
-    const modal = document.getElementById('apdDetailModal');
-    if (modal) modal.classList.add('hidden');
-}
+function closeApdDetailModal() { const modal = document.getElementById('apdDetailModal'); if (modal) modal.classList.add('hidden'); }
+document.addEventListener('click', function(event) { const modal = document.getElementById('apdDetailModal'); if (modal && !modal.classList.contains('hidden') && event.target === modal) closeApdDetailModal(); });
 
-// Tutup modal detail kalau klik di luar area konten
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('apdDetailModal');
-    if (modal && !modal.classList.contains('hidden') && event.target === modal) {
-        closeApdDetailModal();
-    }
-});
-
-// ====== MODAL KONFIRMASI (APPROVE/REJECT) ======
 function openActionModal(id, type, table) {
-    currentActionId = id; 
-    currentActionType = type;
-    currentActionTable = table || 'checklist_submissions';
-    const modal = document.getElementById('actionModal'); 
-    const title = document.getElementById('modalTitle');
-    const btn = document.getElementById('confirmActionBtn'); 
-    const noteInput = document.getElementById('supervisorNoteInput');
+    currentActionId = id; currentActionType = type; currentActionTable = table || 'checklist_submissions';
+    const modal = document.getElementById('actionModal'); const title = document.getElementById('modalTitle');
+    const btn = document.getElementById('confirmActionBtn'); const noteInput = document.getElementById('supervisorNoteInput');
     noteInput.value = '';
-    if (type === 'approved') { 
-        title.textContent = 'Setujui Laporan Ini?'; title.className = 'text-xl font-bold text-green-400 mb-2'; 
-        btn.className = 'px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition'; btn.textContent = 'Setujui'; 
-    } else { 
-        title.textContent = 'Tolak Laporan Ini?'; title.className = 'text-xl font-bold text-red-400 mb-2'; 
-        btn.className = 'px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition'; btn.textContent = 'Tolak'; 
-    }
+    if (type === 'approved') { title.textContent = 'Setujui Laporan Ini?'; title.className = 'text-xl font-bold text-green-400 mb-2'; btn.className = 'px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition'; btn.textContent = 'Setujui'; } 
+    else { title.textContent = 'Tolak Laporan Ini?'; title.className = 'text-xl font-bold text-red-400 mb-2'; btn.className = 'px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition'; btn.textContent = 'Tolak'; }
     modal.classList.remove('hidden');
 }
 
-function closeActionModal() { 
-    document.getElementById('actionModal').classList.add('hidden'); 
-    currentActionId = null; currentActionType = null; currentActionTable = 'checklist_submissions'; 
-}
+function closeActionModal() { document.getElementById('actionModal').classList.add('hidden'); currentActionId = null; currentActionType = null; currentActionTable = 'checklist_submissions'; }
 
 document.addEventListener('click', async function(event) {
     if (event.target.id === 'confirmActionBtn') {
@@ -1181,18 +1010,13 @@ document.addEventListener('click', async function(event) {
         const originalText = btn.textContent;
         btn.disabled = true; btn.textContent = 'Menyimpan...';
         try {
-            // ✅ PAYLOAD DIBEDAKAN PER TABEL agar tidak error kolom tidak ada
             let payload = { supervisor_status: currentActionType, supervisor_notes: notes };
-            if (currentActionTable === 'apd_checklist') {
-                payload.supervisor_name = window.currentUser?.name || 'Supervisor';
-                payload.supervisor_time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            }
+            if (currentActionTable === 'apd_checklist') { payload.supervisor_name = window.currentUser?.name || 'Supervisor'; payload.supervisor_time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }); }
             const { error } = await window.supabaseClient.from(currentActionTable).update(payload).eq('id', currentActionId);
             if (error) throw error;
             const typeName = currentReportType === 'apd' ? 'APD ' : '';
             showNotification(`Laporan ${typeName}berhasil ${currentActionType === 'approved' ? 'disetujui' : 'ditolak'}!`, 'success');
-            closeActionModal(); 
-            loadSupervisorReports(currentSupervisorFilter);
+            closeActionModal(); loadSupervisorReports(currentSupervisorFilter);
         } catch (error) { showNotification("Gagal menyimpan: " + error.message, 'error'); }
         finally { btn.disabled = false; btn.textContent = originalText; }
     }
@@ -1213,17 +1037,11 @@ function initLoginPage() {
             submitBtn.disabled = true;
             btnText.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Memproses...';
             const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) { 
-                showNotification("Login gagal: " + error.message, 'error'); 
-                submitBtn.disabled = false; 
-                btnText.textContent = 'Masuk'; 
-            } else { 
+            if (error) { showNotification("Login gagal: " + error.message, 'error'); submitBtn.disabled = false; btnText.textContent = 'Masuk'; } 
+            else { 
                 showNotification('Login berhasil!', 'success');
                 const hasBiometric = localStorage.getItem('biometric_data');
-                if (!hasBiometric) {
-                    const regBtn = document.getElementById('registerBiometricBtn');
-                    if (regBtn) regBtn.classList.remove('hidden');
-                }
+                if (!hasBiometric) { const regBtn = document.getElementById('registerBiometricBtn'); if (regBtn) regBtn.classList.remove('hidden'); }
                 setTimeout(() => window.location.replace('checklist.html'), 1000); 
             }
         });
@@ -1231,7 +1049,6 @@ function initLoginPage() {
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
     if (togglePassword && passwordInput) { togglePassword.addEventListener('click', () => { passwordInput.setAttribute('type', passwordInput.getAttribute('type') === 'password' ? 'text' : 'password'); }); }
-    
     initBiometricLogin();
 }
 
@@ -1244,16 +1061,10 @@ function initRegisterPage() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const role = document.getElementById('userRole') ? document.getElementById('userRole').value : 'staff';
-            
             const submitBtn = document.getElementById('submitBtn');
             const btnText = document.getElementById('btnText');
             submitBtn.disabled = true; btnText.textContent = 'Mendaftar...';
-            
-            const { error } = await window.supabaseClient.auth.signUp({ 
-                email, password, 
-                options: { data: { full_name: fullName, role: role } }
-            });
-            
+            const { error } = await window.supabaseClient.auth.signUp({ email, password, options: { data: { full_name: fullName, role: role } } });
             if (error) { showNotification("Registrasi gagal: " + error.message, 'error'); submitBtn.disabled = false; btnText.textContent = 'Daftar Sekarang'; }
             else { showNotification('Registrasi berhasil! Silakan login.', 'success'); setTimeout(() => window.location.replace('index.html'), 2000); }
         });
@@ -1261,200 +1072,119 @@ function initRegisterPage() {
 }
 
 // ==========================================
-// 9. BIOMETRIC AUTHENTICATION (AUTO-LOGIN)
+// 9. BIOMETRIC AUTHENTICATION
 // ==========================================
 function obfuscate(text) {
     let result = '';
-    for (let i = 0; i < text.length; i++) {
-        result += String.fromCharCode(text.charCodeAt(i) ^ BIO_KEY.charCodeAt(i % BIO_KEY.length));
-    }
+    for (let i = 0; i < text.length; i++) { result += String.fromCharCode(text.charCodeAt(i) ^ BIO_KEY.charCodeAt(i % BIO_KEY.length)); }
     return btoa(result);
 }
 
 function deobfuscate(encoded) {
     try {
-        const decoded = atob(encoded);
-        let result = '';
-        for (let i = 0; i < decoded.length; i++) {
-            result += String.fromCharCode(decoded.charCodeAt(i) ^ BIO_KEY.charCodeAt(i % BIO_KEY.length));
-        }
+        const decoded = atob(encoded); let result = '';
+        for (let i = 0; i < decoded.length; i++) { result += String.fromCharCode(decoded.charCodeAt(i) ^ BIO_KEY.charCodeAt(i % BIO_KEY.length)); }
         return result;
     } catch (e) { return null; }
 }
 
-function isBiometricSupported() {
-    return window.PublicKeyCredential !== undefined && navigator.credentials !== undefined;
-}
-
-async function checkBiometricAvailability() {
-    if (!isBiometricSupported()) return false;
-    try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } 
-    catch (error) { return false; }
-}
-
-function generateChallenge() {
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    return array;
-}
-
-function bufferToBase64(buffer) {
-    return btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function base64ToBuffer(base64) {
-    const clean = base64.replace(/-/g, '+').replace(/_/g, '/');
-    const binary = atob(clean);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes.buffer;
-}
+function isBiometricSupported() { return window.PublicKeyCredential !== undefined && navigator.credentials !== undefined; }
+async function checkBiometricAvailability() { if (!isBiometricSupported()) return false; try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch (error) { return false; } }
+function generateChallenge() { const array = new Uint8Array(32); crypto.getRandomValues(array); return array; }
+function bufferToBase64(buffer) { return btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function base64ToBuffer(base64) { const clean = base64.replace(/-/g, '+').replace(/_/g, '/'); const binary = atob(clean); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); return bytes.buffer; }
 
 async function registerBiometric(email, password) {
     try {
         const challenge = generateChallenge();
         const userIdBuffer = new TextEncoder().encode(email);
-        const credential = await navigator.credentials.create({
-            publicKey: {
-                challenge: challenge, rp: { name: "Gudang Clean", id: window.location.hostname },
-                user: { id: userIdBuffer, name: email, displayName: email },
-                pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
-                authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", requireResidentKey: false },
-                timeout: 60000, attestation: "none"
-            }
-        });
+        const credential = await navigator.credentials.create({ publicKey: { challenge: challenge, rp: { name: "Gudang Clean", id: window.location.hostname }, user: { id: userIdBuffer, name: email, displayName: email }, pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }], authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", requireResidentKey: false }, timeout: 60000, attestation: "none" } });
         if (!credential) throw new Error("Pendaftaran dibatalkan");
-        
-        const bioData = {
-            credentialId: credential.id, credentialRawId: bufferToBase64(credential.rawId),
-            email: obfuscate(email), password: obfuscate(password), registeredAt: new Date().toISOString()
-        };
+        const bioData = { credentialId: credential.id, credentialRawId: bufferToBase64(credential.rawId), email: obfuscate(email), password: obfuscate(password), registeredAt: new Date().toISOString() };
         localStorage.setItem('biometric_data', JSON.stringify(bioData));
-        showNotification('✅ Sidik jari berhasil didaftarkan! Anda bisa login cepat tanpa password.', 'success');
+        showNotification('✅ Sidik jari berhasil didaftarkan!', 'success');
         return true;
-    } catch (error) {
-        console.error("Error registering biometric:", error);
-        showNotification('❌ Gagal mendaftar sidik jari: ' + error.message, 'error');
-        return false;
-    }
+    } catch (error) { console.error("Error registering biometric:", error); showNotification('❌ Gagal mendaftar sidik jari: ' + error.message, 'error'); return false; }
 }
 
 async function loginWithBiometric() {
     try {
         const storedData = localStorage.getItem('biometric_data');
         if (!storedData) { showNotification('⚠️ Tidak ada sidik jari terdaftar.', 'warning'); return; }
-        
         const bioData = JSON.parse(storedData);
         const email = deobfuscate(bioData.email);
         const password = deobfuscate(bioData.password);
-        if (!email || !password) { showNotification('⚠️ Data sidik jari rusak. Silakan daftar ulang.', 'warning'); return; }
-        
-        const assertion = await navigator.credentials.get({
-            publicKey: {
-                challenge: generateChallenge(),
-                allowCredentials: [{ id: base64ToBuffer(bioData.credentialRawId), type: 'public-key', transports: ['internal'] }],
-                timeout: 60000, userVerification: "required"
-            }
-        });
+        if (!email || !password) { showNotification('⚠️ Data sidik jari rusak.', 'warning'); return; }
+        const assertion = await navigator.credentials.get({ publicKey: { challenge: generateChallenge(), allowCredentials: [{ id: base64ToBuffer(bioData.credentialRawId), type: 'public-key', transports: ['internal'] }], timeout: 60000, userVerification: "required" } });
         if (!assertion) throw new Error("Verifikasi dibatalkan");
-        
-        showNotification('🔐 Verifikasi sidik jari berhasil! Memproses login...', 'info');
+        showNotification('🔐 Verifikasi sidik jari berhasil!', 'info');
         const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email: email, password: password });
-        
         if (error) {
-            if (error.message.includes('Invalid')) {
-                showNotification('⚠️ Password telah berubah. Sidik jari dihapus, silakan daftar ulang.', 'warning');
-                localStorage.removeItem('biometric_data');
-                setTimeout(() => window.location.reload(), 2000);
-            } else { showNotification('❌ Login gagal: ' + error.message, 'error'); }
+            if (error.message.includes('Invalid')) { showNotification('⚠️ Password berubah. Hapus sidik jari.', 'warning'); localStorage.removeItem('biometric_data'); setTimeout(() => window.location.reload(), 2000); } 
+            else { showNotification('❌ Login gagal: ' + error.message, 'error'); }
             return;
         }
-        
-        showNotification('✅ Login berhasil! Selamat datang kembali.', 'success');
-        setTimeout(() => {
-            const userRole = data.user.user_metadata?.role || 'staff';
-            window.location.replace(userRole === 'supervisor' ? 'supervisor.html' : 'checklist.html');
-        }, 800);
-    } catch (error) {
-        console.error("Error logging in with biometric:", error);
-        showNotification(error.name === 'NotAllowedError' ? '⚠️ Verifikasi sidik jari dibatalkan.' : '❌ Gagal login: ' + error.message, 'error');
-    }
+        showNotification('✅ Login berhasil!', 'success');
+        setTimeout(() => { const userRole = data.user.user_metadata?.role || 'staff'; window.location.replace(userRole === 'supervisor' ? 'supervisor.html' : 'checklist.html'); }, 800);
+    } catch (error) { console.error("Error logging in with biometric:", error); showNotification(error.name === 'NotAllowedError' ? '⚠️ Verifikasi dibatalkan.' : '❌ Gagal login: ' + error.message, 'error'); }
 }
 
 function removeBiometric() {
-    if (confirm('Yakin ingin menghapus sidik jari terdaftar? Anda perlu mendaftar ulang untuk menggunakan fitur ini.')) {
-        localStorage.removeItem('biometric_data');
-        showNotification('✅ Sidik jari berhasil dihapus.', 'success');
-        setTimeout(() => window.location.reload(), 1000);
-    }
+    if (confirm('Yakin ingin menghapus sidik jari?')) { localStorage.removeItem('biometric_data'); showNotification('✅ Sidik jari dihapus.', 'success'); setTimeout(() => window.location.reload(), 1000); }
 }
 
 async function initBiometricLogin() {
     const biometricBtn = document.getElementById('biometricLoginBtn');
-    const biometricBtnText = document.getElementById('biometricBtnText');
-    const biometricStatus = document.getElementById('biometricStatus');
-    const removeBiometricBtn = document.getElementById('removeBiometricBtn');
-    const registerBiometricBtn = document.getElementById('registerBiometricBtn');
     if (!biometricBtn) return;
-    
     const isSupported = await checkBiometricAvailability();
     const hasBiometric = localStorage.getItem('biometric_data');
-    
-    if (!isSupported) {
-        if (biometricStatus) { biometricStatus.textContent = '⚠️ Perangkat tidak mendukung sidik jari'; biometricStatus.classList.remove('hidden'); }
-        return;
-    }
-    
+    if (!isSupported) { const biometricStatus = document.getElementById('biometricStatus'); if (biometricStatus) { biometricStatus.textContent = '⚠️ Perangkat tidak mendukung'; biometricStatus.classList.remove('hidden'); } return; }
     if (hasBiometric) {
         const bioData = JSON.parse(hasBiometric);
         biometricBtn.classList.remove('hidden');
-        biometricBtnText.textContent = '🔐 Masuk Cepat dengan Sidik Jari';
+        document.getElementById('biometricBtnText').textContent = '🔐 Masuk Cepat';
         biometricBtn.addEventListener('click', loginWithBiometric);
-        if (biometricStatus) {
-            biometricStatus.textContent = `✓ Sidik jari terdaftar untuk ${deobfuscate(bioData.email)}`;
-            biometricStatus.classList.remove('hidden');
-        }
+        const biometricStatus = document.getElementById('biometricStatus');
+        if (biometricStatus) { biometricStatus.textContent = `✓ Terdaftar: ${deobfuscate(bioData.email)}`; biometricStatus.classList.remove('hidden'); }
+        const removeBiometricBtn = document.getElementById('removeBiometricBtn');
         if (removeBiometricBtn) { removeBiometricBtn.classList.remove('hidden'); removeBiometricBtn.addEventListener('click', removeBiometric); }
+        const registerBiometricBtn = document.getElementById('registerBiometricBtn');
         if (registerBiometricBtn) registerBiometricBtn.classList.add('hidden');
     } else {
+        const registerBiometricBtn = document.getElementById('registerBiometricBtn');
         if (registerBiometricBtn) {
             registerBiometricBtn.classList.remove('hidden');
             registerBiometricBtn.addEventListener('click', async () => {
                 const email = document.getElementById('email')?.value;
                 const password = document.getElementById('password')?.value;
-                if (!email || !password) { showNotification('⚠️ Masukkan email dan password terlebih dahulu.', 'warning'); return; }
+                if (!email || !password) { showNotification('⚠️ Masukkan email dan password dulu.', 'warning'); return; }
                 const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
-                if (error) { showNotification('❌ Email atau password salah.', 'error'); return; }
+                if (error) { showNotification('❌ Email/password salah.', 'error'); return; }
                 const success = await registerBiometric(email, password);
                 if (success) setTimeout(() => window.location.reload(), 1500);
             });
         }
-        if (biometricStatus) { biometricStatus.textContent = 'Belum ada sidik jari terdaftar. Login dulu untuk mendaftarkan.'; biometricStatus.classList.remove('hidden'); }
+        const biometricStatus = document.getElementById('biometricStatus');
+        if (biometricStatus) { biometricStatus.textContent = 'Login dulu untuk mendaftar.'; biometricStatus.classList.remove('hidden'); }
         biometricBtn.classList.add('hidden');
+        const removeBiometricBtn = document.getElementById('removeBiometricBtn');
         if (removeBiometricBtn) removeBiometricBtn.classList.add('hidden');
     }
 }
 
 // ==========================================
-// 10. HALAMAN KELOLA USER (HANYA SUPERVISOR)
+// 10. HALAMAN KELOLA USER
 // ==========================================
 let allUsersData = [];
 let deleteTargetId = null;
 
 function initKelolaUserPage(session) {
-    if (!isSupervisor(session)) {
-        showNotification("⛔ Akses Ditolak: Hanya supervisor yang bisa mengakses.", 'error');
-        setTimeout(() => window.location.replace('dashboard.html'), 2000);
-        return;
-    }
-
+    if (!isSupervisor(session)) { showNotification("⛔ Akses Ditolak.", 'error'); setTimeout(() => window.location.replace('dashboard.html'), 2000); return; }
     window.currentUser = { name: session.user.user_metadata?.full_name || 'Supervisor', email: session.user.email };
     loadSidebar();
     loadAllUsers();
-
     const searchInput = document.getElementById('searchUser');
     if (searchInput) searchInput.addEventListener('input', (e) => filterUsers(e.target.value));
-
     const refreshBtn = document.getElementById('refreshUsersBtn');
     if (refreshBtn) refreshBtn.addEventListener('click', loadAllUsers);
 }
@@ -1463,40 +1193,21 @@ async function loadAllUsers() {
     const tbody = document.getElementById('usersTableBody');
     if (!tbody) return;
     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
-
     try {
         const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
-
         if (sessionError) throw new Error("Gagal membaca sesi: " + sessionError.message);
-        if (!session || !session.access_token) throw new Error("Sesi tidak ditemukan. Silakan logout dan login ulang.");
-
-        const response = await fetch(LIST_USERS_FUNCTION_URL, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-                'apikey': SUPABASE_ANON_KEY,
-                'Content-Type': 'application/json'
-            }
-        });
-
+        if (!session || !session.access_token) throw new Error("Sesi tidak ditemukan.");
+        const response = await fetch(LIST_USERS_FUNCTION_URL, { method: 'GET', headers: { 'Authorization': `Bearer ${session.access_token}`, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' } });
         const responseText = await response.text();
         let result;
-        try { result = JSON.parse(responseText); }
-        catch (e) { throw new Error(`Server tidak mengembalikan JSON. Response: ${responseText.substring(0, 150)}`); }
-
+        try { result = JSON.parse(responseText); } catch (e) { throw new Error(`Server tidak mengembalikan JSON.`); }
         if (!response.ok) throw new Error(result.details || result.error || result.hint || `HTTP Error ${response.status}`);
-
         allUsersData = result.users || [];
         updateUsersStats(allUsersData);
         renderUsersTable(allUsersData);
-
     } catch (error) {
         console.error("❌ Error loading users:", error);
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">
-            Gagal memuat data.<br>
-            <span style="font-size: 0.9em; font-weight: bold;">${error.message}</span><br>
-            <small style="opacity: 0.8;">💡 Solusi: Klik tombol <b>Logout</b> di pojok kanan atas, lalu Login ulang.</small>
-        </td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Gagal memuat data.<br><span style="font-size: 0.9em; font-weight: bold;">${error.message}</span><br><small style="opacity: 0.8;">💡 Solusi: Logout lalu Login ulang.</small></td></tr>`;
     }
 }
 
@@ -1512,37 +1223,14 @@ function updateUsersStats(users) {
 function renderUsersTable(users) {
     const tbody = document.getElementById('usersTableBody');
     if (!tbody) return;
-
-    if (users.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada user ditemukan</td></tr>`;
-        return;
-    }
-
+    if (users.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-white/50">Tidak ada user ditemukan</td></tr>`; return; }
     tbody.innerHTML = users.map(user => {
         const date = new Date(user.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-        const roleBadge = user.role === 'supervisor' 
-            ? '<span class="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30">👑 Supervisor</span>'
-            : '<span class="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30">👷 Staff</span>';
-
+        const roleBadge = user.role === 'supervisor' ? '<span class="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30">👑 Supervisor</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30">👷 Staff</span>';
         const isCurrentUser = user.email === window.currentUser.email;
-        const deleteBtn = isCurrentUser 
-            ? '<span class="text-xs text-white/30 italic">Anda</span>'
-            : `<button type="button" onclick="openDeleteModal('${user.id}', '${(user.full_name || 'User').replace(/'/g, "")}', '${user.email}')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">🗑️ Hapus</button>`;
-
+        const deleteBtn = isCurrentUser ? '<span class="text-xs text-white/30 italic">Anda</span>' : `<button type="button" onclick="openDeleteModal('${user.id}', '${(user.full_name || 'User').replace(/'/g, "")}', '${user.email}')" class="px-3 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition">🗑️ Hapus</button>`;
         const initial = (user.full_name || user.email).charAt(0).toUpperCase();
-
-        return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
-            <td class="px-4 py-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${initial}</div>
-                    <div class="text-sm font-medium text-white">${user.full_name || 'User'}</div>
-                </div>
-            </td>
-            <td class="px-4 py-3 text-sm text-white/70">${user.email}</td>
-            <td class="px-4 py-3 text-center">${roleBadge}</td>
-            <td class="px-4 py-3 text-sm text-white/60">${date}</td>
-            <td class="px-4 py-3 text-center">${deleteBtn}</td>
-        </tr>`;
+        return `<tr class="border-b border-white/5 hover:bg-white/5 transition"><td class="px-4 py-3"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">${initial}</div><div class="text-sm font-medium text-white">${user.full_name || 'User'}</div></div></td><td class="px-4 py-3 text-sm text-white/70">${user.email}</td><td class="px-4 py-3 text-center">${roleBadge}</td><td class="px-4 py-3 text-sm text-white/60">${date}</td><td class="px-4 py-3 text-center">${deleteBtn}</td></tr>`;
     }).join('');
 }
 
@@ -1560,49 +1248,29 @@ function openDeleteModal(userId, userName, userEmail) {
     document.getElementById('deleteModal').classList.remove('hidden');
 }
 
-function closeDeleteModal() {
-    document.getElementById('deleteModal').classList.add('hidden');
-    deleteTargetId = null;
-}
+function closeDeleteModal() { document.getElementById('deleteModal').classList.add('hidden'); deleteTargetId = null; }
 
 document.addEventListener('click', async function(event) {
     if (event.target.id === 'confirmDeleteBtn') {
         if (!deleteTargetId) return;
         const btn = document.getElementById('confirmDeleteBtn');
         const originalText = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = 'Menghapus...';
-
+        btn.disabled = true; btn.textContent = 'Menghapus...';
         try {
-            const response = await fetch(DELETE_USER_FUNCTION_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-                body: JSON.stringify({ userId: deleteTargetId })
-            });
+            const response = await fetch(DELETE_USER_FUNCTION_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }, body: JSON.stringify({ userId: deleteTargetId }) });
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'Gagal menghapus user');
-
-            showNotification('✅ User berhasil dihapus dari sistem.', 'success');
+            showNotification('✅ User berhasil dihapus.', 'success');
             closeDeleteModal();
             loadAllUsers();
-        } catch (error) {
-            console.error("Error deleting user:", error);
-            showNotification('❌ Gagal menghapus: ' + error.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = originalText;
-        }
+        } catch (error) { console.error("Error deleting user:", error); showNotification('❌ Gagal: ' + error.message, 'error'); }
+        finally { btn.disabled = false; btn.textContent = originalText; }
     }
-
     const logoutBtn = event.target.closest('#logoutBtn');
     if (logoutBtn) {
         event.preventDefault();
         if (!confirm('Yakin ingin keluar?')) return;
-        try { 
-            await window.supabaseClient.auth.signOut(); 
-            localStorage.removeItem('gudang_clean_state'); 
-            window.location.replace('index.html'); 
-        } catch (error) { console.error("Error logout:", error); }
+        try { await window.supabaseClient.auth.signOut(); localStorage.removeItem('gudang_clean_state'); window.location.replace('index.html'); } catch (error) { console.error("Error logout:", error); }
     }
 });
 
@@ -1610,12 +1278,7 @@ document.addEventListener('click', async function(event) {
 // 11. UTILS
 // ==========================================
 function showNotification(message, type = 'info') {
-    const colors = { 
-        success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' }, 
-        warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' }, 
-        error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' }, 
-        info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' } 
-    };
+    const colors = { success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' }, warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' }, error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' }, info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' } };
     const c = colors[type] || colors.info;
     const el = document.createElement('div');
     el.className = 'fixed top-6 right-6 z-[100] px-6 py-4 rounded-xl text-white font-medium';
@@ -1630,3 +1293,212 @@ if (!document.getElementById('notif-styles')) {
     s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
     document.head.appendChild(s);
 }
+
+// ==========================================
+// 12. HALAMAN CEKLIST KENDARAAN
+// ==========================================
+function initKendaraanPage(session) {
+    window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
+    loadSidebar();
+    
+    const today = new Date();
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    
+    document.getElementById('v_hari').value = days[today.getDay()];
+    document.getElementById('v_tanggal').value = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+    
+    const now = new Date();
+    const timeString = now.toTimeString().split(' ')[0].substring(0, 5);
+    document.getElementById('v_jam').value = timeString;
+    document.getElementById('v_checker').value = window.currentUser.name;
+
+    getNextVehicleNo();
+    loadVehicleHistory();
+
+    document.getElementById('saveVehicleHeaderBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('saveVehicleHeaderBtn');
+        const nopol = document.getElementById('v_nopol').value.trim();
+        if (!nopol) { showNotification('⚠️ Nomor Kendaraan wajib diisi!', 'warning'); return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Menyimpan...';
+
+        const headerData = {
+            no_urut: parseInt(document.getElementById('v_no').value) || 1,
+            hari: document.getElementById('v_hari').value,
+            tanggal: today.toISOString().split('T')[0],
+            jam: document.getElementById('v_jam').value,
+            supplier: document.getElementById('v_supplier').value,
+            nomor_kendaraan: nopol.toUpperCase(),
+            jenis_kendaraan: document.getElementById('v_jenis').value,
+            no_coa: document.getElementById('v_coa').value,
+            no_do: document.getElementById('v_do').value,
+            nomor_container: document.getElementById('v_container').value,
+            nomor_seal: document.getElementById('v_seal').value,
+            ttd_checker: document.getElementById('v_checker').value,
+            keterangan: document.getElementById('v_keterangan').value,
+            user_email: window.currentUser.email
+        };
+
+        try {
+            const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').insert([headerData]).select();
+            if (error) throw error;
+            showNotification('✅ Data kendaraan berhasil disimpan!', 'success');
+            
+            document.getElementById('vehicleHeaderForm').reset();
+            document.getElementById('v_hari').value = days[new Date().getDay()];
+            document.getElementById('v_tanggal').value = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+            document.getElementById('v_jam').value = new Date().toTimeString().split(' ')[0].substring(0, 5);
+            document.getElementById('v_checker').value = window.currentUser.name;
+            getNextVehicleNo();
+
+            openVehicleDetailModal(data[0].id, data[0].nomor_kendaraan);
+            loadVehicleHistory();
+        } catch (error) {
+            console.error("Gagal simpan header:", error);
+            showNotification('❌ Gagal: ' + error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg> Simpan Data Kendaraan`;
+        }
+    });
+}
+
+async function getNextVehicleNo() {
+    try {
+        const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').select('no_urut').order('no_urut', { ascending: false }).limit(1);
+        if (error) throw error;
+        const nextNo = data && data.length > 0 ? data[0].no_urut + 1 : 1;
+        document.getElementById('v_no').value = nextNo;
+    } catch (error) {
+        console.error("Gagal get next no:", error);
+        document.getElementById('v_no').value = 1;
+    }
+}
+
+async function loadVehicleHistory() {
+    const tbody = document.getElementById('vehicleHistoryBody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
+
+    try {
+        const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').select(`id, no_urut, tanggal, jam, supplier, nomor_kendaraan, jenis_kendaraan, ttd_checker, vehicle_checklist_detail (id)`).order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-white/50">Belum ada riwayat ceklist kendaraan.</td></tr>`; return; }
+
+        tbody.innerHTML = data.map(row => {
+            const dateStr = row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+            const timeStr = row.jam ? row.jam.substring(0, 5) : '-';
+            const isDetailFilled = row.vehicle_checklist_detail && row.vehicle_checklist_detail.length > 0;
+            const statusBadge = isDetailFilled ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30">✅ Lengkap</span>' : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Pending</span>';
+
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+                <td class="px-4 py-3 text-sm text-white/80">${row.no_urut || '-'}</td>
+                <td class="px-4 py-3 text-sm text-white/80">${dateStr}<br><span class="text-xs text-white/50">${timeStr}</span></td>
+                <td class="px-4 py-3 text-sm text-white">${row.supplier || '-'}</td>
+                <td class="px-4 py-3 text-center">
+                    <button onclick="openVehicleDetailModal('${row.id}', '${row.nomor_kendaraan}')" class="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition text-sm font-bold flex items-center gap-2 mx-auto cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        ${row.nomor_kendaraan}
+                    </button>
+                </td>
+                <td class="px-4 py-3 text-center text-sm text-white/70">${row.jenis_kendaraan || '-'}</td>
+                <td class="px-4 py-3 text-center text-sm text-white/70">${row.ttd_checker || '-'}</td>
+                <td class="px-4 py-3 text-center">${statusBadge}</td>
+            </tr>`;
+        }).join('');
+    } catch (error) {
+        console.error("Gagal load history:", error);
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-400">Gagal memuat data: ${error.message}</td></tr>`;
+    }
+}
+
+async function openVehicleDetailModal(headerId, nopol) {
+    currentVehicleHeaderId = headerId;
+    document.getElementById('modalVehicleNo').textContent = nopol;
+    document.getElementById('detail_header_id').value = headerId;
+    document.getElementById('vehicleDetailForm').reset();
+
+    try {
+        const { data, error } = await window.supabaseClient.from('vehicle_checklist_detail').select('*').eq('header_id', headerId).single();
+        if (data && !error) {
+            document.getElementById('d_luar').value = data.item_luar_bersih || '';
+            document.getElementById('d_lantai').value = data.item_lantai_bersih || '';
+            document.getElementById('d_hama').value = data.item_hama || '';
+            document.getElementById('d_paku').value = data.item_paku_baut || '';
+            document.getElementById('d_bocor').value = data.item_lubang_bocor || '';
+            document.getElementById('d_bau').value = data.item_bau || '';
+            document.getElementById('d_kering').value = data.item_kering || '';
+            document.getElementById('d_utuh').value = data.item_barang_utuh || '';
+            document.getElementById('d_pisah').value = data.item_pemisahan_bahan || '';
+            document.getElementById('d_pintu').value = data.item_pintu_seal || '';
+            document.getElementById('d_jenis_barang').value = data.jenis_barang || '';
+            document.getElementById('d_lampu').value = data.item_lampu_kaca || '';
+        }
+    } catch (e) { console.log("Belum ada data detail."); }
+
+    document.getElementById('vehicleDetailModal').classList.remove('hidden');
+}
+
+function closeVehicleDetailModal() {
+    document.getElementById('vehicleDetailModal').classList.add('hidden');
+    currentVehicleHeaderId = null;
+}
+
+document.addEventListener('click', async function(event) {
+    if (event.target.id === 'saveVehicleDetailBtn') {
+        const headerId = document.getElementById('detail_header_id').value;
+        const btn = document.getElementById('saveVehicleDetailBtn');
+        if (!headerId) return;
+
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Menyimpan...';
+
+        const detailData = {
+            header_id: headerId,
+            item_luar_bersih: document.getElementById('d_luar').value,
+            item_lantai_bersih: document.getElementById('d_lantai').value,
+            item_hama: document.getElementById('d_hama').value,
+            item_paku_baut: document.getElementById('d_paku').value,
+            item_lubang_bocor: document.getElementById('d_bocor').value,
+            item_bau: document.getElementById('d_bau').value,
+            item_kering: document.getElementById('d_kering').value,
+            item_barang_utuh: document.getElementById('d_utuh').value,
+            item_pemisahan_bahan: document.getElementById('d_pisah').value,
+            item_pintu_seal: document.getElementById('d_pintu').value,
+            jenis_barang: document.getElementById('d_jenis_barang').value,
+            item_lampu_kaca: document.getElementById('d_lampu').value
+        };
+
+        try {
+            const { data: existing } = await window.supabaseClient.from('vehicle_checklist_detail').select('id').eq('header_id', headerId).single();
+            let error;
+            if (existing) {
+                const res = await window.supabaseClient.from('vehicle_checklist_detail').update(detailData).eq('id', existing.id);
+                error = res.error;
+            } else {
+                const res = await window.supabaseClient.from('vehicle_checklist_detail').insert([detailData]);
+                error = res.error;
+            }
+            if (error) throw error;
+
+            showNotification('✅ Checklist detail kendaraan berhasil disimpan!', 'success');
+            closeVehicleDetailModal();
+            loadVehicleHistory();
+        } catch (err) {
+            console.error("Gagal simpan detail:", err);
+            showNotification('❌ Gagal: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg> Simpan Checklist Detail`;
+        }
+    }
+});
+
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('vehicleDetailModal');
+    if (modal && !modal.classList.contains('hidden') && event.target === modal) {
+        closeVehicleDetailModal();
+    }
+});
