@@ -1,6 +1,6 @@
 // ==========================================
 // SCRIPT.JS - FINAL ALL-IN-ONE
-// (Checklist + APD + Dashboard + Lingkungan + Supervisor + Kelola User + Biometric + AI + CEKLIST KENDARAAN)
+// (Checklist + APD + Dashboard + Lingkungan + Supervisor + Kelola User + Biometric + AI + Kendaraan + Laporan Kendaraan)
 // ==========================================
 
 let filteredReports = [];
@@ -9,6 +9,25 @@ window.currentUser = window.currentUser || { name: 'User', email: 'user@example.
 const SUPERVISOR_EMAILS = ['admin@gudang.com', 'supervisor@gudang.com']; 
 const BIO_KEY = 'GudangClean2024!BioKey';
 let currentVehicleHeaderId = null;
+
+// ==========================================
+// KONSTANTA LAPORAN KENDARAAN
+// ==========================================
+const VEHICLES_PER_PAGE = 9;
+const INSPECTION_ITEMS = [
+    'Secara Umum Bagian Luar Kendaraan Dalam Kondisi Bersih',
+    'Lantai Dan Dinding Bak / Box Mobil / Container Harus Bersih Dari Kotoran',
+    'Tidak Ada Tanda Keberadaan Tikus Dan Serangga (Kecoa, Kutu Dll) Dalam Bak / Box Mobil / Container',
+    'Tidak Ada Paku Atau Baut Dari Bak / Box Mobil / Container Yang Keluar/Lepas',
+    'Bak / Box Mobil / Container Tidak Berlubang Atau Bocor',
+    'Bak / Box Mobil / Container Tidak Berbau Asing (Bau Harus Normal)',
+    'Bak / Box Mobil / Container Harus Dalam Keadaan Kering Dan Tidak Basah / Berminyak',
+    'Semua Barang Yang Dikirim / Diterima Harus Utuh, Kemasan Tidak Rusak Atau Penyok, Berlabel Jelas Dan Mudah Di Baca',
+    'Pengiriman / Penerimaan Produk Tidak Disatukan Dengan Bahan Kimia / Bahan Dari Gelas / Bahan Yang Diragukan Kehalalanya / Bahan Yang Berbau Tajam',
+    'Kondisi Pintu Bak / Box ( Terkunci dan seal tidak rusak, nomor seal harus sesuai surat jalan )',
+    'Jenis Barang ( Material / Kemasan / Produk )',
+    'Apabila container memiliki lampu atau kaca di bagian dalam, pastikan lampu dan kaca tersebut dalam kondisi baik (tidak retak, tidak pecah)'
+];
 
 function isSupervisor(session) {
     if (!session) return false;
@@ -23,6 +42,9 @@ function getSpvStatusText(status) {
     return 'Menunggu';
 }
 
+// ==========================================
+// INITIALIZATION
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 Script berhasil dimuat");
 
@@ -49,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("📄 Halaman aktif:", currentPage);
 
         if (currentPage === 'laporan.html') initLaporanPage(session);
+        else if (currentPage === 'laporan-kendaraan.html') initLaporanKendaraanPage(session); // ✅ BARU
         else if (currentPage === 'index.html') initLoginPage();
         else if (currentPage === 'register.html') initRegisterPage();
         else if (currentPage === 'dashboard.html') initDashboardPage(session);
@@ -57,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'lingkungan.html') initEnvironmentPage(session);
         else if (currentPage === 'supervisor.html') initSupervisorPage(session);
         else if (currentPage === 'kelola-user.html') initKelolaUserPage(session);
-        else if (currentPage === 'kendaraan.html') initKendaraanPage(session); // ✅ ROUTING KENDARAAN
+        else if (currentPage === 'kendaraan.html') initKendaraanPage(session);
     });
 
     setTimeout(() => {
@@ -1251,7 +1274,7 @@ function openDeleteModal(userId, userName, userEmail) {
 function closeDeleteModal() { document.getElementById('deleteModal').classList.add('hidden'); deleteTargetId = null; }
 
 // ==========================================
-// 11. GLOBAL EVENT HANDLERS (Logout, Delete, Kendaraan)
+// 11. GLOBAL EVENT HANDLERS
 // ==========================================
 document.addEventListener('click', async function(event) {
     // === DELETE USER ===
@@ -1369,7 +1392,6 @@ function initKendaraanPage(session) {
         btn.disabled = true;
         btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Menyimpan...';
 
-        // ✅ Semua field teks di-UPPERCASE saat disimpan ke database
         const headerData = {
             no_urut: parseInt(document.getElementById('v_no').value) || 1,
             hari: document.getElementById('v_hari').value,
@@ -1395,7 +1417,6 @@ function initKendaraanPage(session) {
             
             showNotification('✅ Data kendaraan berhasil disimpan!', 'success');
             
-            // Reset form tapi pertahankan auto-fill
             document.getElementById('vehicleHeaderForm').reset();
             document.getElementById('v_hari').value = days[new Date().getDay()];
             document.getElementById('v_tanggal').value = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
@@ -1504,7 +1525,303 @@ function closeVehicleDetailModal() {
 }
 
 // ==========================================
-// 13. UTILS
+// 13. HALAMAN LAPORAN KENDARAAN (FORM PT URC)
+// ==========================================
+function initLaporanKendaraanPage(session) {
+    window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
+    loadSidebar();
+    
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    document.getElementById('filterDateFrom').value = thirtyDaysAgo.toISOString().split('T')[0];
+    document.getElementById('filterDateTo').value = today.toISOString().split('T')[0];
+    
+    loadUserDropdown();
+}
+
+async function loadUserDropdown() {
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('vehicle_checklist_header')
+            .select('ttd_checker')
+            .order('ttd_checker');
+        if (error) throw error;
+        
+        const uniqueUsers = [...new Set(data.map(r => r.ttd_checker).filter(n => n))];
+        const select = document.getElementById('filterUser');
+        uniqueUsers.forEach(user => {
+            const opt = document.createElement('option');
+            opt.value = user;
+            opt.textContent = user;
+            select.appendChild(opt);
+        });
+    } catch (error) {
+        console.error("Gagal load user dropdown:", error);
+    }
+}
+
+function resetFilters() {
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    document.getElementById('filterDateFrom').value = thirtyDaysAgo.toISOString().split('T')[0];
+    document.getElementById('filterDateTo').value = today.toISOString().split('T')[0];
+    document.getElementById('filterShift').value = '';
+    document.getElementById('filterUser').value = '';
+    document.getElementById('reportPreview').innerHTML = `
+        <div class="glass-card !p-10 text-center">
+            <svg class="h-16 w-16 mx-auto text-white/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            <p class="text-white/60 text-sm">Silakan pilih filter dan klik <span class="text-cyan-400 font-semibold">"Generate Laporan"</span> untuk melihat preview form.</p>
+        </div>`;
+    document.getElementById('reportInfo').classList.add('hidden');
+}
+
+function getShiftFromTime(timeStr) {
+    if (!timeStr) return '';
+    const hour = parseInt(timeStr.split(':')[0]);
+    if (hour >= 6 && hour < 14) return 'Pagi';
+    if (hour >= 14 && hour < 22) return 'Siang';
+    return 'Malam';
+}
+
+async function generateReport() {
+    const dateFrom = document.getElementById('filterDateFrom').value;
+    const dateTo = document.getElementById('filterDateTo').value;
+    const shift = document.getElementById('filterShift').value;
+    const user = document.getElementById('filterUser').value;
+    
+    if (!dateFrom || !dateTo) {
+        showNotification('⚠️ Tanggal mulai dan akhir wajib diisi!', 'warning');
+        return;
+    }
+    
+    const preview = document.getElementById('reportPreview');
+    preview.innerHTML = `<div class="glass-card !p-10 text-center"><div class="spinner mx-auto"></div><p class="text-white/60 text-sm mt-3">Memuat data...</p></div>`;
+    
+    try {
+        let query = window.supabaseClient
+            .from('vehicle_checklist_header')
+            .select(`*, vehicle_checklist_detail (*)`)
+            .gte('tanggal', dateFrom)
+            .lte('tanggal', dateTo)
+            .order('tanggal', { ascending: true })
+            .order('jam', { ascending: true });
+        
+        if (user) query = query.eq('ttd_checker', user);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        let filteredData = data || [];
+        if (shift) {
+            filteredData = filteredData.filter(row => getShiftFromTime(row.jam) === shift);
+        }
+        
+        if (filteredData.length === 0) {
+            preview.innerHTML = `<div class="glass-card !p-10 text-center"><p class="text-white/60 text-sm">Tidak ada data untuk filter yang dipilih.</p></div>`;
+            document.getElementById('reportInfo').classList.add('hidden');
+            return;
+        }
+        
+        // Group by user
+        const groupedByUser = {};
+        filteredData.forEach(row => {
+            const checker = row.ttd_checker || 'Unknown';
+            if (!groupedByUser[checker]) groupedByUser[checker] = [];
+            groupedByUser[checker].push(row);
+        });
+        
+        const uniqueUsers = Object.keys(groupedByUser);
+        document.getElementById('infoTotalData').textContent = filteredData.length;
+        document.getElementById('infoTotalUser').textContent = uniqueUsers.length;
+        document.getElementById('reportInfo').classList.remove('hidden');
+        
+        // Generate pages: 1 user = minimal 1 halaman, max 9 kendaraan per halaman
+        let allPagesHTML = '';
+        let globalPageNum = 1;
+        const totalPages = uniqueUsers.reduce((sum, usr) => {
+            return sum + Math.ceil(groupedByUser[usr].length / VEHICLES_PER_PAGE);
+        }, 0);
+        
+        uniqueUsers.forEach(checkerName => {
+            const userVehicles = groupedByUser[checkerName];
+            const userPages = Math.ceil(userVehicles.length / VEHICLES_PER_PAGE);
+            
+            for (let pageIdx = 0; pageIdx < userPages; pageIdx++) {
+                const startIdx = pageIdx * VEHICLES_PER_PAGE;
+                const endIdx = Math.min(startIdx + VEHICLES_PER_PAGE, userVehicles.length);
+                const pageVehicles = userVehicles.slice(startIdx, endIdx);
+                const pageOfUser = pageIdx + 1;
+                
+                allPagesHTML += buildFormPage(pageVehicles, checkerName, globalPageNum, totalPages, pageOfUser, userPages);
+                globalPageNum++;
+            }
+        });
+        
+        preview.innerHTML = allPagesHTML;
+        
+    } catch (error) {
+        console.error("Gagal generate laporan:", error);
+        preview.innerHTML = `<div class="glass-card !p-10 text-center text-red-400">Gagal memuat data: ${error.message}</div>`;
+    }
+}
+
+function buildFormPage(vehicles, checkerName, currentPage, totalPages, pageOfUser, totalUserPages) {
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    
+    // Build header rows
+    let headerRows = '';
+    vehicles.forEach((v, idx) => {
+        const no = idx + 1;
+        const hari = v.hari || '';
+        const tanggal = v.tanggal ? new Date(v.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+        const jam = v.jam || '';
+        const supplier = v.supplier || '';
+        const nopol = v.nomor_kendaraan || '';
+        const jenis = v.jenis_kendaraan || '';
+        const coa = v.no_coa || '';
+        const doNo = v.no_do || '';
+        const container = v.nomor_container || '';
+        const seal = v.nomor_seal || '';
+        const ttd = v.ttd_checker || '';
+        const ket = v.keterangan || '';
+        
+        headerRows += `<tr>
+            <td style="text-align:center">${no}</td>
+            <td>${hari}</td>
+            <td>${tanggal}</td>
+            <td style="text-align:center">${jam}</td>
+            <td>${supplier}</td>
+            <td style="font-weight:bold">${nopol}</td>
+            <td>${jenis}</td>
+            <td>${coa}</td>
+            <td>${doNo}</td>
+            <td>${container}</td>
+            <td>${seal}</td>
+            <td>${ttd}</td>
+            <td>${ket}</td>
+        </tr>`;
+    });
+    
+    // Fill empty rows to make it 9 rows
+    for (let i = vehicles.length; i < VEHICLES_PER_PAGE; i++) {
+        headerRows += `<tr>
+            <td style="text-align:center">${i + 1}</td>
+            <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+        </tr>`;
+    }
+    
+    // Build inspection rows
+    let inspectionRows = '';
+    INSPECTION_ITEMS.forEach((item, itemIdx) => {
+        let cells = `<td style="font-weight:500">${item}</td>`;
+        for (let vIdx = 0; vIdx < VEHICLES_PER_PAGE; vIdx++) {
+            const v = vehicles[vIdx];
+            let value = '';
+            if (v && v.vehicle_checklist_detail && v.vehicle_checklist_detail.length > 0) {
+                const detail = v.vehicle_checklist_detail[0];
+                const keys = ['item_luar_bersih', 'item_lantai_bersih', 'item_hama', 'item_paku_baut', 
+                              'item_lubang_bocor', 'item_bau', 'item_kering', 'item_barang_utuh', 
+                              'item_pemisahan_bahan', 'item_pintu_seal', 'jenis_barang', 'item_lampu_kaca'];
+                value = detail[keys[itemIdx]] || '';
+            }
+            cells += `<td style="text-align:center">${value}</td>`;
+        }
+        inspectionRows += `<tr>${cells}</tr>`;
+    });
+    
+    const dibuatOleh = vehicles[0]?.dibuat_oleh || checkerName;
+    
+    return `
+    <div class="print-page">
+        <div class="header-form">
+            <div class="header-left">
+                <div class="logo-box">
+                    <div style="text-align:center">
+                        <div style="font-size:18px;font-weight:900;color:#c00">UR</div>
+                        <div style="font-size:7px">Universal<br>Robina</div>
+                    </div>
+                </div>
+                <div class="company-info">
+                    <div class="name">PT URC INDONESIA</div>
+                    <div class="sub">A Company of<br>JG Summit Holdings</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <table>
+                    <tr><td class="label">FORM TITLE</td><td colspan="3" style="font-weight:bold;font-size:11px">FORM PEMERIKSAAN KENDARAAN</td></tr>
+                    <tr><td class="label">FORM NO</td><td>FM-SPC-GN-01</td><td class="label">PAGE NO</td><td>${currentPage} OF ${totalPages}</td></tr>
+                    <tr><td class="label">EFFECTIVE DATE</td><td>June 15, 2020</td><td class="label">REVISION NO</td><td>1</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="form-title">FORM PEMERIKSAAN KENDARAAN</div>
+        
+        <table class="report-table-print">
+            <thead>
+                <tr>
+                    <th style="width:30px">No</th>
+                    <th style="width:70px">Hari</th>
+                    <th style="width:90px">Tanggal Pemeriksaan</th>
+                    <th style="width:80px">Jam Kedatangan / Pemeriksaan</th>
+                    <th style="width:110px">Nama Supplier / Expedisi</th>
+                    <th style="width:90px">Nomor Kendaraan</th>
+                    <th style="width:80px">Jenis Kendaraan</th>
+                    <th style="width:50px">No CoA</th>
+                    <th style="width:50px">No Do</th>
+                    <th style="width:110px">Nomor Container (Khusus Container)</th>
+                    <th style="width:70px">Nomor Seal</th>
+                    <th style="width:80px">Ttd checker</th>
+                    <th style="width:100px">Keterangan</th>
+                </tr>
+            </thead>
+            <tbody>${headerRows}</tbody>
+        </table>
+        
+        <table class="report-table-print" style="margin-top:8px">
+            <thead>
+                <tr>
+                    <th rowspan="2" style="width:300px;vertical-align:middle">STANDARD PEMERIKSAAN KENDARAAN</th>
+                    <th colspan="${VEHICLES_PER_PAGE}">Nomor kedatangan</th>
+                </tr>
+                <tr>
+                    ${Array.from({length: VEHICLES_PER_PAGE}, (_, i) => `<th style="width:60px">${i + 1}</th>`).join('')}
+                </tr>
+            </thead>
+            <tbody>
+                ${inspectionRows}
+                <tr class="footer-row">
+                    <td>KEPUTUSAN : Dipakai / Ditolak</td>
+                    ${Array.from({length: VEHICLES_PER_PAGE}, (_, i) => {
+                        const v = vehicles[i];
+                        const kep = v?.keputusan || '';
+                        return `<td style="text-align:center;font-weight:bold">${kep}</td>`;
+                    }).join('')}
+                </tr>
+                <tr class="footer-row">
+                    <td>Dibuat Oleh (Team WH)</td>
+                    ${Array.from({length: VEHICLES_PER_PAGE}, (_, i) => {
+                        const v = vehicles[i];
+                        const dibuat = v?.dibuat_oleh || dibuatOleh;
+                        return `<td style="text-align:center">${dibuat}</td>`;
+                    }).join('')}
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="margin-top:10px;font-size:9px;color:#555;display:flex;justify-content:space-between">
+            <span>Checker: <strong>${checkerName}</strong></span>
+            <span>Halaman ${pageOfUser} dari ${totalUserPages} (User ini)</span>
+            <span>Dicetak: ${dateStr}</span>
+        </div>
+    </div>`;
+}
+
+// ==========================================
+// 14. UTILS
 // ==========================================
 function showNotification(message, type = 'info') {
     const colors = { 
