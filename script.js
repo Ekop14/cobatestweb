@@ -1294,8 +1294,21 @@ if (!document.getElementById('notif-styles')) {
     document.head.appendChild(s);
 }
 
+
+
+async function getNextVehicleNo() {
+    try {
+        const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').select('no_urut').order('no_urut', { ascending: false }).limit(1);
+        if (error) throw error;
+        const nextNo = data && data.length > 0 ? data[0].no_urut + 1 : 1;
+        document.getElementById('v_no').value = nextNo;
+    } catch (error) {
+        console.error("Gagal get next no:", error);
+        document.getElementById('v_no').value = 1;
+    }
+}
 // ==========================================
-// 12. HALAMAN CEKLIST KENDARAAN
+// 12. HALAMAN CEKLIST KENDARAAN (UPDATED)
 // ==========================================
 function initKendaraanPage(session) {
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
@@ -1311,7 +1324,10 @@ function initKendaraanPage(session) {
     const now = new Date();
     const timeString = now.toTimeString().split(' ')[0].substring(0, 5);
     document.getElementById('v_jam').value = timeString;
+    
+    // ✅ AUTO-FILL: Checker dan Dibuat Oleh
     document.getElementById('v_checker').value = window.currentUser.name;
+    document.getElementById('v_dibuat_oleh').value = window.currentUser.name;
 
     getNextVehicleNo();
     loadVehicleHistory();
@@ -1319,7 +1335,10 @@ function initKendaraanPage(session) {
     document.getElementById('saveVehicleHeaderBtn').addEventListener('click', async () => {
         const btn = document.getElementById('saveVehicleHeaderBtn');
         const nopol = document.getElementById('v_nopol').value.trim();
+        const keputusan = document.getElementById('v_keputusan').value;
+        
         if (!nopol) { showNotification('⚠️ Nomor Kendaraan wajib diisi!', 'warning'); return; }
+        if (!keputusan) { showNotification('⚠️ Keputusan wajib dipilih!', 'warning'); return; }
 
         btn.disabled = true;
         btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Menyimpan...';
@@ -1337,6 +1356,8 @@ function initKendaraanPage(session) {
             nomor_container: document.getElementById('v_container').value,
             nomor_seal: document.getElementById('v_seal').value,
             ttd_checker: document.getElementById('v_checker').value,
+            keputusan: keputusan, // ✅ SIMPAN KEPUTUSAN
+            dibuat_oleh: document.getElementById('v_dibuat_oleh').value, // ✅ SIMPAN DIBUAT OLEH
             keterangan: document.getElementById('v_keterangan').value,
             user_email: window.currentUser.email
         };
@@ -1344,17 +1365,21 @@ function initKendaraanPage(session) {
         try {
             const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').insert([headerData]).select();
             if (error) throw error;
+            
             showNotification('✅ Data kendaraan berhasil disimpan!', 'success');
             
+            // Reset form tapi pertahankan auto-fill
             document.getElementById('vehicleHeaderForm').reset();
             document.getElementById('v_hari').value = days[new Date().getDay()];
             document.getElementById('v_tanggal').value = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
             document.getElementById('v_jam').value = new Date().toTimeString().split(' ')[0].substring(0, 5);
             document.getElementById('v_checker').value = window.currentUser.name;
+            document.getElementById('v_dibuat_oleh').value = window.currentUser.name; // ✅ RESET TAPI ISI LAGI
+            
             getNextVehicleNo();
-
             openVehicleDetailModal(data[0].id, data[0].nomor_kendaraan);
             loadVehicleHistory();
+            
         } catch (error) {
             console.error("Gagal simpan header:", error);
             showNotification('❌ Gagal: ' + error.message, 'error');
@@ -1364,19 +1389,6 @@ function initKendaraanPage(session) {
         }
     });
 }
-
-async function getNextVehicleNo() {
-    try {
-        const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').select('no_urut').order('no_urut', { ascending: false }).limit(1);
-        if (error) throw error;
-        const nextNo = data && data.length > 0 ? data[0].no_urut + 1 : 1;
-        document.getElementById('v_no').value = nextNo;
-    } catch (error) {
-        console.error("Gagal get next no:", error);
-        document.getElementById('v_no').value = 1;
-    }
-}
-
 async function loadVehicleHistory() {
     const tbody = document.getElementById('vehicleHistoryBody');
     if (!tbody) return;
