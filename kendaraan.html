@@ -103,6 +103,26 @@
                             <label class="block text-white/60 text-xs mb-1">Ttd Checker</label>
                             <input type="text" id="v_checker" class="glass-input w-full px-3 py-2 text-sm" required>
                         </div>
+                        <!-- ✅ TAMBAHAN BARU: Keputusan -->
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">Keputusan</label>
+                            <select id="v_keputusan" class="glass-input w-full px-3 py-2 text-sm" required>
+                                <option value="">-- Pilih Keputusan --</option>
+                                <option value="Dipakai">Dipakai</option>
+                                <option value="Ditolak">Ditolak</option>
+                            </select>
+                        </div>
+
+                        <!-- ✅ TAMBAHAN BARU: Dibuat Oleh -->
+                        <div>
+                            <label class="block text-white/60 text-xs mb-1">Dibuat Oleh (Team WH)</label>
+                            <input type="text" id="v_dibuat_oleh" class="glass-input w-full px-3 py-2 text-sm bg-white/10" readonly placeholder="Otomatis terisi">
+                        </div>
+
+                        <div class="md:col-span-2 lg:col-span-3">
+                            <label class="block text-white/60 text-xs mb-1">Keterangan</label>
+                            <textarea id="v_keterangan" class="glass-input w-full px-3 py-2 text-sm" rows="2" placeholder="Catatan khusus jika ada..."></textarea>
+                        </div>
                         <div class="md:col-span-2 lg:col-span-3">
                             <label class="block text-white/60 text-xs mb-1">Keterangan</label>
                             <textarea id="v_keterangan" class="glass-input w-full px-3 py-2 text-sm" rows="2" placeholder="Catatan khusus jika ada..."></textarea>
