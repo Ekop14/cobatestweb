@@ -323,8 +323,6 @@ textarea.glass-input { resize: vertical; min-height: 80px; }
 
 /* ============================================
    LAYOUT DESKTOP / MOBILE 
-   (✅ DESKTOP: Sidebar TIDAK scroll, Main yang scroll)
-   (✅ MOBILE: Sidebar BISA scroll agar menu bawah terlihat)
    ============================================ */
 @media (min-width: 1025px) {
     body { 
@@ -411,12 +409,10 @@ textarea.glass-input { resize: vertical; min-height: 80px; }
 /* ============================================
    PERBAIKAN KHUSUS HALAMAN CEKLIST KENDARAAN
    ============================================ */
-/* 1. Latar dropdown gelap agar teks putih jelas */
 select.glass-input option {
     background-color: rgba(10, 10, 31, 0.95) !important;
     color: #ffffff !important;
 }
-/* 2. Huruf kapital visual tanpa ganggu spasi */
 .uppercase-visual {
     text-transform: uppercase !important;
 }
@@ -517,12 +513,11 @@ select.glass-input option {
 @media print {
     @page { 
         size: A4 landscape; 
-        margin: 5mm 6mm; 
+        margin: 6mm 7mm; 
     }
     html, body { 
         background: white !important; 
         color: black !important; 
-        font-size: 6.5px !important;
     }
     * { 
         -webkit-print-color-adjust: exact !important; 
@@ -542,7 +537,7 @@ select.glass-input option {
         display: block !important;
     }
 
-    /* 1 ceklist = 1 halaman */
+    /* 1 ceklist = 1 halaman, tidak boleh terpotong */
     .print-page {
         page-break-after: always !important;
         page-break-inside: avoid !important;
@@ -561,38 +556,39 @@ select.glass-input option {
         break-after: auto !important;
     }
 
-    /* Header form - super compact */
+    /* Header form - compact */
     .header-form {
-        margin-bottom: 3px !important;
-        padding-bottom: 3px !important;
-        border-bottom: 1px solid #000 !important;
-        gap: 6px !important;
+        margin-bottom: 4px !important;
+        padding-bottom: 4px !important;
+        border-bottom: 1.5px solid #000 !important;
+        gap: 8px !important;
     }
     .logo-box { 
-        width: 50px !important; 
-        height: 30px !important; 
-        font-size: 8px !important;
-        border: none !important;
+        width: 55px !important; 
+        height: 34px !important; 
+        font-size: 9px !important;
+        border: 1px solid #ccc !important;
     }
     .company-info { 
-        font-size: 7px !important; 
-        line-height: 1.0 !important; 
+        font-size: 8px !important; 
+        line-height: 1.1 !important; 
     }
     .company-info .name { 
-        font-size: 9px !important; 
+        font-size: 10px !important; 
         font-weight: 900 !important;
     }
     .company-info .sub { 
-        font-size: 6px !important; 
+        font-size: 7px !important; 
     }
     .header-right { 
-        font-size: 6px !important; 
+        font-size: 7px !important; 
     }
     .header-right table {
         border: 1px solid #000 !important;
+        border-collapse: collapse !important;
     }
     .header-right td { 
-        padding: 1px 3px !important; 
+        padding: 1.5px 4px !important; 
         border: 1px solid #000 !important;
     }
     .header-right td.label { 
@@ -600,103 +596,57 @@ select.glass-input option {
         font-weight: bold !important;
     }
     .form-title { 
-        font-size: 10px !important; 
-        margin: 3px 0 !important;
+        font-size: 11px !important; 
+        margin: 4px 0 !important;
         font-weight: 900 !important;
     }
 
-    /* Tabel utama - ultra compact */
+    /* Tabel utama - compact tapi terbaca */
     .report-table-print {
         width: 100% !important;
         table-layout: fixed !important;
-        font-size: 6px !important;
-        line-height: 1.0 !important;
-        margin-top: 2px !important;
+        font-size: 7px !important;
+        line-height: 1.1 !important;
+        margin-top: 3px !important;
         border-collapse: collapse !important;
     }
     .report-table-print th, .report-table-print td {
-        padding: 1px 1.5px !important;
-        border: 0.5px solid #000 !important;
+        padding: 2px 3px !important;
+        border: 0.75px solid #000 !important;
         color: black !important;
         background: white !important;
-        overflow: hidden !important;
-        word-wrap: break-word !important;
-        overflow-wrap: break-word !important;
         vertical-align: middle !important;
         text-align: left !important;
-    }
-    .report-table-print th {
-        background: #d9d9d9 !important;
-        font-size: 6px !important;
-        font-weight: bold !important;
-        text-align: center !important;
-        padding: 1.5px 1px !important;
-    }
-    .report-table-print td {
-        height: auto !important;
-        min-height: 0 !important;
-    }
-    .footer-row td { 
-        background: #f0f0f0 !important; 
-        font-weight: bold !important;
-        font-size: 6px !important;
-    }
-
-    /* Footer info - minimal */
-    .print-page > div:last-of-type {
-        margin-top: 2px !important;
-        font-size: 6px !important;
-        color: #333 !important;
-        padding: 0 !important;
-    }
-}
-
-    /* Header form diperkecil saat print */
-    .header-form {
-        margin-bottom: 4px !important;
-        padding-bottom: 4px !important;
-        border-bottom: 1px solid #000 !important;
-        gap: 8px !important;
-    }
-    .logo-box { width: 60px !important; height: 36px !important; font-size: 9px !important; }
-    .company-info { font-size: 8px !important; line-height: 1.1 !important; }
-    .company-info .name { font-size: 10px !important; }
-    .company-info .sub { font-size: 7px !important; }
-    .header-right { font-size: 7px !important; }
-    .header-right td { padding: 1px 4px !important; }
-    .form-title { font-size: 11px !important; margin: 4px 0 !important; }
-
-    /* Tabel diperkecil agar 1 ceklist muat dalam 1 halaman A4 landscape */
-    .report-table-print {
-        width: 100% !important;
-        table-layout: fixed !important;
-        font-size: 7px !important;
-        line-height: 1.05 !important;
-        margin-top: 3px !important;
-    }
-    .report-table-print th, .report-table-print td {
-        padding: 1px 2px !important;
-        border: 1px solid #000 !important;
-        color: black !important;
-        background: white !important;
-        overflow: hidden !important;
         word-wrap: break-word !important;
         overflow-wrap: break-word !important;
-        vertical-align: middle !important;
     }
     .report-table-print th {
         background: #d9d9d9 !important;
         font-size: 7px !important;
+        font-weight: bold !important;
+        text-align: center !important;
+        padding: 2.5px 2px !important;
     }
-    .footer-row td { 
-        background: #f0f0f0 !important; 
-        font-weight: bold !important; 
+    
+    /* ✅ PERBAIKAN UTAMA: Sel footer (KEPUTUSAN & Dibuat Oleh) - TIDAK WRAP */
+    .footer-row td {
+        background: #f0f0f0 !important;
+        font-weight: bold !important;
+        font-size: 7px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        text-align: center !important;
+        padding: 3px 2px !important;
+        min-height: 18px !important;
+        height: 18px !important;
     }
 
-    /* Footer info (Checker / Halaman / Dicetak) */
+    /* Footer info */
     .print-page > div:last-of-type {
-        margin-top: 4px !important;
+        margin-top: 3px !important;
         font-size: 7px !important;
-        color: #555 !important;
+        color: #333 !important;
+        padding: 0 !important;
     }
 }
