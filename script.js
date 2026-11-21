@@ -2031,49 +2031,57 @@ async function generateSuhuReport() {
     }
 }
 
+// Helper: bulatkan angka (22.0857 -> 22.1, 25 -> 25) tanpa ".0" berlebih
+function fmtSuhu(v) {
+    if (v === '' || v === null || v === undefined) return '';
+    const n = parseFloat(v);
+    if (isNaN(n)) return v;
+    return (Math.round(n * 10) / 10).toString();
+}
+
 function buildSuhuFormPage(dataRows, userName, currentPage, totalPages) {
     const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const firstDate = new Date(dataRows[0].created_at);
     const periodeStr = `${months[firstDate.getMonth()]} ${firstDate.getFullYear()}`;
-    
-    // Build rows (max 31 baris)
+
+    const TOTAL_ROWS = 31;
+    const maxRows = Math.min(dataRows.length, TOTAL_ROWS);
+
+    // ✅ URUTAN DATA DISINKRONKAN DENGAN HEADER:
+    // No | DATE | Temp(deg C) | RH(%) | PIC Sign | Time of Checking | Remark
     let tableRows = '';
-    const maxRows = Math.min(dataRows.length, 31);
-    
-    for (let i = 0; i < maxRows; i++) {
+    for (let i = 0; i < TOTAL_ROWS; i++) {
         const row = dataRows[i];
-        const dateObj = new Date(row.created_at);
-        const dateStr = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
-        const timeStr = row.submission_time || dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-        const temp = row.temperature !== null && row.temperature !== undefined ? row.temperature : '';
-        const rh = row.humidity !== null && row.humidity !== undefined ? row.humidity : '';
-        const pic = row.user_name || userName;
-        const remark = row.notes || '';
-        
-        tableRows += `<tr>
-            <td class="suhu-cell">${i + 1}</td>
-            <td class="suhu-cell">${dateStr}</td>
-            <td class="suhu-cell">${timeStr}</td>
-            <td class="suhu-cell">${temp}</td>
-            <td class="suhu-cell">${rh}</td>
-            <td class="suhu-cell">${pic}</td>
-            <td class="suhu-cell">${remark}</td>
-        </tr>`;
+        if (row) {
+            const dateObj = new Date(row.created_at);
+            const dateStr = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+            const temp = fmtSuhu(row.temperature);
+            const rh = fmtSuhu(row.humidity);
+            const pic = row.user_name || userName || '';
+            const timeStr = row.submission_time || dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            const remark = row.notes || '';
+            tableRows += `<tr>
+                <td class="suhu-cell">${i + 1}</td>
+                <td class="suhu-cell">${dateStr}</td>
+                <td class="suhu-cell">${temp}</td>
+                <td class="suhu-cell">${rh}</td>
+                <td class="suhu-cell">${pic}</td>
+                <td class="suhu-cell">${timeStr}</td>
+                <td class="suhu-cell">${remark}</td>
+            </tr>`;
+        } else {
+            tableRows += `<tr>
+                <td class="suhu-cell">${i + 1}</td>
+                <td class="suhu-cell"></td>
+                <td class="suhu-cell"></td>
+                <td class="suhu-cell"></td>
+                <td class="suhu-cell"></td>
+                <td class="suhu-cell"></td>
+                <td class="suhu-cell"></td>
+            </tr>`;
+        }
     }
-    
-    // Fill empty rows to 31 if needed
-    for (let i = maxRows; i < 31; i++) {
-        tableRows += `<tr>
-            <td class="suhu-cell">${i + 1}</td>
-            <td class="suhu-cell"></td>
-            <td class="suhu-cell"></td>
-            <td class="suhu-cell"></td>
-            <td class="suhu-cell"></td>
-            <td class="suhu-cell"></td>
-            <td class="suhu-cell"></td>
-        </tr>`;
-    }
-    
+
     return `
     <div class="print-page-suhu">
         <!-- HEADER FORM -->
@@ -2092,31 +2100,28 @@ function buildSuhuFormPage(dataRows, userName, currentPage, totalPages) {
             </div>
             <div class="suhu-header-right">
                 <table>
-                    <tr><td class="suhu-label" colspan="3" style="font-weight:bold;font-size:10px">CONTROL SHEET MONITORING RH&TEMPERATURS</td></tr>
+                    <tr><td class="suhu-label" colspan="3" style="font-weight:bold;font-size:9px">CONTROL SHEET MONITORING RH&TEMPERATURS</td></tr>
                     <tr><td class="suhu-label">PAGE NO</td><td colspan="2">${currentPage} OF ${totalPages}</td></tr>
                     <tr><td class="suhu-label">REV NO</td><td colspan="2">0</td></tr>
                 </table>
             </div>
         </div>
-        
+
         <div class="suhu-form-title">CONTROL SHEET MONITORING RH&TEMPERATURS</div>
-        
+
         <!-- INFO -->
         <div class="suhu-info-box">
             <div class="suhu-info-row"><span class="suhu-info-label">Location :</span><span>WH-FG</span></div>
             <div class="suhu-info-row"><span class="suhu-info-label">Section :</span><span>STORAGE 1 (AREA POSM)</span></div>
             <div class="suhu-info-row"><span class="suhu-info-label">Periode :</span><span>${periodeStr}</span></div>
         </div>
-        
-        <!-- TABEL -->
+
+        <!-- TABEL: 1 BARIS HEADER, TANPA MERGED "Time of Checking" -->
         <table class="suhu-table">
             <thead>
                 <tr>
-                    <th rowspan="2" class="suhu-th">No</th>
-                    <th rowspan="2" class="suhu-th">DATE</th>
-                    <th colspan="5" class="suhu-th">Time of Checking</th>
-                </tr>
-                <tr>
+                    <th class="suhu-th">No</th>
+                    <th class="suhu-th">DATE</th>
                     <th class="suhu-th">Temp(deg C)</th>
                     <th class="suhu-th">RH(%)</th>
                     <th class="suhu-th">PIC Sign</th>
@@ -2128,7 +2133,7 @@ function buildSuhuFormPage(dataRows, userName, currentPage, totalPages) {
                 ${tableRows}
             </tbody>
         </table>
-        
+
         <!-- FOOTER -->
         <div class="suhu-footer">
             <div class="suhu-footer-box">
