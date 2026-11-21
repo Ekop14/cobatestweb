@@ -650,3 +650,157 @@ select.glass-input option {
         padding: 0 !important;
     }
 }
+/* ============================================
+   LAPORAN SUHU & KELEMBAPAN - CONTROL SHEET
+   ============================================ */
+
+/* === PREVIEW MODE (di layar) === */
+.print-page-suhu {
+    background: white;
+    color: black;
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 900px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    border-radius: 8px;
+}
+.suhu-header-form {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 8px;
+}
+.suhu-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.suhu-logo-box {
+    width: 80px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #c00;
+    font-size: 11px;
+    border: 1px solid #ddd;
+}
+.suhu-company-info {
+    font-size: 10px;
+    line-height: 1.2;
+}
+.suhu-company-name {
+    font-weight: bold;
+    font-size: 12px;
+}
+.suhu-company-sub {
+    font-style: italic;
+    font-size: 9px;
+    color: #555;
+}
+.suhu-header-right {
+    text-align: right;
+    font-size: 9px;
+}
+.suhu-header-right table {
+    border-collapse: collapse;
+    border: 1px solid #000;
+}
+.suhu-header-right td {
+    border: 1px solid #000;
+    padding: 2px 6px;
+}
+.suhu-label {
+    background: #d9d9d9;
+    font-weight: bold;
+}
+.suhu-form-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+    margin: 8px 0;
+    text-decoration: underline;
+}
+.suhu-info-box {
+    margin-bottom: 8px;
+    font-size: 10px;
+}
+.suhu-info-row {
+    margin: 2px 0;
+}
+.suhu-info-label {
+    display: inline-block;
+    width: 80px;
+    font-weight: bold;
+}
+.suhu-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9px;
+    margin-bottom: 20px;
+}
+.suhu-th, .suhu-cell {
+    border: 1px solid #000;
+    padding: 3px 4px;
+    text-align: center;
+    vertical-align: middle;
+}
+.suhu-th {
+    background: #d9d9d9;
+    font-weight: bold;
+}
+.suhu-cell {
+    height: 20px;
+}
+.suhu-footer {
+    margin-top: 30px;
+}
+.suhu-footer-box {
+    width: 200px;
+}
+.suhu-footer-label {
+    font-size: 10px;
+    font-weight: bold;
+    margin-bottom: 40px;
+}
+.suhu-footer-space {
+    height: 40px;
+}
+.suhu-footer-name {
+    font-size: 10px;
+    font-weight: bold;
+    border-top: 1px solid #000;
+    padding-top: 4px;
+}
+
+/* === PRINT MODE === */
+@media print {
+    .print-page-suhu {
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        break-after: page !important;
+        background: white !important;
+        color: black !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        border-radius: 0;
+    }
+    .print-page-suhu:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+    .suhu-table {
+        font-size: 8px !important;
+    }
+    .suhu-th, .suhu-cell {
+        padding: 2px 3px !important;
+        height: 18px !important;
+    }
+}
