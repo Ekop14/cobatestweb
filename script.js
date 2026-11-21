@@ -185,55 +185,97 @@ function setupCategoryFilter() {
 // ==========================================
 // 1. HALAMAN CHECKLIST
 // ==========================================
+// ==========================================
+// 1. HALAMAN CHECKLIST (DIPERBAIKI)
+// ==========================================
 function initChecklistPage(session) {
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
+    
     const dateDisplay = document.getElementById('currentDate');
-    if (dateDisplay) dateDisplay.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    if (dateDisplay) {
+        dateDisplay.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    
     loadSidebar();
 
     const checkboxes = document.querySelectorAll('.glass-checkbox');
     const totalItems = checkboxes.length;
-    const totalCountEl = document.getElementById('totalCount');
-    const completedCountEl = document.getElementById('completedCount');
-    const progressTextEl = document.getElementById('overallProgressText');
-    const progressBarEl = document.getElementById('overallProgressBar');
+    
+    // 🔥 PERBAIKAN: Sesuaikan variabel dengan ID yang ada di HTML Anda
+    const statTotalEl = document.getElementById('statTotal');
+    const statCompletedEl = document.getElementById('statCompleted');
+    const statPendingEl = document.getElementById('statPending');
+    const statProgressEl = document.getElementById('statProgress');
 
-    if (totalCountEl) totalCountEl.textContent = totalItems;
+    // Set nilai awal total
+    if (statTotalEl) statTotalEl.textContent = totalItems;
 
     function updateProgress() {
         const completed = document.querySelectorAll('.glass-checkbox:checked').length;
+        const pending = totalItems - completed; // Hitung sisa yang belum dicentang
         const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
-        if (completedCountEl) completedCountEl.textContent = completed;
-        if (progressTextEl) progressTextEl.textContent = percentage + '%';
-        if (progressBarEl) progressBarEl.style.width = percentage + '%';
+        
+        // 🔥 Update tampilan Stat Cards di bagian atas
+        if (statTotalEl) statTotalEl.textContent = totalItems;
+        if (statCompletedEl) statCompletedEl.textContent = completed;
+        if (statPendingEl) statPendingEl.textContent = pending;
+        if (statProgressEl) statProgressEl.textContent = percentage + '%';
+        
+        // Update progress bar di dalam masing-masing card (jika ada)
+        document.querySelectorAll('.checklist-card').forEach(card => {
+            const cardCheckboxes = card.querySelectorAll('.glass-checkbox');
+            const cardTotal = cardCheckboxes.length;
+            const cardCompleted = card.querySelectorAll('.glass-checkbox:checked').length;
+            const cardPercent = cardTotal > 0 ? Math.round((cardCompleted / cardTotal) * 100) : 0;
+            const progressBar = card.querySelector('.card-progress-fill');
+            if (progressBar) progressBar.style.width = cardPercent + '%';
+        });
+
+        // Update sidebar progress (jika sidebar memilikinya)
         updateSidebarProgress();
     }
 
+    // Event listener untuk setiap checkbox
     checkboxes.forEach(cb => cb.addEventListener('change', () => {
         const listItem = cb.closest('.checklist-item');
-        if (listItem) { if (cb.checked) listItem.classList.add('completed'); else listItem.classList.remove('completed'); }
+        if (listItem) { 
+            if (cb.checked) listItem.classList.add('completed'); 
+            else listItem.classList.remove('completed'); 
+        }
         updateProgress();
     }));
     
+    // Jalankan sekali saat halaman dimuat
     updateProgress();
+    
+    // Cek apakah user sudah submit hari ini
     checkDailySubmission(session.user.email);
 
+    // Logic Tombol Submit
     const submitBtn = document.getElementById('submitChecklistBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             if (submitBtn.disabled) return;
+            
             const completed = document.querySelectorAll('.glass-checkbox:checked').length;
             const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
-            if (completed < totalItems) { showNotification(`Selesaikan semua tugas dulu ya! (${completed}/${totalItems})`, 'warning'); return; }
+            
+            if (completed < totalItems) { 
+                showNotification(`Selesaikan semua tugas dulu ya! (${completed}/${totalItems})`, 'warning'); 
+                return; 
+            }
 
             const originalBtnText = submitBtn.innerHTML;
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Mengirim...';
 
             const submissionData = {
-                user_name: window.currentUser.name, user_email: window.currentUser.email,
-                total_items: totalItems, completed_items: completed, progress_percentage: percentage,
+                user_name: window.currentUser.name, 
+                user_email: window.currentUser.email,
+                total_items: totalItems, 
+                completed_items: completed, 
+                progress_percentage: percentage,
                 status: percentage === 100 ? 'completed' : 'in_progress',
                 submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                 created_at: new Date().toISOString()
@@ -242,10 +284,16 @@ function initChecklistPage(session) {
             try {
                 const { error } = await window.supabaseClient.from('checklist_submissions').insert([submissionData]);
                 if (error) throw error;
+                
                 showNotification('✅ Laporan berhasil dikirim!', 'success');
                 disableSubmitButtonUI(submissionData);
+                
                 setTimeout(() => {
-                    checkboxes.forEach(cb => { cb.checked = false; const listItem = cb.closest('.checklist-item'); if (listItem) listItem.classList.remove('completed'); });
+                    checkboxes.forEach(cb => { 
+                        cb.checked = false; 
+                        const listItem = cb.closest('.checklist-item'); 
+                        if (listItem) listItem.classList.remove('completed'); 
+                    });
                     updateProgress();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }, 1500);
@@ -258,7 +306,6 @@ function initChecklistPage(session) {
         });
     }
 }
-
 async function checkDailySubmission(userEmail) {
     const today = new Date().toISOString().split('T')[0];
     try {
