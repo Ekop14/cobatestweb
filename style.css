@@ -26,7 +26,7 @@ body {
 }
 
 /* ============================================
-   BACKGROUND & BLOBS (NEON UNGU + ORANYE)
+   BACKGROUND & BLOBS (ANIMASI HIDUP & DINAMIS)
    ============================================ */
 .background-mesh {
     position: fixed; inset: 0; z-index: 0;
@@ -36,31 +36,72 @@ body {
 .blob {
     position: absolute; border-radius: 50%;
     filter: blur(90px); opacity: 0.85;
-    animation: floatGlow 26s infinite ease-in-out;
+    will-change: transform, opacity;
 }
-.blob-1 { width: 420px; height: 420px;
+.blob-1 {
+    width: 460px; height: 460px;
     background: radial-gradient(circle, var(--purple) 0%, rgba(139,92,246,0.6) 45%, transparent 72%);
-    top: -60px; left: -40px; }
-.blob-2 { width: 380px; height: 380px;
+    top: -80px; left: -60px;
+    animation: blobFloat1 18s infinite ease-in-out, huePulse 12s infinite ease-in-out;
+}
+.blob-2 {
+    width: 420px; height: 420px;
     background: radial-gradient(circle, var(--orange-warm) 0%, rgba(249,115,22,0.6) 45%, transparent 72%);
-    bottom: -40px; right: -30px; animation-delay: -10s; }
-.blob-3 { width: 110px; height: 110px;
+    bottom: -60px; right: -50px;
+    animation: blobFloat2 22s infinite ease-in-out, breathe 8s infinite ease-in-out;
+}
+.blob-3 {
+    width: 130px; height: 130px;
     background: radial-gradient(circle, var(--purple) 0%, transparent 70%);
-    top: 18%; right: 12%; filter: blur(40px); animation-delay: -5s; }
+    top: 16%; right: 10%;
+    filter: blur(40px);
+    animation: blobFloat3 14s infinite ease-in-out, huePulse 9s infinite ease-in-out;
+}
 .background-mesh::before {
     content:''; position:absolute; width:22px; height:22px; border-radius:50%;
-    background: var(--purple); top: 30%; right: 22%; filter: blur(2px);
-    box-shadow: var(--glow-purple); opacity: .8;
+    background: var(--orange); top: 55%; left: 14%; filter: blur(2px);
+    box-shadow: var(--glow-orange);
+    animation: particleFloat 7s infinite ease-in-out;
 }
 .background-mesh::after {
     content:''; position:absolute; width:16px; height:16px; border-radius:50%;
-    background: var(--orange); top: 55%; left: 18%; filter: blur(2px);
-    box-shadow: var(--glow-orange); opacity: .8;
+    background: var(--purple); top: 28%; right: 22%; filter: blur(2px);
+    box-shadow: var(--glow-purple);
+    animation: particleFloat 9s infinite ease-in-out reverse;
 }
-@keyframes floatGlow {
-    0%,100% { transform: translate(0,0) scale(1); opacity: .85; }
-    50% { transform: translate(28px,-24px) scale(1.08); opacity: 1; }
+
+@keyframes blobFloat1 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    25%     { transform: translate(120px, 80px) scale(1.12) rotate(8deg); }
+    50%     { transform: translate(60px, 180px) scale(0.95) rotate(-6deg); }
+    75%     { transform: translate(-40px, 90px) scale(1.08) rotate(4deg); }
 }
+@keyframes blobFloat2 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    25%     { transform: translate(-140px, -70px) scale(1.1) rotate(-8deg); }
+    50%     { transform: translate(-70px, -160px) scale(0.92) rotate(6deg); }
+    75%     { transform: translate(50px, -80px) scale(1.06) rotate(-4deg); }
+}
+@keyframes blobFloat3 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    50%     { transform: translate(-90px, 120px) scale(1.25) rotate(12deg); }
+}
+@keyframes huePulse {
+    0%,100% { filter: blur(90px) hue-rotate(0deg); opacity: 0.85; }
+    50%     { filter: blur(90px) hue-rotate(35deg); opacity: 1; }
+}
+@keyframes breathe {
+    0%,100% { opacity: 0.75; }
+    50%     { opacity: 1; }
+}
+@keyframes particleFloat {
+    0%,100% { transform: translate(0,0); opacity: 0.7; }
+    50%     { transform: translate(30px, -50px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .blob, .background-mesh::before, .background-mesh::after { animation: none !important; }
+}
+
 .noise-overlay {
     position: fixed; inset: 0; z-index: 1; opacity: 0.05; pointer-events: none;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -420,8 +461,6 @@ select.glass-input option {
 /* ============================================
    LAPORAN KENDARAAN - FORM PT URC
    ============================================ */
-
-/* === PREVIEW MODE (di layar) === */
 .print-page {
     background: white;
     color: black;
@@ -509,152 +548,68 @@ select.glass-input option {
     background: #f0f0f0 !important;
 }
 
-/* === PRINT MODE (saat Ctrl+P) - OPTIMIZED === */
+/* === PRINT MODE: LAPORAN KENDARAAN === */
 @media print {
-    @page { 
-        size: A4 landscape; 
-        margin: 6mm 7mm; 
-    }
-    html, body { 
-        background: white !important; 
-        color: black !important; 
-    }
-    * { 
-        -webkit-print-color-adjust: exact !important; 
-        print-color-adjust: exact !important; 
-    }
+    @page { size: A4 landscape; margin: 6mm 7mm; }
+    html, body { background: white !important; color: black !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-    /* Sembunyikan UI non-laporan */
     .no-print, .background-mesh, .noise-overlay, #sidebar, #sidebarOverlay,
-    #sidebarToggle, #logoutBtn, header.glass-header { 
-        display: none !important; 
-    }
+    #sidebarToggle, #logoutBtn, header.glass-header { display: none !important; }
     main, .flex.min-h-screen {
-        width: 100% !important; 
-        height: auto !important;
-        overflow: visible !important; 
-        background: white !important;
+        width: 100% !important; height: auto !important;
+        overflow: visible !important; background: white !important;
         display: block !important;
     }
-
-    /* 1 ceklist = 1 halaman, tidak boleh terpotong */
     .print-page {
         page-break-after: always !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         break-after: page !important;
-        background: white !important;
-        color: black !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        box-shadow: none !important;
-        max-width: 100% !important;
-        width: 100% !important;
+        background: white !important; color: black !important;
+        padding: 0 !important; margin: 0 !important;
+        box-shadow: none !important; max-width: 100% !important; width: 100% !important;
     }
-    .print-page:last-child { 
-        page-break-after: auto !important; 
-        break-after: auto !important;
-    }
+    .print-page:last-child { page-break-after: auto !important; break-after: auto !important; }
 
-    /* Header form - compact */
-    .header-form {
-        margin-bottom: 4px !important;
-        padding-bottom: 4px !important;
-        border-bottom: 1.5px solid #000 !important;
-        gap: 8px !important;
-    }
-    .logo-box { 
-        width: 55px !important; 
-        height: 34px !important; 
-        font-size: 9px !important;
-        border: 1px solid #ccc !important;
-    }
-    .company-info { 
-        font-size: 8px !important; 
-        line-height: 1.1 !important; 
-    }
-    .company-info .name { 
-        font-size: 10px !important; 
-        font-weight: 900 !important;
-    }
-    .company-info .sub { 
-        font-size: 7px !important; 
-    }
-    .header-right { 
-        font-size: 7px !important; 
-    }
-    .header-right table {
-        border: 1px solid #000 !important;
-        border-collapse: collapse !important;
-    }
-    .header-right td { 
-        padding: 1.5px 4px !important; 
-        border: 1px solid #000 !important;
-    }
-    .header-right td.label { 
-        background: #d9d9d9 !important; 
-        font-weight: bold !important;
-    }
-    .form-title { 
-        font-size: 11px !important; 
-        margin: 4px 0 !important;
-        font-weight: 900 !important;
-    }
+    .header-form { margin-bottom: 4px !important; padding-bottom: 4px !important; border-bottom: 1.5px solid #000 !important; gap: 8px !important; }
+    .logo-box { width: 55px !important; height: 34px !important; font-size: 9px !important; border: 1px solid #ccc !important; }
+    .company-info { font-size: 8px !important; line-height: 1.1 !important; }
+    .company-info .name { font-size: 10px !important; font-weight: 900 !important; }
+    .company-info .sub { font-size: 7px !important; }
+    .header-right { font-size: 7px !important; }
+    .header-right table { border: 1px solid #000 !important; border-collapse: collapse !important; }
+    .header-right td { padding: 1.5px 4px !important; border: 1px solid #000 !important; }
+    .header-right td.label { background: #d9d9d9 !important; font-weight: bold !important; }
+    .form-title { font-size: 11px !important; margin: 4px 0 !important; font-weight: 900 !important; }
 
-    /* Tabel utama - compact tapi terbaca */
     .report-table-print {
-        width: 100% !important;
-        table-layout: fixed !important;
-        font-size: 7px !important;
-        line-height: 1.1 !important;
-        margin-top: 3px !important;
-        border-collapse: collapse !important;
+        width: 100% !important; table-layout: fixed !important;
+        font-size: 7px !important; line-height: 1.1 !important;
+        margin-top: 3px !important; border-collapse: collapse !important;
     }
     .report-table-print th, .report-table-print td {
-        padding: 2px 3px !important;
-        border: 0.75px solid #000 !important;
-        color: black !important;
-        background: white !important;
-        vertical-align: middle !important;
-        text-align: left !important;
-        word-wrap: break-word !important;
-        overflow-wrap: break-word !important;
+        padding: 2px 3px !important; border: 0.75px solid #000 !important;
+        color: black !important; background: white !important;
+        vertical-align: middle !important; text-align: left !important;
+        word-wrap: break-word !important; overflow-wrap: break-word !important;
     }
     .report-table-print th {
-        background: #d9d9d9 !important;
-        font-size: 7px !important;
-        font-weight: bold !important;
-        text-align: center !important;
-        padding: 2.5px 2px !important;
+        background: #d9d9d9 !important; font-size: 7px !important;
+        font-weight: bold !important; text-align: center !important; padding: 2.5px 2px !important;
     }
-    
-    /* ✅ PERBAIKAN UTAMA: Sel footer (KEPUTUSAN & Dibuat Oleh) - TIDAK WRAP */
     .footer-row td {
-        background: #f0f0f0 !important;
-        font-weight: bold !important;
-        font-size: 7px !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        text-align: center !important;
-        padding: 3px 2px !important;
-        min-height: 18px !important;
-        height: 18px !important;
+        background: #f0f0f0 !important; font-weight: bold !important; font-size: 7px !important;
+        white-space: nowrap !important; overflow: hidden !important;
+        text-overflow: ellipsis !important; text-align: center !important;
+        padding: 3px 2px !important; min-height: 18px !important; height: 18px !important;
     }
-
-    /* Footer info */
-    .print-page > div:last-of-type {
-        margin-top: 3px !important;
-        font-size: 7px !important;
-        color: #333 !important;
-        padding: 0 !important;
-    }
+    .print-page > div:last-of-type { margin-top: 3px !important; font-size: 7px !important; color: #333 !important; padding: 0 !important; }
 }
+
 /* ============================================
    LAPORAN SUHU & KELEMBAPAN - CONTROL SHEET
    ============================================ */
-
-/* === PREVIEW MODE (di layar) === */
 .print-page-suhu {
     background: white;
     color: black;
@@ -672,21 +627,11 @@ select.glass-input option {
     border-bottom: 2px solid #000;
     padding-bottom: 6px;
 }
-.suhu-header-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+.suhu-header-left { display: flex; align-items: center; gap: 10px; }
 .suhu-logo-box {
-    width: 70px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: #c00;
-    font-size: 10px;
-    border: 1px solid #ddd;
+    width: 70px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; color: #c00; font-size: 10px; border: 1px solid #ddd;
 }
 .suhu-company-info { font-size: 9px; line-height: 1.2; }
 .suhu-company-name { font-weight: bold; font-size: 11px; }
@@ -696,26 +641,18 @@ select.glass-input option {
 .suhu-header-right td { border: 1px solid #000; padding: 1px 5px; }
 .suhu-label { background: #d9d9d9; font-weight: bold; }
 .suhu-form-title {
-    text-align: center;
-    font-weight: bold;
-    font-size: 12px;
-    margin: 5px 0;
-    text-decoration: underline;
+    text-align: center; font-weight: bold; font-size: 12px;
+    margin: 5px 0; text-decoration: underline;
 }
 .suhu-info-box { margin-bottom: 5px; font-size: 9px; line-height: 1.3; }
 .suhu-info-label { display: inline-block; width: 70px; font-weight: bold; }
 .suhu-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 8px;
-    margin-bottom: 10px;
+    width: 100%; border-collapse: collapse;
+    font-size: 8px; margin-bottom: 10px;
 }
 .suhu-th, .suhu-cell {
-    border: 1px solid #000;
-    padding: 2px 3px;
-    text-align: center;
-    vertical-align: middle;
-    color: black;
+    border: 1px solid #000; padding: 2px 3px;
+    text-align: center; vertical-align: middle; color: black;
 }
 .suhu-th { background: #d9d9d9; font-weight: bold; }
 .suhu-cell { height: 18px; }
@@ -725,7 +662,7 @@ select.glass-input option {
 .suhu-footer-space { height: 30px; }
 .suhu-footer-name { font-size: 9px; font-weight: bold; border-top: 1px solid #000; padding-top: 3px; }
 
-/* === PRINT MODE: LAPORAN SUHU = A4 PORTRAIT, 1 HALAMAN === */
+/* === PRINT MODE: LAPORAN SUHU (A4 PORTRAIT, 1 HALAMAN) === */
 @page suhu-page { size: A4 portrait; margin: 8mm; }
 
 @media print {
@@ -735,20 +672,12 @@ select.glass-input option {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         break-after: page !important;
-        background: white !important;
-        color: black !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        box-shadow: none !important;
-        max-width: 100% !important;
-        width: 100% !important;
-        border-radius: 0;
+        background: white !important; color: black !important;
+        padding: 0 !important; margin: 0 !important;
+        box-shadow: none !important; max-width: 100% !important; width: 100% !important; border-radius: 0;
     }
-    .print-page-suhu:last-child {
-        page-break-after: auto !important;
-        break-after: auto !important;
-    }
-    /* Compact agar 31 baris + header + footer muat 1 halaman A4 portrait */
+    .print-page-suhu:last-child { page-break-after: auto !important; break-after: auto !important; }
+
     .suhu-header-form { margin-bottom: 3px !important; padding-bottom: 3px !important; }
     .suhu-logo-box { width: 55px !important; height: 34px !important; }
     .suhu-form-title { font-size: 10px !important; margin: 3px 0 !important; }
