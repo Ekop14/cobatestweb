@@ -81,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'supervisor.html') initSupervisorPage(session);
         else if (currentPage === 'kelola-user.html') initKelolaUserPage(session);
         else if (currentPage === 'kendaraan.html') initKendaraanPage(session);
+        else if (currentPage === 'laporan-suhu.html') initLaporanSuhuPage(session);
     });
 
     setTimeout(() => {
