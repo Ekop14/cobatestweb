@@ -1919,3 +1919,222 @@ function toggleSidebarDropdown(id) {
         }
     }
 }
+// ==========================================
+// 15. HALAMAN LAPORAN SUHU & KELEMBAPAN
+// ==========================================
+function initLaporanSuhuPage(session) {
+    window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
+    loadSidebar();
+    
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    document.getElementById('filterDateFrom').value = firstDayOfMonth.toISOString().split('T')[0];
+    document.getElementById('filterDateTo').value = today.toISOString().split('T')[0];
+    
+    loadSuhuUserDropdown();
+}
+
+async function loadSuhuUserDropdown() {
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('environment_readings')
+            .select('user_name')
+            .order('user_name');
+        if (error) throw error;
+        
+        const uniqueUsers = [...new Set(data.map(r => r.user_name).filter(n => n))];
+        const select = document.getElementById('filterUser');
+        uniqueUsers.forEach(user => {
+            const opt = document.createElement('option');
+            opt.value = user;
+            opt.textContent = user;
+            select.appendChild(opt);
+        });
+    } catch (error) {
+        console.error("Gagal load user dropdown suhu:", error);
+    }
+}
+
+function resetSuhuFilters() {
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    document.getElementById('filterDateFrom').value = firstDayOfMonth.toISOString().split('T')[0];
+    document.getElementById('filterDateTo').value = today.toISOString().split('T')[0];
+    document.getElementById('filterUser').value = '';
+    document.getElementById('suhuReportPreview').innerHTML = `
+        <div class="glass-card !p-10 text-center">
+            <svg class="h-16 w-16 mx-auto text-white/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            <p class="text-white/60 text-sm">Silakan pilih filter dan klik <span class="text-cyan-400 font-semibold">"Generate Laporan"</span> untuk melihat preview form.</p>
+        </div>`;
+    document.getElementById('suhuReportInfo').classList.add('hidden');
+}
+
+async function generateSuhuReport() {
+    const dateFrom = document.getElementById('filterDateFrom').value;
+    const dateTo = document.getElementById('filterDateTo').value;
+    const user = document.getElementById('filterUser').value;
+    
+    if (!dateFrom || !dateTo) {
+        showNotification('⚠️ Tanggal mulai dan akhir wajib diisi!', 'warning');
+        return;
+    }
+    
+    const preview = document.getElementById('suhuReportPreview');
+    preview.innerHTML = `<div class="glass-card !p-10 text-center"><div class="spinner mx-auto"></div><p class="text-white/60 text-sm mt-3">Memuat data...</p></div>`;
+    
+    try {
+        let query = window.supabaseClient
+            .from('environment_readings')
+            .select('*')
+            .gte('created_at', dateFrom + 'T00:00:00')
+            .lte('created_at', dateTo + 'T23:59:59')
+            .order('created_at', { ascending: true });
+        
+        if (user) query = query.eq('user_name', user);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        const filteredData = data || [];
+        
+        if (filteredData.length === 0) {
+            preview.innerHTML = `<div class="glass-card !p-10 text-center"><p class="text-white/60 text-sm">Tidak ada data untuk filter yang dipilih.</p></div>`;
+            document.getElementById('suhuReportInfo').classList.add('hidden');
+            return;
+        }
+        
+        // Group by user
+        const groupedByUser = {};
+        filteredData.forEach(row => {
+            const userName = row.user_name || 'Unknown';
+            if (!groupedByUser[userName]) groupedByUser[userName] = [];
+            groupedByUser[userName].push(row);
+        });
+        
+        const uniqueUsers = Object.keys(groupedByUser);
+        document.getElementById('suhuInfoTotal').textContent = filteredData.length;
+        document.getElementById('suhuInfoUser').textContent = uniqueUsers.length;
+        document.getElementById('suhuReportInfo').classList.remove('hidden');
+        
+        // Generate 1 halaman per user
+        let allPagesHTML = '';
+        uniqueUsers.forEach((userName, idx) => {
+            allPagesHTML += buildSuhuFormPage(groupedByUser[userName], userName, idx + 1, uniqueUsers.length);
+        });
+        
+        preview.innerHTML = allPagesHTML;
+        
+    } catch (error) {
+        console.error("Gagal generate laporan suhu:", error);
+        preview.innerHTML = `<div class="glass-card !p-10 text-center text-red-400">Gagal memuat data: ${error.message}</div>`;
+    }
+}
+
+function buildSuhuFormPage(dataRows, userName, currentPage, totalPages) {
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const firstDate = new Date(dataRows[0].created_at);
+    const periodeStr = `${months[firstDate.getMonth()]} ${firstDate.getFullYear()}`;
+    
+    // Build rows (max 31 baris)
+    let tableRows = '';
+    const maxRows = Math.min(dataRows.length, 31);
+    
+    for (let i = 0; i < maxRows; i++) {
+        const row = dataRows[i];
+        const dateObj = new Date(row.created_at);
+        const dateStr = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        const timeStr = row.submission_time || dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        const temp = row.temperature !== null && row.temperature !== undefined ? row.temperature : '';
+        const rh = row.humidity !== null && row.humidity !== undefined ? row.humidity : '';
+        const pic = row.user_name || userName;
+        const remark = row.notes || '';
+        
+        tableRows += `<tr>
+            <td class="suhu-cell">${i + 1}</td>
+            <td class="suhu-cell">${dateStr}</td>
+            <td class="suhu-cell">${timeStr}</td>
+            <td class="suhu-cell">${temp}</td>
+            <td class="suhu-cell">${rh}</td>
+            <td class="suhu-cell">${pic}</td>
+            <td class="suhu-cell">${remark}</td>
+        </tr>`;
+    }
+    
+    // Fill empty rows to 31 if needed
+    for (let i = maxRows; i < 31; i++) {
+        tableRows += `<tr>
+            <td class="suhu-cell">${i + 1}</td>
+            <td class="suhu-cell"></td>
+            <td class="suhu-cell"></td>
+            <td class="suhu-cell"></td>
+            <td class="suhu-cell"></td>
+            <td class="suhu-cell"></td>
+            <td class="suhu-cell"></td>
+        </tr>`;
+    }
+    
+    return `
+    <div class="print-page-suhu">
+        <!-- HEADER FORM -->
+        <div class="suhu-header-form">
+            <div class="suhu-header-left">
+                <div class="suhu-logo-box">
+                    <div style="text-align:center">
+                        <div style="font-size:20px;font-weight:900;color:#c00">UR</div>
+                        <div style="font-size:8px">Universal<br>Robina</div>
+                    </div>
+                </div>
+                <div class="suhu-company-info">
+                    <div class="suhu-company-name">PT URC INDONESIA</div>
+                    <div class="suhu-company-sub">A Company of<br>JG Summit Holdings</div>
+                </div>
+            </div>
+            <div class="suhu-header-right">
+                <table>
+                    <tr><td class="suhu-label" colspan="3" style="font-weight:bold;font-size:10px">CONTROL SHEET MONITORING RH&TEMPERATURS</td></tr>
+                    <tr><td class="suhu-label">PAGE NO</td><td colspan="2">${currentPage} OF ${totalPages}</td></tr>
+                    <tr><td class="suhu-label">REV NO</td><td colspan="2">0</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="suhu-form-title">CONTROL SHEET MONITORING RH&TEMPERATURS</div>
+        
+        <!-- INFO -->
+        <div class="suhu-info-box">
+            <div class="suhu-info-row"><span class="suhu-info-label">Location :</span><span>WH-FG</span></div>
+            <div class="suhu-info-row"><span class="suhu-info-label">Section :</span><span>STORAGE 1 (AREA POSM)</span></div>
+            <div class="suhu-info-row"><span class="suhu-info-label">Periode :</span><span>${periodeStr}</span></div>
+        </div>
+        
+        <!-- TABEL -->
+        <table class="suhu-table">
+            <thead>
+                <tr>
+                    <th rowspan="2" class="suhu-th">No</th>
+                    <th rowspan="2" class="suhu-th">DATE</th>
+                    <th colspan="5" class="suhu-th">Time of Checking</th>
+                </tr>
+                <tr>
+                    <th class="suhu-th">Temp(deg C)</th>
+                    <th class="suhu-th">RH(%)</th>
+                    <th class="suhu-th">PIC Sign</th>
+                    <th class="suhu-th">Time of Checking</th>
+                    <th class="suhu-th">Remark</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tableRows}
+            </tbody>
+        </table>
+        
+        <!-- FOOTER -->
+        <div class="suhu-footer">
+            <div class="suhu-footer-box">
+                <p class="suhu-footer-label">Verified by</p>
+                <div class="suhu-footer-space"></div>
+                <p class="suhu-footer-name">SPV WHFG</p>
+            </div>
+        </div>
+    </div>`;
+}
