@@ -1,6 +1,6 @@
 // ==========================================
 // SCRIPT.JS - FINAL ALL-IN-ONE
-// (Checklist + APD + Dashboard + Lingkungan + Supervisor + Kelola User + Biometric + AI + Kendaraan + Laporan Kendaraan)
+// (Checklist + APD + Dashboard + Lingkungan + Supervisor + Kelola User + Biometric + AI + Kendaraan + Laporan + Suhu)
 // ==========================================
 
 let filteredReports = [];
@@ -9,6 +9,7 @@ window.currentUser = window.currentUser || { name: 'User', email: 'user@example.
 const SUPERVISOR_EMAILS = ['admin@gudang.com', 'supervisor@gudang.com']; 
 const BIO_KEY = 'GudangClean2024!BioKey';
 let currentVehicleHeaderId = null;
+let editingVehicleId = null; // ✅ BARU: Untuk mode edit kendaraan
 
 // ==========================================
 // KONSTANTA LAPORAN KENDARAAN
@@ -71,7 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("📄 Halaman aktif:", currentPage);
 
         if (currentPage === 'laporan.html') initLaporanPage(session);
-        else if (currentPage === 'laporan-kendaraan.html') initLaporanKendaraanPage(session); // ✅ BARU
+        else if (currentPage === 'laporan-kendaraan.html') initLaporanKendaraanPage(session);
+        else if (currentPage === 'laporan-suhu.html') initLaporanSuhuPage(session); // ✅ BARU
         else if (currentPage === 'index.html') initLoginPage();
         else if (currentPage === 'register.html') initRegisterPage();
         else if (currentPage === 'dashboard.html') initDashboardPage(session);
@@ -81,7 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentPage === 'supervisor.html') initSupervisorPage(session);
         else if (currentPage === 'kelola-user.html') initKelolaUserPage(session);
         else if (currentPage === 'kendaraan.html') initKendaraanPage(session);
-        else if (currentPage === 'laporan-suhu.html') initLaporanSuhuPage(session);
     });
 
     setTimeout(() => {
@@ -186,97 +187,56 @@ function setupCategoryFilter() {
 // ==========================================
 // 1. HALAMAN CHECKLIST
 // ==========================================
-// ==========================================
-// 1. HALAMAN CHECKLIST (DIPERBAIKI)
-// ==========================================
 function initChecklistPage(session) {
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
-    
     const dateDisplay = document.getElementById('currentDate');
-    if (dateDisplay) {
-        dateDisplay.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    }
-    
+    if (dateDisplay) dateDisplay.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     loadSidebar();
 
     const checkboxes = document.querySelectorAll('.glass-checkbox');
     const totalItems = checkboxes.length;
-    
-    // 🔥 PERBAIKAN: Sesuaikan variabel dengan ID yang ada di HTML Anda
-    const statTotalEl = document.getElementById('statTotal');
-    const statCompletedEl = document.getElementById('statCompleted');
-    const statPendingEl = document.getElementById('statPending');
-    const statProgressEl = document.getElementById('statProgress');
+    const totalCountEl = document.getElementById('totalCount');
+    const completedCountEl = document.getElementById('completedCount');
+    const progressTextEl = document.getElementById('overallProgressText');
+    const progressBarEl = document.getElementById('overallProgressBar');
 
-    // Set nilai awal total
-    if (statTotalEl) statTotalEl.textContent = totalItems;
+    if (totalCountEl) totalCountEl.textContent = totalItems;
 
     function updateProgress() {
         const completed = document.querySelectorAll('.glass-checkbox:checked').length;
-        const pending = totalItems - completed; // Hitung sisa yang belum dicentang
         const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
-        
-        // 🔥 Update tampilan Stat Cards di bagian atas
-        if (statTotalEl) statTotalEl.textContent = totalItems;
-        if (statCompletedEl) statCompletedEl.textContent = completed;
-        if (statPendingEl) statPendingEl.textContent = pending;
-        if (statProgressEl) statProgressEl.textContent = percentage + '%';
-        
-        // Update progress bar di dalam masing-masing card (jika ada)
-        document.querySelectorAll('.checklist-card').forEach(card => {
-            const cardCheckboxes = card.querySelectorAll('.glass-checkbox');
-            const cardTotal = cardCheckboxes.length;
-            const cardCompleted = card.querySelectorAll('.glass-checkbox:checked').length;
-            const cardPercent = cardTotal > 0 ? Math.round((cardCompleted / cardTotal) * 100) : 0;
-            const progressBar = card.querySelector('.card-progress-fill');
-            if (progressBar) progressBar.style.width = cardPercent + '%';
-        });
-
-        // Update sidebar progress (jika sidebar memilikinya)
+        if (completedCountEl) completedCountEl.textContent = completed;
+        if (progressTextEl) progressTextEl.textContent = percentage + '%';
+        if (progressBarEl) progressBarEl.style.width = percentage + '%';
         updateSidebarProgress();
     }
 
-    // Event listener untuk setiap checkbox
     checkboxes.forEach(cb => cb.addEventListener('change', () => {
         const listItem = cb.closest('.checklist-item');
-        if (listItem) { 
-            if (cb.checked) listItem.classList.add('completed'); 
-            else listItem.classList.remove('completed'); 
-        }
+        if (listItem) { if (cb.checked) listItem.classList.add('completed'); else listItem.classList.remove('completed'); }
         updateProgress();
     }));
     
-    // Jalankan sekali saat halaman dimuat
     updateProgress();
-    
-    // Cek apakah user sudah submit hari ini
     checkDailySubmission(session.user.email);
+    loadChecklistStats(session.user.email);
 
-    // Logic Tombol Submit
     const submitBtn = document.getElementById('submitChecklistBtn');
     if (submitBtn) {
         submitBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             if (submitBtn.disabled) return;
-            
             const completed = document.querySelectorAll('.glass-checkbox:checked').length;
             const percentage = totalItems > 0 ? Math.round((completed / totalItems) * 100) : 0;
-            
-            if (completed < totalItems) { 
-                showNotification(`Selesaikan semua tugas dulu ya! (${completed}/${totalItems})`, 'warning'); 
-                return; 
-            }
+            if (completed < totalItems) { showNotification(`Selesaikan semua tugas dulu ya! (${completed}/${totalItems})`, 'warning'); return; }
 
             const originalBtnText = submitBtn.innerHTML;
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Mengirim...';
 
             const submissionData = {
-                user_name: window.currentUser.name, 
-                user_email: window.currentUser.email,
-                total_items: totalItems, 
-                completed_items: completed, 
-                progress_percentage: percentage,
+                user_name: window.currentUser.name, user_email: window.currentUser.email,
+                total_items: totalItems, completed_items: completed, progress_percentage: percentage,
                 status: percentage === 100 ? 'completed' : 'in_progress',
                 submission_time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                 created_at: new Date().toISOString()
@@ -285,16 +245,11 @@ function initChecklistPage(session) {
             try {
                 const { error } = await window.supabaseClient.from('checklist_submissions').insert([submissionData]);
                 if (error) throw error;
-                
                 showNotification('✅ Laporan berhasil dikirim!', 'success');
                 disableSubmitButtonUI(submissionData);
-                
+                loadChecklistStats(session.user.email);
                 setTimeout(() => {
-                    checkboxes.forEach(cb => { 
-                        cb.checked = false; 
-                        const listItem = cb.closest('.checklist-item'); 
-                        if (listItem) listItem.classList.remove('completed'); 
-                    });
+                    checkboxes.forEach(cb => { cb.checked = false; const listItem = cb.closest('.checklist-item'); if (listItem) listItem.classList.remove('completed'); });
                     updateProgress();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }, 1500);
@@ -307,6 +262,7 @@ function initChecklistPage(session) {
         });
     }
 }
+
 async function checkDailySubmission(userEmail) {
     const today = new Date().toISOString().split('T')[0];
     try {
@@ -323,6 +279,38 @@ function disableSubmitButtonUI(submission) {
     if (btn) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.innerHTML = '<span>✅ Sudah Submit Hari Ini</span>'; }
     if (infoBox) infoBox.classList.remove('hidden');
     if (timeDisplay) timeDisplay.textContent = submission.submission_time || new Date(submission.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function loadChecklistStats(userEmail) {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const { data: submissions, error } = await window.supabaseClient
+            .from('checklist_submissions')
+            .select('status, progress_percentage, created_at')
+            .eq('user_email', userEmail)
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`);
+
+        if (error) throw error;
+
+        const list = submissions || [];
+        const total = list.length;
+        const selesai = list.filter(s => s.status === 'completed').length;
+        const pending = total - selesai;
+        const avgProgress = total > 0 ? Math.round(list.reduce((sum, s) => sum + (s.progress_percentage || 0), 0) / total) : 0;
+
+        const elTotal = document.getElementById('statTotalChecklist');
+        const elSelesai = document.getElementById('statSelesaiChecklist');
+        const elPending = document.getElementById('statPendingChecklist');
+        const elProgress = document.getElementById('statProgressChecklist');
+
+        if (elTotal) elTotal.textContent = total;
+        if (elSelesai) elSelesai.textContent = selesai;
+        if (elPending) elPending.textContent = pending;
+        if (elProgress) elProgress.textContent = avgProgress + '%';
+    } catch (error) {
+        console.error("❌ Gagal load checklist stats:", error);
+    }
 }
 
 // ==========================================
@@ -802,10 +790,7 @@ async function loadEnvironmentHistory() {
 // ==========================================
 function ensureApdUI() {
     const container = document.querySelector('.max-w-4xl') || document.querySelector('main .px-4') || document.querySelector('main > div');
-    if (!container) { 
-        console.error('❌ APD: container konten tidak ditemukan'); 
-        return; 
-    }
+    if (!container) { console.error('❌ APD: container konten tidak ditemukan'); return; }
     container.style.overflow = 'visible';
 
     let notesEl = document.getElementById('apdNotes');
@@ -823,23 +808,15 @@ function ensureApdUI() {
     let btn = document.getElementById('submitApdBtn');
     if (!btn) {
         btn = document.createElement('button');
-        btn.type = 'button'; 
-        btn.id = 'submitApdBtn'; 
-        btn.className = 'glass-button w-full !py-4 text-base font-semibold mb-4';
+        btn.type = 'button'; btn.id = 'submitApdBtn'; btn.className = 'glass-button w-full !py-4 text-base font-semibold mb-4';
         btn.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Kirim Laporan APD</span>';
         container.appendChild(btn);
+        btn.style.cssText = `display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; min-height:52px !important; position:relative !important; z-index:9999 !important; overflow:visible !important; align-items:center !important; justify-content:center !important; gap:8px !important; width:100% !important; margin:16px 0 !important; padding:16px 24px !important; background:linear-gradient(135deg,#a855f7 0%,#f97316 100%) !important; color:#fff !important; font-weight:700 !important; font-size:17px !important; border-radius:14px !important; border:none !important; cursor:pointer !important; box-shadow:0 6px 22px rgba(168,85,247,.45),0 4px 14px rgba(249,115,22,.4) !important;`;
     }
-    
-    // 🔥 PERBAIKAN: Pindahkan style.cssText ke luar blok if (!btn) 
-    // agar tombol yang sudah ada di HTML (tapi ter-hidden) dipaksa muncul.
-    btn.style.cssText = `display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; min-height:52px !important; position:relative !important; z-index:9999 !important; overflow:visible !important; align-items:center !important; justify-content:center !important; gap:8px !important; width:100% !important; margin:16px 0 !important; padding:16px 24px !important; background:linear-gradient(135deg,#a855f7 0%,#f97316 100%) !important; color:#fff !important; font-weight:700 !important; font-size:17px !important; border-radius:14px !important; border:none !important; cursor:pointer !important; box-shadow:0 6px 22px rgba(168,85,247,.45),0 4px 14px rgba(249,115,22,.4) !important;`;
 
     let info = document.getElementById('dailyApdInfo');
     if (!info) {
-        info = document.createElement('div'); 
-        info.id = 'dailyApdInfo'; 
-        info.className = 'glass-card !p-4 mb-6 text-center'; 
-        info.style.display = 'none';
+        info = document.createElement('div'); info.id = 'dailyApdInfo'; info.className = 'glass-card !p-4 mb-6 text-center'; info.style.display = 'none';
         info.innerHTML = '<p class="text-green-400 font-semibold">✅ Sudah Submit APD Hari Ini</p><p class="text-white/60 text-xs mt-1">Waktu: <span id="apdSubmissionTime">-</span></p>';
         container.appendChild(info);
     }
@@ -1336,7 +1313,6 @@ function closeDeleteModal() { document.getElementById('deleteModal').classList.a
 // 11. GLOBAL EVENT HANDLERS
 // ==========================================
 document.addEventListener('click', async function(event) {
-    // === DELETE USER ===
     if (event.target.id === 'confirmDeleteBtn') {
         if (!deleteTargetId) return;
         const btn = document.getElementById('confirmDeleteBtn');
@@ -1353,7 +1329,6 @@ document.addEventListener('click', async function(event) {
         finally { btn.disabled = false; btn.textContent = originalText; }
     }
     
-    // === LOGOUT ===
     const logoutBtn = event.target.closest('#logoutBtn');
     if (logoutBtn) {
         event.preventDefault();
@@ -1361,7 +1336,6 @@ document.addEventListener('click', async function(event) {
         try { await window.supabaseClient.auth.signOut(); localStorage.removeItem('gudang_clean_state'); window.location.replace('index.html'); } catch (error) { console.error("Error logout:", error); }
     }
 
-    // === SIMPAN DETAIL KENDARAAN ===
     if (event.target.id === 'saveVehicleDetailBtn') {
         const headerId = document.getElementById('detail_header_id').value;
         const btn = document.getElementById('saveVehicleDetailBtn');
@@ -1410,7 +1384,6 @@ document.addEventListener('click', async function(event) {
         }
     }
 
-    // === TUTUP MODAL KENDARAAN KLIK DI LUAR ===
     const vehicleModal = document.getElementById('vehicleDetailModal');
     if (vehicleModal && !vehicleModal.classList.contains('hidden') && event.target === vehicleModal) {
         closeVehicleDetailModal();
@@ -1418,7 +1391,7 @@ document.addEventListener('click', async function(event) {
 });
 
 // ==========================================
-// 12. HALAMAN CEKLIST KENDARAAN
+// 12. HALAMAN CEKLIST KENDARAAN (DENGAN EDIT & HAPUS)
 // ==========================================
 function initKendaraanPage(session) {
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
@@ -1471,10 +1444,28 @@ function initKendaraanPage(session) {
         };
 
         try {
-            const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').insert([headerData]).select();
-            if (error) throw error;
-            
-            showNotification('✅ Data kendaraan berhasil disimpan!', 'success');
+            let savedRow;
+            if (editingVehicleId) {
+                // ✅ MODE UPDATE
+                const { data, error } = await window.supabaseClient
+                    .from('vehicle_checklist_header')
+                    .update(headerData)
+                    .eq('id', editingVehicleId)
+                    .select();
+                if (error) throw error;
+                savedRow = data[0];
+                showNotification('✏️ Data kendaraan berhasil diupdate!', 'success');
+                editingVehicleId = null;
+            } else {
+                // ✅ MODE INSERT
+                const { data, error } = await window.supabaseClient
+                    .from('vehicle_checklist_header')
+                    .insert([headerData])
+                    .select();
+                if (error) throw error;
+                savedRow = data[0];
+                showNotification('✅ Data kendaraan berhasil disimpan!', 'success');
+            }
             
             document.getElementById('vehicleHeaderForm').reset();
             document.getElementById('v_hari').value = days[new Date().getDay()];
@@ -1484,15 +1475,17 @@ function initKendaraanPage(session) {
             document.getElementById('v_dibuat_oleh').value = window.currentUser.name;
             
             getNextVehicleNo();
-            openVehicleDetailModal(data[0].id, data[0].nomor_kendaraan);
             loadVehicleHistory();
+            
+            // Reset tombol save kembali ke default
+            btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg> Simpan Data Kendaraan`;
+            btn.style.background = ''; // Reset warna gradient default
             
         } catch (error) {
             console.error("Gagal simpan header:", error);
             showNotification('❌ Gagal: ' + error.message, 'error');
         } finally {
             btn.disabled = false;
-            btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg> Simpan Data Kendaraan`;
         }
     });
 }
@@ -1517,7 +1510,7 @@ async function loadVehicleHistory() {
     try {
         const { data, error } = await window.supabaseClient
             .from('vehicle_checklist_header')
-            .select(`id, no_urut, tanggal, jam, supplier, nomor_kendaraan, jenis_kendaraan, ttd_checker, vehicle_checklist_detail (id)`)
+            .select(`id, no_urut, tanggal, jam, supplier, nomor_kendaraan, jenis_kendaraan, ttd_checker, hari, keputusan, dibuat_oleh, keterangan, user_email, vehicle_checklist_detail (id)`)
             .order('created_at', { ascending: false });
         if (error) throw error;
         if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-white/50">Belum ada riwayat ceklist kendaraan.</td></tr>`; return; }
@@ -1529,6 +1522,23 @@ async function loadVehicleHistory() {
             const statusBadge = isDetailFilled 
                 ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30">✅ Lengkap</span>'
                 : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Pending</span>';
+
+            // ✅ 2 TOMBOL BARU: EDIT & HAPUS
+            const actionButtons = `
+                <div class="flex items-center justify-center gap-1 mt-1">
+                    <button type="button" onclick="editVehicleHeader('${row.id}')" 
+                        class="px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30 transition text-xs font-medium flex items-center gap-1" 
+                        title="Edit data ini">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        Edit
+                    </button>
+                    <button type="button" onclick="deleteVehicleHeader('${row.id}', '${(row.nomor_kendaraan || '').replace(/'/g, "\\'")}')" 
+                        class="px-2 py-1 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition text-xs font-medium flex items-center gap-1" 
+                        title="Hapus data ini">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        Hapus
+                    </button>
+                </div>`;
 
             return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
                 <td class="px-4 py-3 text-sm text-white/80">${row.no_urut || '-'}</td>
@@ -1542,12 +1552,80 @@ async function loadVehicleHistory() {
                 </td>
                 <td class="px-4 py-3 text-center text-sm text-white/70">${row.jenis_kendaraan || '-'}</td>
                 <td class="px-4 py-3 text-center text-sm text-white/70">${row.ttd_checker || '-'}</td>
-                <td class="px-4 py-3 text-center">${statusBadge}</td>
+                <td class="px-4 py-3 text-center">
+                    ${statusBadge}
+                    ${actionButtons}
+                </td>
             </tr>`;
         }).join('');
     } catch (error) {
         console.error("Gagal load history:", error);
         tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-400">Gagal memuat data: ${error.message}</td></tr>`;
+    }
+}
+
+async function editVehicleHeader(id) {
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('vehicle_checklist_header')
+            .select('*')
+            .eq('id', id)
+            .single();
+        if (error) throw error;
+
+        document.getElementById('v_no').value = data.no_urut || '';
+        document.getElementById('v_hari').value = data.hari || '';
+        document.getElementById('v_tanggal').value = data.tanggal ? new Date(data.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+        document.getElementById('v_jam').value = data.jam || '';
+        document.getElementById('v_supplier').value = data.supplier || '';
+        document.getElementById('v_nopol').value = data.nomor_kendaraan || '';
+        document.getElementById('v_jenis').value = data.jenis_kendaraan || 'Truck Box';
+        document.getElementById('v_coa').value = data.no_coa || '';
+        document.getElementById('v_do').value = data.no_do || '';
+        document.getElementById('v_container').value = data.nomor_container || '';
+        document.getElementById('v_seal').value = data.nomor_seal || '';
+        document.getElementById('v_checker').value = data.ttd_checker || '';
+        document.getElementById('v_keputusan').value = data.keputusan || '';
+        document.getElementById('v_dibuat_oleh').value = data.dibuat_oleh || '';
+        document.getElementById('v_keterangan').value = data.keterangan || '';
+
+        editingVehicleId = id;
+
+        const btn = document.getElementById('saveVehicleHeaderBtn');
+        btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> Update Data Kendaraan`;
+        btn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)';
+
+        document.querySelector('.glass-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showNotification('✏️ Mode Edit aktif. Ubah data lalu klik Update.', 'info');
+    } catch (error) {
+        console.error("Gagal load data edit:", error);
+        showNotification('❌ Gagal memuat data: ' + error.message, 'error');
+    }
+}
+
+async function deleteVehicleHeader(id, nopol) {
+    if (!confirm(`⚠️ Yakin ingin menghapus data kendaraan ${nopol}?\n\nData header + detail checklist akan terhapus permanen.`)) {
+        return;
+    }
+
+    try {
+        const { error: detailError } = await window.supabaseClient
+            .from('vehicle_checklist_detail')
+            .delete()
+            .eq('header_id', id);
+        if (detailError) throw detailError;
+
+        const { error: headerError } = await window.supabaseClient
+            .from('vehicle_checklist_header')
+            .delete()
+            .eq('id', id);
+        if (headerError) throw headerError;
+
+        showNotification('🗑️ Data kendaraan berhasil dihapus!', 'success');
+        loadVehicleHistory();
+    } catch (error) {
+        console.error("Gagal hapus data:", error);
+        showNotification('❌ Gagal menghapus: ' + error.message, 'error');
     }
 }
 
@@ -1683,7 +1761,6 @@ async function generateReport() {
             return;
         }
         
-        // Group by user
         const groupedByUser = {};
         filteredData.forEach(row => {
             const checker = row.ttd_checker || 'Unknown';
@@ -1696,7 +1773,6 @@ async function generateReport() {
         document.getElementById('infoTotalUser').textContent = uniqueUsers.length;
         document.getElementById('reportInfo').classList.remove('hidden');
         
-        // Generate pages: 1 user = minimal 1 halaman, max 9 kendaraan per halaman
         let allPagesHTML = '';
         let globalPageNum = 1;
         const totalPages = uniqueUsers.reduce((sum, usr) => {
@@ -1730,7 +1806,6 @@ function buildFormPage(vehicles, checkerName, currentPage, totalPages, pageOfUse
     const today = new Date();
     const dateStr = today.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     
-    // Build header rows
     let headerRows = '';
     vehicles.forEach((v, idx) => {
         const no = idx + 1;
@@ -1764,7 +1839,6 @@ function buildFormPage(vehicles, checkerName, currentPage, totalPages, pageOfUse
         </tr>`;
     });
     
-    // Fill empty rows to make it 9 rows
     for (let i = vehicles.length; i < VEHICLES_PER_PAGE; i++) {
         headerRows += `<tr>
             <td style="text-align:center">${i + 1}</td>
@@ -1772,7 +1846,6 @@ function buildFormPage(vehicles, checkerName, currentPage, totalPages, pageOfUse
         </tr>`;
     }
     
-    // Build inspection rows
     let inspectionRows = '';
     INSPECTION_ITEMS.forEach((item, itemIdx) => {
         let cells = `<td style="font-weight:500">${item}</td>`;
@@ -1880,48 +1953,7 @@ function buildFormPage(vehicles, checkerName, currentPage, totalPages, pageOfUse
 }
 
 // ==========================================
-// 14. UTILS
-// ==========================================
-function showNotification(message, type = 'info') {
-    const colors = { 
-        success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' }, 
-        warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' }, 
-        error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' }, 
-        info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' } 
-    };
-    const c = colors[type] || colors.info;
-    const el = document.createElement('div');
-    el.className = 'fixed top-6 right-6 z-[100] px-6 py-4 rounded-xl text-white font-medium';
-    el.style.cssText = `background: ${c.bg}; backdrop-filter: blur(20px); border: 1px solid ${c.border}; box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: slideIn 0.4s ease;`;
-    el.innerHTML = `<div class="flex items-center gap-3"><svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" /></svg><span>${message}</span></div>`;
-    document.body.appendChild(el);
-    setTimeout(() => { el.style.animation = 'slideOut 0.4s ease forwards'; setTimeout(() => el.remove(), 400); }, 3000);
-}
-
-if (!document.getElementById('notif-styles')) {
-    const s = document.createElement('style'); s.id = 'notif-styles';
-    s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
-    document.head.appendChild(s);
-}
-// ==========================================
-// SIDEBAR DROPDOWN TOGGLE (REKAP LAPORAN)
-// ==========================================
-function toggleSidebarDropdown(id) {
-    const dropdown = document.getElementById(`dropdown-${id}`);
-    const chevron = document.getElementById(`chevron-${id}`);
-    
-    if (dropdown && chevron) {
-        if (dropdown.classList.contains('hidden')) {
-            dropdown.classList.remove('hidden');
-            chevron.style.transform = 'rotate(180deg)';
-        } else {
-            dropdown.classList.add('hidden');
-            chevron.style.transform = 'rotate(0deg)';
-        }
-    }
-}
-// ==========================================
-// 15. HALAMAN LAPORAN SUHU & KELEMBAPAN
+// 14. HALAMAN LAPORAN SUHU & KELEMBAPAN
 // ==========================================
 function initLaporanSuhuPage(session) {
     window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
@@ -2004,7 +2036,6 @@ async function generateSuhuReport() {
             return;
         }
         
-        // Group by user
         const groupedByUser = {};
         filteredData.forEach(row => {
             const userName = row.user_name || 'Unknown';
@@ -2017,7 +2048,6 @@ async function generateSuhuReport() {
         document.getElementById('suhuInfoUser').textContent = uniqueUsers.length;
         document.getElementById('suhuReportInfo').classList.remove('hidden');
         
-        // Generate 1 halaman per user
         let allPagesHTML = '';
         uniqueUsers.forEach((userName, idx) => {
             allPagesHTML += buildSuhuFormPage(groupedByUser[userName], userName, idx + 1, uniqueUsers.length);
@@ -2031,7 +2061,6 @@ async function generateSuhuReport() {
     }
 }
 
-// Helper: bulatkan angka (22.0857 -> 22.1, 25 -> 25) tanpa ".0" berlebih
 function fmtSuhu(v) {
     if (v === '' || v === null || v === undefined) return '';
     const n = parseFloat(v);
@@ -2047,8 +2076,6 @@ function buildSuhuFormPage(dataRows, userName, currentPage, totalPages) {
     const TOTAL_ROWS = 31;
     const maxRows = Math.min(dataRows.length, TOTAL_ROWS);
 
-    // ✅ URUTAN DATA DISINKRONKAN DENGAN HEADER:
-    // No | DATE | Temp(deg C) | RH(%) | PIC Sign | Time of Checking | Remark
     let tableRows = '';
     for (let i = 0; i < TOTAL_ROWS; i++) {
         const row = dataRows[i];
@@ -2084,7 +2111,6 @@ function buildSuhuFormPage(dataRows, userName, currentPage, totalPages) {
 
     return `
     <div class="print-page-suhu">
-        <!-- HEADER FORM -->
         <div class="suhu-header-form">
             <div class="suhu-header-left">
                 <div class="suhu-logo-box">
@@ -2109,14 +2135,12 @@ function buildSuhuFormPage(dataRows, userName, currentPage, totalPages) {
 
         <div class="suhu-form-title">CONTROL SHEET MONITORING RH&TEMPERATURS</div>
 
-        <!-- INFO -->
         <div class="suhu-info-box">
             <div class="suhu-info-row"><span class="suhu-info-label">Location :</span><span>WH-FG</span></div>
             <div class="suhu-info-row"><span class="suhu-info-label">Section :</span><span>STORAGE 1 (AREA POSM)</span></div>
             <div class="suhu-info-row"><span class="suhu-info-label">Periode :</span><span>${periodeStr}</span></div>
         </div>
 
-        <!-- TABEL: 1 BARIS HEADER, TANPA MERGED "Time of Checking" -->
         <table class="suhu-table">
             <thead>
                 <tr>
@@ -2134,7 +2158,6 @@ function buildSuhuFormPage(dataRows, userName, currentPage, totalPages) {
             </tbody>
         </table>
 
-        <!-- FOOTER -->
         <div class="suhu-footer">
             <div class="suhu-footer-box">
                 <p class="suhu-footer-label">Verified by</p>
@@ -2143,4 +2166,29 @@ function buildSuhuFormPage(dataRows, userName, currentPage, totalPages) {
             </div>
         </div>
     </div>`;
+}
+
+// ==========================================
+// 15. UTILS
+// ==========================================
+function showNotification(message, type = 'info') {
+    const colors = { 
+        success: { bg: 'rgba(34, 197, 94, 0.15)', border: 'rgba(34, 197, 94, 0.3)', icon: '#22c55e' }, 
+        warning: { bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', icon: '#f59e0b' }, 
+        error: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.3)', icon: '#ef4444' }, 
+        info: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)', icon: '#3b82f6' } 
+    };
+    const c = colors[type] || colors.info;
+    const el = document.createElement('div');
+    el.className = 'fixed top-6 right-6 z-[100] px-6 py-4 rounded-xl text-white font-medium';
+    el.style.cssText = `background: ${c.bg}; backdrop-filter: blur(20px); border: 1px solid ${c.border}; box-shadow: 0 8px 32px rgba(0,0,0,0.3); animation: slideIn 0.4s ease;`;
+    el.innerHTML = `<div class="flex items-center gap-3"><svg class="h-5 w-5" style="color: ${c.icon}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="${type === 'success' ? 'M5 13l4 4L19 7' : type === 'error' ? 'M6 18L18 6M6 6l12 12' : 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}" /></svg><span>${message}</span></div>`;
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.animation = 'slideOut 0.4s ease forwards'; setTimeout(() => el.remove(), 400); }, 3000);
+}
+
+if (!document.getElementById('notif-styles')) {
+    const s = document.createElement('style'); s.id = 'notif-styles';
+    s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
+    document.head.appendChild(s);
 }
