@@ -688,3 +688,90 @@ select.glass-input option {
     .suhu-footer-label { margin-bottom: 22px !important; }
     .suhu-footer-space { height: 22px !important; }
 }
+
+/* ============================================
+   ✅ PERBAIKAN BARU: OPTIMASI MOBILE TABEL RIWAYAT KENDARAAN
+   ============================================ */
+@media (max-width: 768px) {
+    /* 1. Kecilkan seluruh tabel report di mobile */
+    .report-table th {
+        font-size: 0.6rem !important;
+        padding: 0.45rem 0.3rem !important;
+        letter-spacing: 0.02em !important;
+        white-space: nowrap;
+    }
+    .report-table td {
+        font-size: 0.7rem !important;
+        padding: 0.45rem 0.3rem !important;
+    }
+
+    /* 2. Wrapper scroll horizontal jadi mulus + scrollbar neon tipis */
+    .overflow-x-auto {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(168,85,247,0.55) transparent;
+    }
+    .overflow-x-auto::-webkit-scrollbar { height: 5px; }
+    .overflow-x-auto::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 10px; }
+    .overflow-x-auto::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.55); border-radius: 10px; }
+
+    /* 3. ✅ KUNCI: Tombol plat nomor JANGAN wrap -> 1 baris rapi */
+    #vehicleHistoryBody button {
+        white-space: nowrap !important;
+        font-size: 0.66rem !important;
+        padding: 0.28rem 0.45rem !important;
+        gap: 0.2rem !important;
+    }
+    #vehicleHistoryBody button svg {
+        width: 0.85rem !important;
+        height: 0.85rem !important;
+        flex-shrink: 0;
+    }
+
+    /* 4. Kolom tanggal & jam: rapikan jadi kecil */
+    #vehicleHistoryBody td {
+        white-space: nowrap;
+    }
+    #vehicleHistoryBody td .text-xs {
+        font-size: 0.6rem !important;
+    }
+
+    /* 5. Badge status (Lengkap/Pending) + tombol Edit/Hapus: kecilkan */
+    #vehicleHistoryBody .rounded-full {
+        font-size: 0.58rem !important;
+        padding: 0.12rem 0.35rem !important;
+    }
+    #vehicleHistoryBody button[title="Edit data ini"],
+    #vehicleHistoryBody button[title="Hapus data ini"] {
+        font-size: 0.58rem !important;
+        padding: 0.12rem 0.35rem !important;
+        gap: 0.15rem !important;
+    }
+    #vehicleHistoryBody button[title="Edit data ini"] svg,
+    #vehicleHistoryBody button[title="Hapus data ini"] svg {
+        width: 0.7rem !important;
+        height: 0.7rem !important;
+    }
+
+    /* 6. Kontainer riwayat: kurangi padding luar biar lega */
+    .glass-card {
+        border-radius: 20px;
+    }
+    .glass-card > .p-5,
+    .glass-card .border-b.border-white\/10 {
+        padding: 0.8rem 0.9rem !important;
+    }
+}
+
+/* Layar sangat kecil (<400px): font lebih kecil lagi */
+@media (max-width: 400px) {
+    .report-table th { font-size: 0.55rem !important; padding: 0.35rem 0.2rem !important; }
+    .report-table td { font-size: 0.64rem !important; padding: 0.35rem 0.2rem !important; }
+    #vehicleHistoryBody button { font-size: 0.6rem !important; padding: 0.2rem 0.35rem !important; }
+    #vehicleHistoryBody .rounded-full,
+    #vehicleHistoryBody button[title="Edit data ini"],
+    #vehicleHistoryBody button[title="Hapus data ini"] {
+        font-size: 0.52rem !important;
+        padding: 0.1rem 0.25rem !important;
+    }
+}
