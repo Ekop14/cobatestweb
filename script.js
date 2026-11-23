@@ -1370,8 +1370,18 @@ function initKendaraanPage(session) {
             document.getElementById('v_dibuat_oleh').value = window.currentUser.name;
             getNextVehicleNo();
             loadVehicleHistory();
-            btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg> Simpan Data Kendaraan`;
-            btn.style.background = '';
+
+            // ✅ AUTO-OPEN MODAL DETAIL SETELAH SIMPAN BERHASIL
+            setTimeout(() => {
+            if (savedRow && savedRow.id) {
+            window.openVehicleDetailModal(savedRow.id, savedRow.nomor_kendaraan);
+            showNotification('📝 Silakan isi checklist detail kendaraan.', 'info');
+    }
+}, 800);
+
+// Reset tombol save kembali ke default
+btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg> Simpan Data Kendaraan`;
+btn.style.background = ''; // Reset warna gradient default
         } catch (error) {
             console.error("Gagal simpan header:", error);
             showNotification('❌ Gagal: ' + error.message, 'error');
