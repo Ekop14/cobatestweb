@@ -2192,3 +2192,20 @@ if (!document.getElementById('notif-styles')) {
     s.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
     document.head.appendChild(s);
 }
+// ==========================================
+// SIDEBAR DROPDOWN TOGGLE (Fungsi yang sebelumnya terlewat)
+// ==========================================
+function toggleSidebarDropdown(id) {
+    const dropdown = document.getElementById(`dropdown-${id}`);
+    const chevron = document.getElementById(`chevron-${id}`);
+    
+    if (dropdown && chevron) {
+        if (dropdown.classList.contains('hidden')) {
+            dropdown.classList.remove('hidden');
+            chevron.style.transform = 'rotate(180deg)';
+        } else {
+            dropdown.classList.add('hidden');
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+}
