@@ -1278,151 +1278,160 @@ if (vehicleModal && !vehicleModal.classList.contains('hidden') && event.target =
 closeVehicleDetailModal();
 }
 });
-
 // ==========================================
-// 12. HALAMAN CEKLIST KENDARAAN (DENGAN EDIT & HAPUS) - FIXED
+// 12. HALAMAN CEKLIST KENDARAAN (DENGAN EDIT & HAPUS) - FIXED v2
 // ==========================================
 function initKendaraanPage(session) {
-window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
-loadSidebar();
-const today = new Date();
-const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-document.getElementById('v_hari').value = days[today.getDay()];
-document.getElementById('v_tanggal').value = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
-const now = new Date();
-const timeString = now.toTimeString().split(' ')[0].substring(0, 5);
-document.getElementById('v_jam').value = timeString;
-document.getElementById('v_checker').value = window.currentUser.name;
-document.getElementById('v_dibuat_oleh').value = window.currentUser.name;
-getNextVehicleNo();
-loadVehicleHistory();
-document.getElementById('saveVehicleHeaderBtn').addEventListener('click', async () => {
-const btn = document.getElementById('saveVehicleHeaderBtn');
-const nopol = document.getElementById('v_nopol').value.trim();
-const keputusan = document.getElementById('v_keputusan').value;
-if (!nopol) { showNotification('⚠️ Nomor Kendaraan wajib diisi!', 'warning'); return; }
-if (!keputusan) { showNotification('⚠️ Keputusan wajib dipilih!', 'warning'); return; }
-btn.disabled = true;
-btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Menyimpan...';
-const headerData = {
-no_urut: parseInt(document.getElementById('v_no').value) || 1,
-hari: document.getElementById('v_hari').value,
-tanggal: today.toISOString().split('T')[0],
-jam: document.getElementById('v_jam').value,
-supplier: document.getElementById('v_supplier').value.toUpperCase(),
-nomor_kendaraan: nopol.toUpperCase(),
-jenis_kendaraan: document.getElementById('v_jenis').value,
-no_coa: document.getElementById('v_coa').value.toUpperCase(),
-no_do: document.getElementById('v_do').value.toUpperCase(),
-nomor_container: document.getElementById('v_container').value.toUpperCase(),
-nomor_seal: document.getElementById('v_seal').value.toUpperCase(),
-ttd_checker: document.getElementById('v_checker').value.toUpperCase(),
-keputusan: keputusan,
-dibuat_oleh: document.getElementById('v_dibuat_oleh').value.toUpperCase(),
-keterangan: document.getElementById('v_keterangan').value.toUpperCase(),
-user_email: window.currentUser.email
-};
-try {
-let savedRow;
-if (editingVehicleId) {
-// ✅ MODE UPDATE
-const { data, error } = await window.supabaseClient
-.from('vehicle_checklist_header')
-.update(headerData)
-.eq('id', editingVehicleId)
-.select();
-if (error) throw error;
-savedRow = data[0];
-showNotification('✏️ Data kendaraan berhasil diupdate!', 'success');
-editingVehicleId = null;
-} else {
-// ✅ MODE INSERT
-const { data, error } = await window.supabaseClient
-.from('vehicle_checklist_header')
-.insert([headerData])
-.select();
-if (error) throw error;
-savedRow = data[0];
-showNotification('✅ Data kendaraan berhasil disimpan!', 'success');
+    window.currentUser = { name: session.user.user_metadata?.full_name || session.user.email || 'User', email: session.user.email };
+    loadSidebar();
+    
+    const today = new Date();
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    
+    document.getElementById('v_hari').value = days[today.getDay()];
+    document.getElementById('v_tanggal').value = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+    
+    const now = new Date();
+    const timeString = now.toTimeString().split(' ')[0].substring(0, 5);
+    document.getElementById('v_jam').value = timeString;
+    document.getElementById('v_checker').value = window.currentUser.name;
+    document.getElementById('v_dibuat_oleh').value = window.currentUser.name;
+    
+    getNextVehicleNo();
+    loadVehicleHistory();
+    
+    document.getElementById('saveVehicleHeaderBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('saveVehicleHeaderBtn');
+        const nopol = document.getElementById('v_nopol').value.trim();
+        const keputusan = document.getElementById('v_keputusan').value;
+        
+        if (!nopol) { showNotification('⚠️ Nomor Kendaraan wajib diisi!', 'warning'); return; }
+        if (!keputusan) { showNotification('⚠️ Keputusan wajib dipilih!', 'warning'); return; }
+        
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Menyimpan...';
+        
+        const headerData = {
+            no_urut: parseInt(document.getElementById('v_no').value) || 1,
+            hari: document.getElementById('v_hari').value,
+            tanggal: today.toISOString().split('T')[0],
+            jam: document.getElementById('v_jam').value,
+            supplier: document.getElementById('v_supplier').value.toUpperCase(),
+            nomor_kendaraan: nopol.toUpperCase(),
+            jenis_kendaraan: document.getElementById('v_jenis').value,
+            no_coa: document.getElementById('v_coa').value.toUpperCase(),
+            no_do: document.getElementById('v_do').value.toUpperCase(),
+            nomor_container: document.getElementById('v_container').value.toUpperCase(),
+            nomor_seal: document.getElementById('v_seal').value.toUpperCase(),
+            ttd_checker: document.getElementById('v_checker').value.toUpperCase(),
+            keputusan: keputusan,
+            dibuat_oleh: document.getElementById('v_dibuat_oleh').value.toUpperCase(),
+            keterangan: document.getElementById('v_keterangan').value.toUpperCase(),
+            user_email: window.currentUser.email
+        };
+        
+        try {
+            let savedRow;
+            if (editingVehicleId) {
+                const { data, error } = await window.supabaseClient
+                    .from('vehicle_checklist_header')
+                    .update(headerData)
+                    .eq('id', editingVehicleId)
+                    .select();
+                if (error) throw error;
+                savedRow = data[0];
+                showNotification('✏️ Data kendaraan berhasil diupdate!', 'success');
+                editingVehicleId = null;
+            } else {
+                const { data, error } = await window.supabaseClient
+                    .from('vehicle_checklist_header')
+                    .insert([headerData])
+                    .select();
+                if (error) throw error;
+                savedRow = data[0];
+                showNotification('✅ Data kendaraan berhasil disimpan!', 'success');
+            }
+            
+            document.getElementById('vehicleHeaderForm').reset();
+            document.getElementById('v_hari').value = days[new Date().getDay()];
+            document.getElementById('v_tanggal').value = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+            document.getElementById('v_jam').value = new Date().toTimeString().split(' ')[0].substring(0, 5);
+            document.getElementById('v_checker').value = window.currentUser.name;
+            document.getElementById('v_dibuat_oleh').value = window.currentUser.name;
+            getNextVehicleNo();
+            loadVehicleHistory();
+            
+            // ✅ AUTO-OPEN MODAL DETAIL
+            setTimeout(() => {
+                if (savedRow && savedRow.id) {
+                    window.openVehicleDetailModal(savedRow.id, savedRow.nomor_kendaraan);
+                }
+            }, 1000);
+            
+            btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg> Simpan Data Kendaraan`;
+            btn.style.background = '';
+            
+        } catch (error) {
+            console.error("Gagal simpan header:", error);
+            showNotification('❌ Gagal: ' + error.message, 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    });
 }
-document.getElementById('vehicleHeaderForm').reset();
-document.getElementById('v_hari').value = days[new Date().getDay()];
-document.getElementById('v_tanggal').value = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
-document.getElementById('v_jam').value = new Date().toTimeString().split(' ')[0].substring(0, 5);
-document.getElementById('v_checker').value = window.currentUser.name;
-document.getElementById('v_dibuat_oleh').value = window.currentUser.name;
-getNextVehicleNo();
-loadVehicleHistory();
 
-// ✅ PERBAIKAN 2: AUTO-OPEN MODAL DETAIL SETELAH 1 DETIK
-setTimeout(() => {
-if (savedRow && savedRow.id) {
-openVehicleDetailModal(savedRow.id, savedRow.nomor_kendaraan);
-}
-}, 1000);
-
-// Reset tombol save kembali ke default
-btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg> Simpan Data Kendaraan`;
-btn.style.background = '';
-} catch (error) {
-console.error("Gagal simpan header:", error);
-showNotification('❌ Gagal: ' + error.message, 'error');
-} finally {
-btn.disabled = false;
-}
-});
-}
 async function getNextVehicleNo() {
-try {
-const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').select('no_urut').order('no_urut', { ascending: false }).limit(1);
-if (error) throw error;
-const nextNo = data && data.length > 0 ? data[0].no_urut + 1 : 1;
-document.getElementById('v_no').value = nextNo;
-} catch (error) {
-console.error("Gagal get next no:", error);
-document.getElementById('v_no').value = 1;
+    try {
+        const { data, error } = await window.supabaseClient.from('vehicle_checklist_header').select('no_urut').order('no_urut', { ascending: false }).limit(1);
+        if (error) throw error;
+        const nextNo = data && data.length > 0 ? data[0].no_urut + 1 : 1;
+        document.getElementById('v_no').value = nextNo;
+    } catch (error) {
+        console.error("Gagal get next no:", error);
+        document.getElementById('v_no').value = 1;
+    }
 }
-}
+
 async function loadVehicleHistory() {
-const tbody = document.getElementById('vehicleHistoryBody');
-if (!tbody) return;
-tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
-try {
-const { data, error } = await window.supabaseClient
-.from('vehicle_checklist_header')
-.select(`id, no_urut, tanggal, jam, supplier, nomor_kendaraan, jenis_kendaraan, ttd_checker, hari, keputusan, dibuat_oleh, keterangan, user_email, vehicle_checklist_detail (id)`)
-.order('created_at', { ascending: false });
-if (error) throw error;
-if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-white/50">Belum ada riwayat ceklist kendaraan.</td></tr>`; return; }
-tbody.innerHTML = data.map(row => {
-const dateStr = row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-const timeStr = row.jam ? row.jam.substring(0, 5) : '-';
-const isDetailFilled = row.vehicle_checklist_detail && row.vehicle_checklist_detail.length > 0;
-const statusBadge = isDetailFilled
-? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30">✅ Lengkap</span>'
-: '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Pending</span>';
-const actionButtons = `
+    const tbody = document.getElementById('vehicleHistoryBody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8"><div class="spinner mx-auto"></div><p class="text-white/50 mt-2">Memuat data...</p></td></tr>`;
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('vehicle_checklist_header')
+            .select(`id, no_urut, tanggal, jam, supplier, nomor_kendaraan, jenis_kendaraan, ttd_checker, hari, keputusan, dibuat_oleh, keterangan, user_email, vehicle_checklist_detail (id)`)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-white/50">Belum ada riwayat ceklist kendaraan.</td></tr>`; return; }
+        tbody.innerHTML = data.map(row => {
+            const dateStr = row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+            const timeStr = row.jam ? row.jam.substring(0, 5) : '-';
+            const isDetailFilled = row.vehicle_checklist_detail && row.vehicle_checklist_detail.length > 0;
+            const statusBadge = isDetailFilled
+                ? '<span class="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30">✅ Lengkap</span>'
+                : '<span class="px-2 py-1 rounded-full text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Pending</span>';
+            const actionButtons = `
 <div class="flex items-center justify-center gap-1 mt-1">
-<button type="button" onclick="editVehicleHeader('${row.id}')"
+<button type="button" onclick="window.editVehicleHeader('${row.id}')"
 class="px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30 transition text-xs font-medium flex items-center gap-1"
 title="Edit data ini">
 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
 Edit
 </button>
-<button type="button" onclick="deleteVehicleHeader('${row.id}', '${(row.nomor_kendaraan || '').replace(/'/g, "\\'")}')"
+<button type="button" onclick="window.deleteVehicleHeader('${row.id}', '${(row.nomor_kendaraan || '').replace(/'/g, "\\'")}')"
 class="px-2 py-1 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition text-xs font-medium flex items-center gap-1"
 title="Hapus data ini">
 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
 Hapus
 </button>
 </div>`;
-return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
+            return `<tr class="border-b border-white/5 hover:bg-white/5 transition">
 <td class="px-4 py-3 text-sm text-white/80">${row.no_urut || '-'}</td>
 <td class="px-4 py-3 text-sm text-white/80">${dateStr}<br><span class="text-xs text-white/50">${timeStr}</span></td>
 <td class="px-4 py-3 text-sm text-white">${row.supplier || '-'}</td>
 <td class="px-4 py-3 text-center">
-<button onclick="openVehicleDetailModal('${row.id}', '${row.nomor_kendaraan}')" class="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition text-sm font-bold flex items-center gap-2 mx-auto cursor-pointer">
+<button onclick="window.openVehicleDetailModal('${row.id}', '${row.nomor_kendaraan}')" class="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 hover:bg-purple-500/30 transition text-sm font-bold flex items-center gap-2 mx-auto cursor-pointer">
 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
 ${row.nomor_kendaraan}
 </button>
@@ -1434,104 +1443,102 @@ ${statusBadge}
 ${actionButtons}
 </td>
 </tr>`;
-}).join('');
-} catch (error) {
-console.error("Gagal load history:", error);
-tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-400">Gagal memuat data: ${error.message}</td></tr>`;
+        }).join('');
+    } catch (error) {
+        console.error("Gagal load history:", error);
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-400">Gagal memuat data: ${error.message}</td></tr>`;
+    }
 }
-}
-async function editVehicleHeader(id) {
-try {
-const { data, error } = await window.supabaseClient
-.from('vehicle_checklist_header')
-.select('*')
-.eq('id', id)
-.single();
-if (error) throw error;
-document.getElementById('v_no').value = data.no_urut || '';
-document.getElementById('v_hari').value = data.hari || '';
-document.getElementById('v_tanggal').value = data.tanggal ? new Date(data.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
-document.getElementById('v_jam').value = data.jam || '';
-document.getElementById('v_supplier').value = data.supplier || '';
-document.getElementById('v_nopol').value = data.nomor_kendaraan || '';
-document.getElementById('v_jenis').value = data.jenis_kendaraan || 'Truck Box';
-document.getElementById('v_coa').value = data.no_coa || '';
-document.getElementById('v_do').value = data.no_do || '';
-document.getElementById('v_container').value = data.nomor_container || '';
-document.getElementById('v_seal').value = data.nomor_seal || '';
-document.getElementById('v_checker').value = data.ttd_checker || '';
-document.getElementById('v_keputusan').value = data.keputusan || '';
-document.getElementById('v_dibuat_oleh').value = data.dibuat_oleh || '';
-document.getElementById('v_keterangan').value = data.keterangan || '';
-editingVehicleId = id;
-const btn = document.getElementById('saveVehicleHeaderBtn');
-btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> Update Data Kendaraan`;
-btn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)';
-document.querySelector('.glass-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-showNotification('✏️ Mode Edit aktif. Ubah data lalu klik Update.', 'info');
-} catch (error) {
-console.error("Gagal load data edit:", error);
-showNotification('❌ Gagal memuat data: ' + error.message, 'error');
-}
-}
-async function deleteVehicleHeader(id, nopol) {
-if (!confirm(`⚠️ Yakin ingin menghapus data kendaraan ${nopol}?
+
+// ✅ DEFINISI LANGSUNG DI WINDOW (PASTI BERHASIL)
+window.editVehicleHeader = async function(id) {
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('vehicle_checklist_header')
+            .select('*')
+            .eq('id', id)
+            .single();
+        if (error) throw error;
+        document.getElementById('v_no').value = data.no_urut || '';
+        document.getElementById('v_hari').value = data.hari || '';
+        document.getElementById('v_tanggal').value = data.tanggal ? new Date(data.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+        document.getElementById('v_jam').value = data.jam || '';
+        document.getElementById('v_supplier').value = data.supplier || '';
+        document.getElementById('v_nopol').value = data.nomor_kendaraan || '';
+        document.getElementById('v_jenis').value = data.jenis_kendaraan || 'Truck Box';
+        document.getElementById('v_coa').value = data.no_coa || '';
+        document.getElementById('v_do').value = data.no_do || '';
+        document.getElementById('v_container').value = data.nomor_container || '';
+        document.getElementById('v_seal').value = data.nomor_seal || '';
+        document.getElementById('v_checker').value = data.ttd_checker || '';
+        document.getElementById('v_keputusan').value = data.keputusan || '';
+        document.getElementById('v_dibuat_oleh').value = data.dibuat_oleh || '';
+        document.getElementById('v_keterangan').value = data.keterangan || '';
+        editingVehicleId = id;
+        const btn = document.getElementById('saveVehicleHeaderBtn');
+        btn.innerHTML = `<svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> Update Data Kendaraan`;
+        btn.style.background = 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)';
+        document.querySelector('.glass-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showNotification('✏️ Mode Edit aktif. Ubah data lalu klik Update.', 'info');
+    } catch (error) {
+        console.error("Gagal load data edit:", error);
+        showNotification('❌ Gagal memuat data: ' + error.message, 'error');
+    }
+};
+
+window.deleteVehicleHeader = async function(id, nopol) {
+    if (!confirm(`⚠️ Yakin ingin menghapus data kendaraan ${nopol}?
 Data header + detail checklist akan terhapus permanen.`)) {
-return;
-}
-try {
-const { error: detailError } = await window.supabaseClient
-.from('vehicle_checklist_detail')
-.delete()
-.eq('header_id', id);
-if (detailError) throw detailError;
-const { error: headerError } = await window.supabaseClient
-.from('vehicle_checklist_header')
-.delete()
-.eq('id', id);
-if (headerError) throw headerError;
-showNotification('🗑️ Data kendaraan berhasil dihapus!', 'success');
-loadVehicleHistory();
-} catch (error) {
-console.error("Gagal hapus data:", error);
-showNotification('❌ Gagal menghapus: ' + error.message, 'error');
-}
-}
-async function openVehicleDetailModal(headerId, nopol) {
-currentVehicleHeaderId = headerId;
-document.getElementById('modalVehicleNo').textContent = nopol;
-document.getElementById('detail_header_id').value = headerId;
-document.getElementById('vehicleDetailForm').reset();
-try {
-const { data, error } = await window.supabaseClient.from('vehicle_checklist_detail').select('*').eq('header_id', headerId).single();
-if (data && !error) {
-document.getElementById('d_luar').value = data.item_luar_bersih || '';
-document.getElementById('d_lantai').value = data.item_lantai_bersih || '';
-document.getElementById('d_hama').value = data.item_hama || '';
-document.getElementById('d_paku').value = data.item_paku_baut || '';
-document.getElementById('d_bocor').value = data.item_lubang_bocor || '';
-document.getElementById('d_bau').value = data.item_bau || '';
-document.getElementById('d_kering').value = data.item_kering || '';
-document.getElementById('d_utuh').value = data.item_barang_utuh || '';
-document.getElementById('d_pisah').value = data.item_pemisahan_bahan || '';
-document.getElementById('d_pintu').value = data.item_pintu_seal || '';
-document.getElementById('d_jenis_barang').value = data.jenis_barang || '';
-document.getElementById('d_lampu').value = data.item_lampu_kaca || '';
-}
-} catch (e) { console.log("Belum ada data detail."); }
-document.getElementById('vehicleDetailModal').classList.remove('hidden');
-}
-function closeVehicleDetailModal() {
-document.getElementById('vehicleDetailModal').classList.add('hidden');
-currentVehicleHeaderId = null;
-}
+        return;
+    }
+    try {
+        const { error: detailError } = await window.supabaseClient
+            .from('vehicle_checklist_detail')
+            .delete()
+            .eq('header_id', id);
+        if (detailError) throw detailError;
+        const { error: headerError } = await window.supabaseClient
+            .from('vehicle_checklist_header')
+            .delete()
+            .eq('id', id);
+        if (headerError) throw headerError;
+        showNotification('🗑️ Data kendaraan berhasil dihapus!', 'success');
+        loadVehicleHistory();
+    } catch (error) {
+        console.error("Gagal hapus data:", error);
+        showNotification('❌ Gagal menghapus: ' + error.message, 'error');
+    }
+};
 
-// ✅ PERBAIKAN 3: BIND FUNGSI KENDARAAN KE WINDOW (setelah fungsi didefinisikan)
-window.editVehicleHeader = editVehicleHeader;
-window.deleteVehicleHeader = deleteVehicleHeader;
-window.openVehicleDetailModal = openVehicleDetailModal;
-window.closeVehicleDetailModal = closeVehicleDetailModal;
+window.openVehicleDetailModal = async function(headerId, nopol) {
+    currentVehicleHeaderId = headerId;
+    document.getElementById('modalVehicleNo').textContent = nopol;
+    document.getElementById('detail_header_id').value = headerId;
+    document.getElementById('vehicleDetailForm').reset();
+    try {
+        const { data, error } = await window.supabaseClient.from('vehicle_checklist_detail').select('*').eq('header_id', headerId).single();
+        if (data && !error) {
+            document.getElementById('d_luar').value = data.item_luar_bersih || '';
+            document.getElementById('d_lantai').value = data.item_lantai_bersih || '';
+            document.getElementById('d_hama').value = data.item_hama || '';
+            document.getElementById('d_paku').value = data.item_paku_baut || '';
+            document.getElementById('d_bocor').value = data.item_lubang_bocor || '';
+            document.getElementById('d_bau').value = data.item_bau || '';
+            document.getElementById('d_kering').value = data.item_kering || '';
+            document.getElementById('d_utuh').value = data.item_barang_utuh || '';
+            document.getElementById('d_pisah').value = data.item_pemisahan_bahan || '';
+            document.getElementById('d_pintu').value = data.item_pintu_seal || '';
+            document.getElementById('d_jenis_barang').value = data.jenis_barang || '';
+            document.getElementById('d_lampu').value = data.item_lampu_kaca || '';
+        }
+    } catch (e) { console.log("Belum ada data detail."); }
+    document.getElementById('vehicleDetailModal').classList.remove('hidden');
+};
 
+window.closeVehicleDetailModal = function() {
+    document.getElementById('vehicleDetailModal').classList.add('hidden');
+    currentVehicleHeaderId = null;
+};
 // ==========================================
 // 13. HALAMAN LAPORAN KENDARAAN (FORM PT URC)
 // ==========================================
