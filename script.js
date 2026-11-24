@@ -2051,3 +2051,33 @@ chevron.style.transform = 'rotate(0deg)';
 }
 }
 }
+/**
+ * MAINTENANCE GUARD
+ * Letakkan script ini di SEMUA halaman website Anda.
+ */
+(function() {
+    // 🔴 UBAH MENJADI 'false' SAAT WEBSITE SUDAH SIAP DILUNCURKAN
+    const MAINTENANCE_MODE = true; 
+    
+    const MAINTENANCE_PAGE = '/maintenance.html';
+    const BYPASS_SECRET = 'RAHASIA123'; // Harus sama dengan yang di maintenance.html
+
+    // 1. Cek apakah pengguna mencoba mengaktifkan bypass via URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('bypass') === BYPASS_SECRET) {
+        localStorage.setItem('maintenance_bypass', 'true');
+        // Hapus parameter ?bypass=... dari URL agar bersih
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // 2. Cek status bypass dan halaman saat ini
+    const hasBypass = localStorage.getItem('maintenance_bypass') === 'true';
+    const isMaintenancePage = window.location.pathname.includes('maintenance.html');
+
+    // 3. Eksekusi Redirect
+    if (MAINTENANCE_MODE && !isMaintenancePage && !hasBypass) {
+        // Gunakan .replace() agar pengguna tidak bisa menekan tombol "Back" 
+        // untuk kembali ke halaman yang diblokir (mencegah redirect loop)
+        window.location.replace(MAINTENANCE_PAGE);
+    }
+})();
