@@ -2052,7 +2052,7 @@ chevron.style.transform = 'rotate(0deg)';
 }
 }
 /**
- * MAINTENANCE GUARD
+ * MAINTENANCE GUARD (Hapus Bagian ini saat mau Re-launcing)
  * Letakkan script ini di SEMUA halaman website Anda.
  */
 (function() {
