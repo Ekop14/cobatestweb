@@ -2060,7 +2060,7 @@ chevron.style.transform = 'rotate(0deg)';
     const MAINTENANCE_MODE = true; 
     
     const MAINTENANCE_PAGE = '/maintenance.html';
-    const BYPASS_SECRET = 'RAHASIA123'; // Harus sama dengan yang di maintenance.html
+    const BYPASS_SECRET = 'eko123456'; // Harus sama dengan yang di maintenance.html
 
     // 1. Cek apakah pengguna mencoba mengaktifkan bypass via URL
     const urlParams = new URLSearchParams(window.location.search);
